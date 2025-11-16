@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Minimalista - Colores mates y opacos */
+    --background: 210 20% 98%;
+    --foreground: 220 15% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 20%;
+    --primary: 220 14% 38%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 210 15% 92%;
+    --secondary-foreground: 220 15% 25%;
+    --muted: 210 15% 94%;
+    --muted-foreground: 220 10% 50%;
+    --accent: 215 20% 88%;
+    --accent-foreground: 220 15% 25%;
+    --destructive: 0 40% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 220 14% 38%;
+    --radius: 0.5rem;
+
+    /* Colores adicionales minimalistas */
+    --success: 142 35% 45%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 45% 55%;
+    --warning-foreground: 0 0% 98%;
+    --info: 200 35% 48%;
+    --info-foreground: 0 0% 98%;
+  }
+
+  .dark {
+    /* Dark Mode - Colores mates y opacos */
+    --background: 220 18% 12%;
+    --foreground: 210 20% 92%;
+    --card: 220 16% 16%;
+    --card-foreground: 210 20% 92%;
+    --primary: 215 20% 65%;
+    --primary-foreground: 220 15% 15%;
+    --secondary: 220 15% 22%;
+    --secondary-foreground: 210 20% 90%;
+    --muted: 220 15% 20%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 220 18% 28%;
+    --accent-foreground: 210 20% 90%;
+    --destructive: 0 50% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 15% 24%;
+    --input: 220 15% 24%;
+    --ring: 215 20% 65%;
+
+    /* Colores adicionales dark */
+    --success: 142 40% 50%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 50% 60%;
+    --warning-foreground: 220 15% 15%;
+    --info: 200 40% 55%;
+    --info-foreground: 220 15% 15%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Minimalismo: espaciado y tipografía */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-medium tracking-tight;
+  }
+
+  /* Reduce motion para accesibilidad */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* Scrollbar minimalista */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/20 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground/30;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
+}
+
+/* Custom animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
