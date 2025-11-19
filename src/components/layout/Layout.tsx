@@ -3,18 +3,20 @@
  */
 
 import { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
-import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings } from 'lucide-react';
+import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home } from 'lucide-react';
+import MobileMenu from './MobileMenu';
 
 export default function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { usuario, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [menuUsuarioAbierto, setMenuUsuarioAbierto] = useState(false);
-  const [menuMovilAbierto, setMenuMovilAbierto] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async (): Promise<void> => {
     try {
@@ -26,7 +28,7 @@ export default function Layout() {
     }
   };
 
-  const navLinks = [
+  const desktopLinks = [
     { to: '/', label: 'Dashboard', icon: BarChart3 },
     { to: '/gastos', label: 'Gastos', icon: TrendingDown },
     { to: '/presupuestos', label: 'Presupuestos', icon: Target },
@@ -34,24 +36,30 @@ export default function Layout() {
     { to: '/asistente', label: 'Asistente IA', icon: Bot },
   ];
 
+  const mobileLinks = [
+    { to: '/', label: 'Inicio', icon: Home },
+    { to: '/gastos', label: 'Gastos', icon: TrendingDown },
+    { to: '/presupuestos', label: 'Presupuestos', icon: Target },
+    { to: '/asistente', label: 'IA', icon: Bot },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header / Navigation */}
-      <header className="bg-card border-b border-border sticky top-0 z-50 shadow-sm">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
+      {/* Desktop Header */}
+      <header className="hidden md:block bg-card border-b border-border sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo y título */}
+            {/* Logo */}
             <div className="flex items-center">
               <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
                 <Wallet className="h-6 w-6" />
-                <span className="hidden sm:inline">Gestión de Gastos</span>
-                <span className="sm:hidden">Gastos</span>
+                <span>Gestión de Gastos</span>
               </h1>
             </div>
 
             {/* Navigation - Desktop */}
-            <nav className="hidden md:flex items-center space-x-1">
-              {navLinks.map((link) => {
+            <nav className="flex items-center space-x-1">
+              {desktopLinks.map((link) => {
                 const Icon = link.icon;
                 return (
                   <NavLink
@@ -74,8 +82,7 @@ export default function Layout() {
             </nav>
 
             {/* Actions - Desktop */}
-            <div className="hidden md:flex items-center space-x-4">
-              {/* Theme Toggle */}
+            <div className="flex items-center space-x-4">
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-md text-foreground hover:bg-accent transition-colors"
@@ -84,7 +91,6 @@ export default function Layout() {
                 {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>
 
-              {/* User Menu */}
               <div className="relative">
                 <button
                   onClick={() => setMenuUsuarioAbierto(!menuUsuarioAbierto)}
@@ -101,27 +107,11 @@ export default function Layout() {
                       {usuario?.nombre?.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <span className="text-sm font-medium text-foreground hidden lg:block">
+                  <span className="text-sm font-medium text-foreground">
                     {usuario?.nombre}
                   </span>
-                  <svg
-                    className={`h-4 w-4 text-foreground transition-transform ${
-                      menuUsuarioAbierto ? 'rotate-180' : ''
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
                 </button>
 
-                {/* Dropdown Menu */}
                 {menuUsuarioAbierto && (
                   <>
                     <div
@@ -159,125 +149,58 @@ export default function Layout() {
                 )}
               </div>
             </div>
-
-            {/* Mobile Menu Button */}
-            <div className="md:hidden flex items-center space-x-2">
-              {/* Theme Toggle Mobile */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-md text-foreground hover:bg-accent transition-colors"
-              >
-                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </button>
-
-              {/* Hamburger Menu */}
-              <button
-                onClick={() => setMenuMovilAbierto(!menuMovilAbierto)}
-                className="p-2 rounded-md text-foreground hover:bg-accent transition-colors"
-              >
-                <svg
-                  className="h-6 w-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  {menuMovilAbierto ? (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  ) : (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  )}
-                </svg>
-              </button>
-            </div>
           </div>
-
-          {/* Mobile Navigation */}
-          {menuMovilAbierto && (
-            <div className="md:hidden border-t border-border py-2 animate-slide-in">
-              <nav className="flex flex-col space-y-1">
-                {navLinks.map((link) => {
-                  const Icon = link.icon;
-                  return (
-                    <NavLink
-                      key={link.to}
-                      to={link.to}
-                      end={link.to === '/'}
-                      onClick={() => setMenuMovilAbierto(false)}
-                      className={({ isActive }) =>
-                        `px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
-                          isActive
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-foreground hover:bg-accent'
-                        }`
-                      }
-                    >
-                      <Icon className="h-4 w-4" />
-                      {link.label}
-                    </NavLink>
-                  );
-                })}
-              </nav>
-
-              {/* User Info Mobile */}
-              <div className="border-t border-border mt-2 pt-2 px-3">
-                <div className="flex items-center space-x-2 py-2">
-                  {usuario?.photoURL ? (
-                    <img
-                      src={usuario.photoURL}
-                      alt={usuario.nombre}
-                      className="h-8 w-8 rounded-full"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-medium">
-                      {usuario?.nombre?.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-foreground">
-                      {usuario?.nombre}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {usuario?.email}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-3 py-2 rounded-md text-sm text-foreground hover:bg-accent transition-colors flex items-center gap-2"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Cerrar sesión
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </header>
 
+      {/* Mobile Header (Logo Only) */}
+      <header className="md:hidden bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-40 px-4 h-14 flex items-center justify-center">
+        <h1 className="text-lg font-bold text-primary flex items-center gap-2">
+          <Wallet className="h-5 w-5" />
+          <span>Gestión de Gastos</span>
+        </h1>
+      </header>
+
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
         <Outlet />
       </main>
 
-      {/* Footer */}
-      <footer className="bg-card border-t border-border mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-center text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Gestión de Gastos. Todos los derechos
-            reservados.
-          </p>
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-lg border-t border-border z-40 pb-safe">
+        <div className="flex items-center justify-around h-16 px-2">
+          {mobileLinks.map((link) => {
+            const Icon = link.icon;
+            const isActive = location.pathname === link.to;
+            return (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${
+                  isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className={`h-6 w-6 ${isActive ? 'fill-current' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+                <span className="text-[10px] font-medium">{link.label}</span>
+              </NavLink>
+            );
+          })}
+          
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${
+              mobileMenuOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <MoreHorizontal className="h-6 w-6" />
+            <span className="text-[10px] font-medium">Más</span>
+          </button>
         </div>
-      </footer>
+      </nav>
+
+      {/* Mobile Menu Sheet */}
+      <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
     </div>
   );
 }
+

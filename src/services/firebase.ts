@@ -386,6 +386,34 @@ export const authService = {
   onAuthChange(callback: (user: User | null) => void): () => void {
     return onAuthStateChanged(auth, callback);
   },
+
+  /**
+   * Actualizar perfil de usuario
+   */
+  async actualizarPerfil(datos: { nombre?: string; photoURL?: string }): Promise<void> {
+    const user = auth.currentUser;
+    if (!user) throw new Error('No hay usuario autenticado');
+
+    try {
+      // 1. Actualizar en Firebase Auth
+      await updateProfile(user, {
+        displayName: datos.nombre,
+        photoURL: datos.photoURL,
+      });
+
+      // 2. Actualizar en Firestore
+      const updateData: any = {
+        updatedAt: serverTimestamp(),
+      };
+
+      if (datos.nombre) updateData.nombre = datos.nombre;
+      if (datos.photoURL !== undefined) updateData.photoURL = datos.photoURL;
+
+      await updateDoc(doc(db, 'users', user.uid), updateData);
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
 };
 
 // ============================================================================

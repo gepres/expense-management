@@ -1,9 +1,5 @@
 /**
  * Dashboard principal con estadísticas y resumen de gastos
- *
- * NOTA: Actualmente los totales y estadísticas mezclan gastos en diferentes monedas (PEN y USD).
- * Los gastos individuales muestran la moneda correcta, pero los totales calculados no separan por moneda.
- * TODO: Mejorar para mostrar totales separados por moneda o implementar conversión de monedas.
  */
 
 import { useEffect, useState } from 'react';
@@ -31,7 +27,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Hand, Target, Clipboard, Cloud, Plus, Bot, FileText } from 'lucide-react';
+import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Hand, Target, Clipboard, Cloud, Plus, Bot, FileText, ArrowRight } from 'lucide-react';
+import AIInsights from './AIInsights';
 
 // Función helper para obtener el icono de la categoría
 const getCategoryIcon = (categoria: string, className?: string) => {
@@ -102,9 +99,9 @@ export default function Dashboard() {
   const gastosAgrupados = agruparGastosPorMoneda(gastosDelMes);
   const totalGastosPEN = calcularTotalGastos(gastosAgrupados.PEN);
   const totalGastosUSD = calcularTotalGastos(gastosAgrupados.USD);
-  const totalGastosDelMes = totalGastosPEN + totalGastosUSD; // Simplificado (debería convertir a una moneda)
+  const totalGastosDelMes = totalGastosPEN + totalGastosUSD; // Simplificado
 
-  // Calcular presupuesto total (sumar todos los presupuestos generales)
+  // Calcular presupuesto total
   const limiteTotalGeneralPEN = presupuestosGenerales
     .filter((p) => p.moneda === 'PEN')
     .reduce((total, p) => total + p.limite, 0);
@@ -116,7 +113,6 @@ export default function Dashboard() {
   const limitePresupuestoGeneral = limiteTotalGeneralPEN + limiteTotalGeneralUSD;
   const totalPresupuestosCategorias = presupuestosCategorias.reduce((total, p) => total + p.limite, 0);
 
-  // Si hay presupuestos generales, usarlos como referencia principal
   const tienePresupuestoGeneral = presupuestosGenerales.length > 0;
   const presupuestoTotalReferencia = tienePresupuestoGeneral ? limitePresupuestoGeneral : totalPresupuestosCategorias;
   const presupuestoRestante = presupuestoTotalReferencia - totalGastosDelMes;
@@ -151,347 +147,251 @@ export default function Dashboard() {
 
   if (estado.estado === 'loading' || estadoPresupuestos.estado === 'loading') {
     return (
-      <div className="flex items-center justify-center p-12">
+      <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando dashboard...</p>
+          <p className="text-muted-foreground animate-pulse">Cargando tus finanzas...</p>
         </div>
       </div>
     );
   }
 
+  const [year, month] = mesActual.split('-').map(Number);
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-          ¡Bienvenido, {usuario?.nombre}! <Hand className="h-8 w-8" />
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Aquí está el resumen de tus gastos de este mes
-        </p>
-      </div>
-
-      {/* Tarjetas de estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Total Gastos del Mes */}
-        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-muted-foreground">
-              Gastos del Mes
-            </p>
-            <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-              <TrendingDown className="h-6 w-6 text-red-600 dark:text-red-400" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-foreground">
-            {formatearMoneda(totalGastosDelMes)}
-          </p>
-          <div className="mt-2 text-xs text-muted-foreground flex gap-3">
-            <span>S/ {totalGastosPEN.toFixed(2)}</span>
-            <span>$ {totalGastosUSD.toFixed(2)}</span>
-          </div>
-        </div>
-
-        {/* Presupuesto General */}
-        {tienePresupuestoGeneral ? (
-          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-muted-foreground">
-                Presupuesto General
-              </p>
-              <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <Wallet className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-foreground">
-              {formatearMoneda(limitePresupuestoGeneral)}
-            </p>
-            <div className="mt-2 text-xs text-muted-foreground flex gap-3">
-              {limiteTotalGeneralPEN > 0 && <span>S/ {limiteTotalGeneralPEN.toFixed(2)}</span>}
-              {limiteTotalGeneralUSD > 0 && <span>$ {limiteTotalGeneralUSD.toFixed(2)}</span>}
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {presupuestosGenerales.length} {presupuestosGenerales.length === 1 ? 'ingreso' : 'ingresos'}
+    <div className="space-y-6 pb-8">
+      {/* Header & AI Insights */}
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
+              Hola, {usuario?.nombre?.split(' ')[0]} <span className="animate-wave inline-block origin-[70%_70%]">👋</span>
+            </h1>
+            <p className="text-muted-foreground text-sm md:text-base">
+              Resumen de {new Date(year, month - 1).toLocaleString('es', { month: 'long', year: 'numeric' })}
             </p>
           </div>
-        ) : (
-          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-muted-foreground">
-                Presupuestos Categorías
-              </p>
-              <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                <Clipboard className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-foreground">
-              {formatearMoneda(totalPresupuestosCategorias)}
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {presupuestosCategorias.length} categorías
-            </p>
-          </div>
-        )}
-
-        {/* Presupuesto Restante */}
-        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-muted-foreground">
-              Presupuesto Restante
-            </p>
-            <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <Target className="h-6 w-6 text-green-600 dark:text-green-400" />
-            </div>
-          </div>
-          <p className={`text-2xl font-bold ${
-            presupuestoRestante < 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400'
-          }`}>
-            {formatearMoneda(presupuestoRestante)}
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {tienePresupuestoGeneral ? 'General - Gastos' : 'Categorías - Gastos'}
-          </p>
-        </div>
-      </div>
-
-      {/* Segunda fila de tarjetas - Solo si hay presupuesto general */}
-      {tienePresupuestoGeneral && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Asignado a Categorías */}
-          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-muted-foreground">
-                Asignado
-              </p>
-              <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                <Clipboard className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-foreground">
-              {formatearMoneda(totalPresupuestosCategorias)}
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {presupuestosCategorias.length} categorías
-            </p>
-          </div>
-
-          {/* No Asignado */}
-          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-muted-foreground">
-                No Asignado
-              </p>
-              <div className="h-10 w-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                <Cloud className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-              </div>
-            </div>
-            <p className={`text-2xl font-bold ${
-              presupuestoNoAsignado < 0 ? 'text-destructive' : 'text-foreground'
-            }`}>
-              {formatearMoneda(presupuestoNoAsignado)}
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Disponible para asignar
-            </p>
-          </div>
-
-          {/* Porcentaje Gastado */}
-          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-muted-foreground">
-                % Gastado
-              </p>
-              <div className="h-10 w-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                <BarChart3 className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-              </div>
-            </div>
-            <p className={`text-2xl font-bold ${
-              porcentajeGastado > 100
-                ? 'text-destructive'
-                : porcentajeGastado > 80
-                ? 'text-yellow-500'
-                : 'text-foreground'
-            }`}>
-              {porcentajeGastado.toFixed(1)}%
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              del presupuesto general
-            </p>
-          </div>
-
-          {/* Número de gastos */}
-          <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-muted-foreground">
-                Total Gastos
-              </p>
-              <div className="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-900/30 flex items-center justify-center">
-                <FileText className="h-6 w-6 text-gray-600 dark:text-gray-400" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-foreground">
-              {gastosDelMes.length}
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Promedio: {formatearMoneda(promedioGastos)}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Acciones rápidas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link
-          to="/gastos/nuevo"
-          className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg p-4 flex items-center justify-center gap-2 transition-colors shadow-sm"
-        >
-          <Plus className="h-5 w-5" />
-          <span className="font-medium">Nuevo Gasto</span>
-        </Link>
-        <Link
-          to="/presupuestos"
-          className="bg-card hover:bg-accent border border-border text-foreground rounded-lg p-4 flex items-center justify-center gap-2 transition-colors shadow-sm"
-        >
-          <Target className="h-5 w-5" />
-          <span className="font-medium">Ver Presupuestos</span>
-        </Link>
-        <Link
-          to="/asistente"
-          className="bg-card hover:bg-accent border border-border text-foreground rounded-lg p-4 flex items-center justify-center gap-2 transition-colors shadow-sm"
-        >
-          <Bot className="h-5 w-5" />
-          <span className="font-medium">Asistente IA</span>
-        </Link>
-      </div>
-
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico de Barras - Gastos por Categoría */}
-        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-foreground mb-4">
-            Gastos por Categoría
-          </h2>
-          {datosGraficoBarras.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={datosGraficoBarras}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis
-                  dataKey="categoria"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px',
-                  }}
-                  formatter={(value: number) => formatearMoneda(value)}
-                />
-                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              No hay gastos para mostrar
-            </div>
-          )}
-        </div>
-
-        {/* Gráfico de Pie - Distribución */}
-        <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-foreground mb-4">
-            Distribución de Gastos
-          </h2>
-          {datosGraficoPie.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={datosGraficoPie}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) =>
-                    `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
-                  }
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {datosGraficoPie.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: number) => formatearMoneda(value)} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              No hay gastos para mostrar
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Últimos Gastos */}
-      <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-foreground">Últimos Gastos</h2>
-          <Link
-            to="/gastos"
-            className="text-primary hover:text-primary/80 text-sm font-medium transition-colors"
-          >
-            Ver todos →
-          </Link>
-        </div>
-
-        {ultimosGastos.length > 0 ? (
-          <div className="space-y-3">
-            {ultimosGastos.map((gasto) => (
-              <div
-                key={gasto.id}
-                className="flex items-center justify-between p-3 rounded-lg hover:bg-accent transition-colors"
-              >
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    {getCategoryIcon(gasto.categoria, "h-5 w-5 text-primary")}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">
-                      {gasto.descripcion}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {CATEGORIA_LABELS[gasto.categoria]} •{' '}
-                      {formatearFecha(gasto.fecha)}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right flex-shrink-0 ml-4">
-                  <p className="font-bold text-foreground">
-                    {formatearMoneda(gasto.monto, gasto.moneda)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {gasto.metodoPago}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <p>No tienes gastos registrados aún</p>
-            <Link
+          <div className="flex gap-2">
+             <Link
               to="/gastos/nuevo"
-              className="inline-block mt-4 text-primary hover:text-primary/80 font-medium"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-4 py-2 text-sm font-medium flex items-center gap-2 shadow-lg shadow-primary/20 transition-all hover:scale-105"
             >
-              Crear tu primer gasto →
+              <Plus className="h-4 w-4" />
+              Nuevo Gasto
             </Link>
           </div>
-        )}
+        </div>
+
+        {/* AI Insights Component */}
+        <AIInsights month={month} year={year} />
+      </div>
+
+      {/* Tarjetas de estadísticas principales */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Total Gastos */}
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <TrendingDown className="h-24 w-24 text-red-500 transform rotate-12 translate-x-4 -translate-y-4" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">Gastos del Mes</p>
+            </div>
+            <p className="text-3xl font-bold text-foreground tracking-tight">
+              {formatearMoneda(totalGastosDelMes)}
+            </p>
+            <div className="mt-3 flex items-center gap-3 text-xs font-medium text-muted-foreground">
+              <span className="bg-background/50 px-2 py-1 rounded border border-border">S/ {totalGastosPEN.toFixed(2)}</span>
+              <span className="bg-background/50 px-2 py-1 rounded border border-border">$ {totalGastosUSD.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Presupuesto */}
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Wallet className="h-24 w-24 text-blue-500 transform -rotate-12 translate-x-4 -translate-y-4" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {tienePresupuestoGeneral ? 'Presupuesto General' : 'Presupuesto Categorías'}
+              </p>
+            </div>
+            <p className="text-3xl font-bold text-foreground tracking-tight">
+              {formatearMoneda(presupuestoTotalReferencia)}
+            </p>
+            <div className="mt-3 w-full bg-muted rounded-full h-1.5 overflow-hidden">
+              <div 
+                className={`h-full rounded-full ${
+                  porcentajeGastado > 100 ? 'bg-red-500' : porcentajeGastado > 80 ? 'bg-yellow-500' : 'bg-blue-500'
+                }`}
+                style={{ width: `${Math.min(porcentajeGastado, 100)}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground text-right">
+              {porcentajeGastado.toFixed(1)}% usado
+            </p>
+          </div>
+        </div>
+
+        {/* Restante */}
+        <div className="bg-card border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Target className="h-24 w-24 text-green-500 transform rotate-6 translate-x-4 -translate-y-4" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                <Target className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">Disponible</p>
+            </div>
+            <p className={`text-3xl font-bold tracking-tight ${
+              presupuestoRestante < 0 ? 'text-red-500' : 'text-green-600 dark:text-green-400'
+            }`}>
+              {formatearMoneda(presupuestoRestante)}
+            </p>
+            <p className="mt-3 text-xs text-muted-foreground">
+              {presupuestoRestante >= 0 ? '¡Vas bien este mes!' : 'Has excedido tu presupuesto'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Gráficos y Listado */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Columna Izquierda: Gráficos (2/3 ancho en desktop) */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold text-foreground">Gastos por Categoría</h2>
+            </div>
+            {datosGraficoBarras.length > 0 ? (
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={datosGraficoBarras} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis 
+                      dataKey="categoria" 
+                      stroke="hsl(var(--muted-foreground))" 
+                      fontSize={11} 
+                      tickLine={false}
+                      axisLine={false}
+                      dy={10}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))" 
+                      fontSize={11} 
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `$${value}`}
+                    />
+                    <Tooltip
+                      cursor={{ fill: 'hsl(var(--muted)/0.5)' }}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                      }}
+                      formatter={(value: number) => [formatearMoneda(value), 'Total']}
+                    />
+                    <Bar 
+                      dataKey="total" 
+                      fill="hsl(var(--primary))" 
+                      radius={[6, 6, 0, 0]} 
+                      barSize={32}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground bg-muted/10 rounded-lg border border-dashed border-border">
+                <BarChart3 className="h-10 w-10 mb-2 opacity-20" />
+                <p>No hay datos suficientes</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Columna Derecha: Últimos Gastos (1/3 ancho en desktop) */}
+        <div className="space-y-6">
+          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-border flex items-center justify-between bg-muted/20">
+              <h2 className="text-lg font-bold text-foreground">Últimos Movimientos</h2>
+              <Link to="/gastos" className="text-xs font-medium text-primary hover:underline flex items-center gap-1">
+                Ver todo <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+            
+            <div className="divide-y divide-border">
+              {ultimosGastos.length > 0 ? (
+                ultimosGastos.map((gasto) => (
+                  <div key={gasto.id} className="p-4 hover:bg-accent/50 transition-colors flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      {getCategoryIcon(gasto.categoria, "h-5 w-5 text-primary")}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-foreground truncate">
+                        {gasto.descripcion}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatearFecha(gasto.fecha)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-sm text-foreground">
+                        {formatearMoneda(gasto.monto, gasto.moneda)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                        {gasto.metodoPago}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center">
+                  <p className="text-sm text-muted-foreground">No hay movimientos recientes</p>
+                </div>
+              )}
+            </div>
+            
+            {ultimosGastos.length > 0 && (
+              <div className="p-3 bg-muted/20 text-center">
+                <Link to="/gastos/nuevo" className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors">
+                  + Registrar nuevo gasto
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Accesos rápidos adicionales */}
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              to="/presupuestos"
+              className="bg-card hover:bg-accent border border-border p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition-all hover:shadow-sm group"
+            >
+              <Target className="h-6 w-6 text-blue-500 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-medium">Presupuestos</span>
+            </Link>
+            <Link
+              to="/asistente"
+              className="bg-card hover:bg-accent border border-border p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition-all hover:shadow-sm group"
+            >
+              <Bot className="h-6 w-6 text-purple-500 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-medium">Asistente IA</span>
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+

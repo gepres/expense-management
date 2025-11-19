@@ -294,18 +294,48 @@ export default function ListaPresupuestos() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Presupuestos</h1>
-          <p className="text-muted-foreground mt-1">
-            {parsearMesKey(mesActual)} - {presupuestos.length}{' '}
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Presupuestos</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {parsearMesKey(mesActual)} • {presupuestos.length}{' '}
             {presupuestos.length === 1 ? 'presupuesto' : 'presupuestos'}
           </p>
         </div>
+        
+        {/* Desktop Button */}
         <button
           onClick={handleNuevo}
-          className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 px-4 rounded-md transition-colors"
+          className="hidden sm:inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2.5 px-5 rounded-xl transition-all shadow-sm hover:shadow-md"
         >
           <Plus className="h-5 w-5" />
           <span>Nuevo Presupuesto</span>
+        </button>
+      </div>
+
+      {/* Mobile FABs */}
+      <div className="sm:hidden fixed bottom-20 right-4 z-30 flex flex-col gap-3">
+        {/* Add Income FAB (Blue) */}
+        <button
+          onClick={() => {
+            setPresupuestoEditando(null);
+            setFormData({
+              categoria: CATEGORIA_GENERAL,
+              subcategoria: '',
+              limite: '',
+              moneda: 'PEN',
+            });
+            setMostrarModal(true);
+          }}
+          className="h-14 w-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+        >
+          <Wallet className="h-7 w-7" />
+        </button>
+
+        {/* New Budget FAB (Primary) */}
+        <button
+          onClick={handleNuevo}
+          className="h-14 w-14 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+        >
+          <Plus className="h-7 w-7" />
         </button>
       </div>
 
@@ -351,7 +381,7 @@ export default function ListaPresupuestos() {
                 });
                 setMostrarModal(true);
               }}
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors"
+              className="hidden sm:inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors"
             >
               <Plus className="h-5 w-5" />
               <span>Agregar Ingreso</span>

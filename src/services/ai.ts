@@ -5,36 +5,38 @@
  */
 
 import { auth } from './firebase';
-import type { Gasto, Presupuesto } from '@types';
 
 // URL base del backend API (configurable por entorno)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 /**
- * Interfaz para el contexto del usuario que se envía a la IA
- */
-export interface UserContext {
-  gastos: Gasto[];
-  presupuestos: Presupuesto[];
-  mes: string;
-}
-
-/**
  * Interfaz para el historial de conversación
  */
 export interface ConversationMessage {
+  id?: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp?: Date;
 }
 
 /**
+ * Interfaz para una conversación
+ */
+export interface Conversation {
+  id: string;
+  title: string;
+  messageCount: number;
+  lastMessagePreview?: string;
+  updatedAt: string;
+}
+
+/**
  * Interfaz para la solicitud al asistente
  */
-interface AssistantRequest {
+interface ChatRequest {
   message: string;
-  context: UserContext;
-  conversationHistory?: ConversationMessage[];
+  month: number;
+  year: number;
 }
 
 /**
@@ -43,7 +45,7 @@ interface AssistantRequest {
 export interface AssistantResponse {
   success: boolean;
   message: string;
-  usage: {
+  usage?: {
     inputTokens: number;
     outputTokens: number;
   };
@@ -61,111 +63,134 @@ async function getAuthToken(): Promise<string> {
 }
 
 /**
- * Llamar al asistente de IA
- *
- * @param message - Mensaje del usuario
- * @param context - Contexto financiero del usuario
- * @param conversationHistory - Historial de conversación (opcional)
- * @returns Respuesta del asistente
+ * Helper para realizar peticiones fetch con autenticación y manejo de errores
  */
-export async function callAssistant(
-  message: string,
-  context: UserContext,
-  conversationHistory?: ConversationMessage[]
-): Promise<AssistantResponse> {
-  try {
-    // Obtener token de autenticación
-    const token = await getAuthToken();
+async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+  const token = await getAuthToken();
+  
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
 
-    // Preparar la solicitud
-    const request: AssistantRequest = {
-      message,
-      context,
-      conversationHistory: conversationHistory || [],
-    };
-
-    // Llamar a la API del backend
-    const response = await fetch(`${API_BASE_URL}/assistant/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(request),
-    });
-
-    // Verificar errores HTTP
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-
-      // Manejar errores específicos por código de estado
-      if (response.status === 401) {
-        throw new Error('Debes iniciar sesión para usar el asistente.');
-      }
-
-      if (response.status === 429) {
-        throw new Error('Se ha excedido el límite de solicitudes. Por favor, intenta más tarde.');
-      }
-
-      if (response.status === 400) {
-        throw new Error(errorData.message || 'Los datos enviados al asistente no son válidos.');
-      }
-
-      if (response.status === 500) {
-        throw new Error('Error en el servidor. Por favor, intenta más tarde.');
-      }
-
-      throw new Error(errorData.message || 'Error al comunicarse con el asistente.');
-    }
-
-    // Parsear la respuesta
-    const data: AssistantResponse = await response.json();
-    return data;
-
-  } catch (error: any) {
-    console.error('[AI Service] Error al llamar al asistente:', error);
-
-    // Si ya es un error conocido, re-lanzarlo
-    if (error.message.includes('iniciar sesión') ||
-        error.message.includes('límite de solicitudes') ||
-        error.message.includes('datos enviados')) {
-      throw error;
-    }
-
-    // Error genérico
-    throw new Error(
-      error.message || 'Error al comunicarse con el asistente. Por favor, intenta de nuevo.'
-    );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    
+    if (response.status === 401) throw new Error('Debes iniciar sesión.');
+    if (response.status === 429) throw new Error('Límite de solicitudes excedido.');
+    if (response.status === 500) throw new Error('Error del servidor.');
+    
+    throw new Error(errorData.message || 'Error en la petición.');
   }
+
+  return response.json();
 }
 
 /**
- * Preparar el contexto del usuario para enviar al asistente
- *
- * @param gastos - Gastos del usuario
- * @param presupuestos - Presupuestos del usuario
- * @param mes - Mes actual en formato YYYY-MM
- * @returns Contexto formateado
+ * Llamar al asistente de IA (Mensaje simple sin conversación persistente)
  */
-export function prepareUserContext(
-  gastos: Gasto[],
-  presupuestos: Presupuesto[],
-  mes: string
-): UserContext {
-  // Filtrar solo los gastos del mes actual
-  const gastosDelMes = gastos.filter((gasto) => {
-    const fechaGasto = new Date(gasto.fecha);
-    const mesGasto = `${fechaGasto.getFullYear()}-${String(fechaGasto.getMonth() + 1).padStart(2, '0')}`;
-    return mesGasto === mes;
+export async function callAssistant(
+  message: string,
+  month: number,
+  year: number
+): Promise<AssistantResponse> {
+  try {
+    const data = await fetchWithAuth('/chat/message', {
+      method: 'POST',
+      body: JSON.stringify({ message, month, year }),
+    });
+    
+    return {
+      success: true,
+      message: data.response || 'No pude generar una respuesta.',
+      usage: data.usage
+    };
+  } catch (error: any) {
+    console.error('[AI Service] Error:', error);
+    throw error;
+  }
+}
+
+// --- Conversation APIs ---
+
+/**
+ * Obtener todas las conversaciones
+ */
+export async function getConversations(): Promise<Conversation[]> {
+  return await fetchWithAuth('/chat/conversations');
+}
+
+/**
+ * Crear una nueva conversación
+ */
+export async function createConversation(title?: string): Promise<Conversation> {
+  return await fetchWithAuth('/chat/conversations', {
+    method: 'POST',
+    body: JSON.stringify({ title }),
+  });
+}
+
+/**
+ * Obtener una conversación por ID
+ */
+export async function getConversation(id: string): Promise<Conversation> {
+  return await fetchWithAuth(`/chat/conversations/${id}`);
+}
+
+/**
+ * Actualizar una conversación
+ */
+export async function updateConversation(id: string, title: string): Promise<Conversation> {
+  return await fetchWithAuth(`/chat/conversations/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ title }),
+  });
+}
+
+/**
+ * Eliminar una conversación
+ */
+export async function deleteConversation(id: string): Promise<void> {
+  await fetchWithAuth(`/chat/conversations/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Obtener mensajes de una conversación
+ */
+export async function getMessages(conversationId: string): Promise<ConversationMessage[]> {
+  const messages = await fetchWithAuth(`/chat/conversations/${conversationId}/messages`);
+  return messages.map((msg: any) => ({
+    id: msg.id,
+    role: msg.role,
+    content: msg.content,
+    timestamp: new Date(msg.timestamp),
+  }));
+}
+
+/**
+ * Enviar mensaje a una conversación específica
+ */
+export async function sendMessageToConversation(
+  conversationId: string,
+  message: string,
+  month?: number,
+  year?: number
+): Promise<AssistantResponse> {
+  const data = await fetchWithAuth(`/chat/conversations/${conversationId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ message, month, year }),
   });
 
-  // Filtrar solo los presupuestos del mes actual
-  const presupuestosDelMes = presupuestos.filter((presupuesto) => presupuesto.mes === mes);
-
   return {
-    gastos: gastosDelMes,
-    presupuestos: presupuestosDelMes,
-    mes,
+    success: true,
+    message: data.response,
+    usage: data.usage
   };
 }
 
