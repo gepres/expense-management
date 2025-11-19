@@ -7,7 +7,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
-import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut } from 'lucide-react';
+import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings } from 'lucide-react';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -137,6 +137,16 @@ export default function Layout() {
                           {usuario?.email}
                         </p>
                       </div>
+                      <button
+                        onClick={() => {
+                          setMenuUsuarioAbierto(false);
+                          navigate('/configuracion');
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors flex items-center gap-2"
+                      >
+                        <Settings className="h-4 w-4" />
+                        Configuración
+                      </button>
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors flex items-center gap-2"

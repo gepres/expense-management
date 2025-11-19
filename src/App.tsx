@@ -18,6 +18,7 @@ const NuevoGasto = lazy(() => import('@components/gastos/FormularioGasto'));
 const Importar = lazy(() => import('@components/importar/ImportarExcel'));
 const AsistenteIA = lazy(() => import('@components/asistente/AsistenteIA'));
 const Presupuestos = lazy(() => import('@components/presupuestos/ListaPresupuestos'));
+const Configuracion = lazy(() => import('@components/config/Configuracion'));
 const Layout = lazy(() => import('@components/layout/Layout'));
 
 // ============================================================================
@@ -125,6 +126,7 @@ function AppRoutes() {
           <Route path="importar" element={<Importar />} />
           <Route path="presupuestos" element={<Presupuestos />} />
           <Route path="asistente" element={<AsistenteIA />} />
+          <Route path="configuracion" element={<Configuracion />} />
         </Route>
 
         {/* Ruta 404 */}

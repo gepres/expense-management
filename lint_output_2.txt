@@ -1,0 +1,130 @@
+
+> gastos@0.0.0 lint
+> eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+
+
+D:\PROYECTOS\gepres\gastos\dev-dist\workbox-47da91e0.js
+    52:7   error  Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+   419:5   error  Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+   435:5   error  Unused eslint-disable directive (no problems were reported)
+   752:11  error  Definition for rule '@typescript-eslint/no-unsafe-member-access' was not found  @typescript-eslint/no-unsafe-member-access
+   754:13  error  Definition for rule '@typescript-eslint/no-unsafe-assignment' was not found     @typescript-eslint/no-unsafe-assignment
+   948:11  error  Definition for rule '@typescript-eslint/no-unsafe-assignment' was not found     @typescript-eslint/no-unsafe-assignment
+   964:13  error  Definition for rule '@typescript-eslint/no-unsafe-assignment' was not found     @typescript-eslint/no-unsafe-assignment
+   970:13  error  Unused eslint-disable directive (no problems were reported)
+  1257:5   error  Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+  1275:5   error  Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+  2768:35  error  Unused eslint-disable directive (no problems were reported)
+  3658:11  error  Unused eslint-disable directive (no problems were reported)
+  4178:9   error  Definition for rule '@typescript-eslint/no-unsafe-return' was not found         @typescript-eslint/no-unsafe-return
+  4225:9   error  Definition for rule '@typescript-eslint/no-unsafe-return' was not found         @typescript-eslint/no-unsafe-return
+
+D:\PROYECTOS\gepres\gastos\src\components\config\MetodosPagoConfig.tsx
+  21:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  37:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  50:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  62:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\PROYECTOS\gepres\gastos\src\components\config\MonedasConfig.tsx
+  29:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  51:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  68:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  80:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\PROYECTOS\gepres\gastos\src\components\gastos\FormularioGasto.tsx
+  258:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  343:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\PROYECTOS\gepres\gastos\src\components\importar\ImportarExcel.tsx
+   69:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   96:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  121:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\PROYECTOS\gepres\gastos\src\components\layout\Layout.tsx
+  24:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\PROYECTOS\gepres\gastos\src\components\presupuestos\ListaPresupuestos.tsx
+  191:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  204:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\PROYECTOS\gepres\gastos\src\context\AuthContext.tsx
+  181:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\PROYECTOS\gepres\gastos\src\context\ThemeContext.tsx
+  122:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\PROYECTOS\gepres\gastos\src\hooks\useAssistant.ts
+  87:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\PROYECTOS\gepres\gastos\src\hooks\useGastos.ts
+  56:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\PROYECTOS\gepres\gastos\src\hooks\useGastos.ts:56:5
+  54 |   // Cargar gastos al montar el componente o cuando cambie el usuario
+  55 |   useEffect(() => {
+> 56 |     cargarGastos();
+     |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  57 |   }, [cargarGastos]);
+  58 |
+  59 |   /**  react-hooks/set-state-in-effect
+
+D:\PROYECTOS\gepres\gastos\src\hooks\usePresupuestos.ts
+  69:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\PROYECTOS\gepres\gastos\src\hooks\usePresupuestos.ts:69:5
+  67 |
+  68 |   useEffect(() => {
+> 69 |     cargarPresupuestos();
+     |     ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  70 |   }, [cargarPresupuestos]);
+  71 |
+  72 |   /**  react-hooks/set-state-in-effect
+
+D:\PROYECTOS\gepres\gastos\src\services\ai.ts
+  125:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\PROYECTOS\gepres\gastos\src\services\anthropic.ts
+  49:17  error  '_' is defined but never used   @typescript-eslint/no-unused-vars
+  50:15  error  '_' is defined but never used   @typescript-eslint/no-unused-vars
+  50:23  error  '__' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\PROYECTOS\gepres\gastos\src\services\excel.ts
+  149:5   error  '_configuracion' is defined but never used  @typescript-eslint/no-unused-vars
+  169:35  error  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  212:18  error  'error' is defined but never used           @typescript-eslint/no-unused-vars
+  265:19  error  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+D:\PROYECTOS\gepres\gastos\src\services\firebase.ts
+  492:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  536:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\PROYECTOS\gepres\gastos\src\services\import.ts
+   52:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  181:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  209:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\PROYECTOS\gepres\gastos\src\services\receipts.ts
+  96:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\PROYECTOS\gepres\gastos\src\utils\validators.ts
+  300:20  error  Unnecessary escape character: \+  no-useless-escape
+  300:46  error  Unnecessary escape character: \.  no-useless-escape
+  300:72  error  Unnecessary escape character: \.  no-useless-escape
+  300:90  error  Unnecessary escape character: \.  no-useless-escape
+
+Ô£û 54 problems (54 errors, 0 warnings)
+  4 errors and 0 warnings potentially fixable with the `--fix` option.
+

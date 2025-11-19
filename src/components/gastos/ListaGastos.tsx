@@ -18,7 +18,8 @@ import {
 import { formatearMoneda, formatearFecha } from '@utils/formatters';
 import { calcularTotalGastos, agruparGastosPorMoneda } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
-import { Plus, FileText, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package } from 'lucide-react';
+import { Plus, FileText, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Download, X } from 'lucide-react';
+import { ExpensesService } from '../../services/expenses';
 
 export default function ListaGastos() {
   const navigate = useNavigate();
@@ -37,6 +38,13 @@ export default function ListaGastos() {
 
   // Estado para confirmación de eliminación
   const [gastoAEliminar, setGastoAEliminar] = useState<string | null>(null);
+
+  // Estado para modal de exportación
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportMonth, setExportMonth] = useState(new Date().getMonth() + 1);
+  const [exportYear, setExportYear] = useState(new Date().getFullYear());
+  const [exportFormat, setExportFormat] = useState<'json' | 'excel'>('excel');
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     cargarGastos();
@@ -156,6 +164,27 @@ export default function ListaGastos() {
     }
   };
 
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await ExpensesService.exportExpenses(exportMonth, exportYear, exportFormat);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reporte_gastos_${exportYear}_${String(exportMonth).padStart(2, '0')}.${exportFormat === 'excel' ? 'xlsx' : 'json'}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Reporte descargado exitosamente');
+      setShowExportModal(false);
+    } catch {
+      toast.error('Error al descargar el reporte');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (estado.estado === 'loading') {
     return (
       <div className="flex items-center justify-center p-12">
@@ -178,13 +207,22 @@ export default function ListaGastos() {
             {categoriaFiltro !== 'todas' && `en ${CATEGORIA_LABELS[categoriaFiltro]}`}
           </p>
         </div>
-        <Link
-          to="/gastos/nuevo"
-          className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 px-4 rounded-md transition-colors"
-        >
-          <Plus className="h-5 w-5" />
-          <span>Nuevo Gasto</span>
-        </Link>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="inline-flex items-center justify-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold py-2 px-4 rounded-md transition-colors"
+          >
+            <Download className="h-5 w-5" />
+            <span>Descargar</span>
+          </button>
+          <Link
+            to="/gastos/nuevo"
+            className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 px-4 rounded-md transition-colors"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Nuevo Gasto</span>
+          </Link>
+        </div>
       </div>
 
       {/* Resumen por moneda */}
@@ -480,6 +518,94 @@ export default function ListaGastos() {
                 className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold py-2 px-4 rounded-md transition-colors"
               >
                 Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Exportación */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-foreground">
+                Descargar Reporte
+              </h3>
+              <button onClick={() => setShowExportModal(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Mes</label>
+                  <select
+                    value={exportMonth}
+                    onChange={(e) => setExportMonth(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-md border border-input bg-background"
+                  >
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                      <option key={m} value={m}>
+                        {new Date(0, m - 1).toLocaleString('es', { month: 'long' })}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Año</label>
+                  <input
+                    type="number"
+                    value={exportYear}
+                    onChange={(e) => setExportYear(Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-md border border-input bg-background"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Formato</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="format"
+                      value="excel"
+                      checked={exportFormat === 'excel'}
+                      onChange={() => setExportFormat('excel')}
+                    />
+                    Excel (.xlsx)
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="format"
+                      value="json"
+                      checked={exportFormat === 'json'}
+                      onChange={() => setExportFormat('json')}
+                    />
+                    JSON (.json)
+                  </label>
+                </div>
+              </div>
+
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="w-full bg-primary text-primary-foreground font-semibold py-2 px-4 rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isExporting ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                    Descargando...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Descargar
+                  </>
+                )}
               </button>
             </div>
           </div>
