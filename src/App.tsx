@@ -2,7 +2,7 @@
  * Componente principal de la aplicación
  */
 
-import React, { Suspense, lazy } from 'react';
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@context/AuthContext';
@@ -24,7 +24,7 @@ const Layout = lazy(() => import('@components/layout/Layout'));
 // Componente de carga
 // ============================================================================
 
-function LoadingScreen(): JSX.Element {
+function LoadingScreen() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="text-center">
@@ -43,7 +43,7 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-function ProtectedRoute({ children }: ProtectedRouteProps): JSX.Element {
+function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { usuario, cargando } = useAuth();
 
   if (cargando) {
@@ -65,7 +65,7 @@ interface PublicRouteProps {
   children: React.ReactNode;
 }
 
-function PublicRoute({ children }: PublicRouteProps): JSX.Element {
+function PublicRoute({ children }: PublicRouteProps) {
   const { usuario, cargando } = useAuth();
 
   if (cargando) {
@@ -83,7 +83,7 @@ function PublicRoute({ children }: PublicRouteProps): JSX.Element {
 // Rutas de la aplicación
 // ============================================================================
 
-function AppRoutes(): JSX.Element {
+function AppRoutes() {
   const { error } = useAuth();
 
   return (
@@ -139,7 +139,7 @@ function AppRoutes(): JSX.Element {
 // Componente principal
 // ============================================================================
 
-function App(): JSX.Element {
+function App() {
   return (
     <BrowserRouter>
       <ThemeProvider>

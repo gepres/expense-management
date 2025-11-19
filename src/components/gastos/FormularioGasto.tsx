@@ -2,7 +2,7 @@
  * Formulario para crear y editar gastos
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useGastos } from '@hooks/useGastos';
@@ -16,9 +16,8 @@ import {
   SUBCATEGORIAS,
   type CategoriaGasto,
   type MetodoPago,
-  type Moneda,
   type GastoFormData,
-} from '@types/index';
+} from '@types';
 import { toast } from 'react-hot-toast';
 import { scanReceipt, validateImageFormat } from '@services/receipts';
 import { obtenerTagsSugeridos, tieneTagsSugeridos } from '@utils/tagsSugeridos';
@@ -64,7 +63,7 @@ const COMBINACIONES_RAPIDAS: CombinacionRapida[] = [
   },
 ];
 
-export default function FormularioGasto(): JSX.Element {
+export default function FormularioGasto() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { usuario } = useAuth();
@@ -157,7 +156,7 @@ export default function FormularioGasto(): JSX.Element {
       setFormData((prev) => {
         // Si cambia la categoría, resetear subcategoría
         if (name === 'categoria') {
-          return { ...prev, [name]: value, subcategoria: '' };
+          return { ...prev, [name]: value as CategoriaGasto, subcategoria: '' };
         }
         return { ...prev, [name]: value };
       });
@@ -233,6 +232,7 @@ export default function FormularioGasto(): JSX.Element {
           monto: data.amount?.toString() || prev.monto,
           moneda: data.currency || prev.moneda,
           fecha: data.date || prev.fecha,
+          hora: data.time || prev.hora,
           metodoPago: data.paymentMethod as MetodoPago || prev.metodoPago,
           descripcion: data.description || prev.descripcion,
         }));

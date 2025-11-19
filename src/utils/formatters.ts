@@ -4,8 +4,8 @@
 
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import type { CategoriaGasto, MetodoPago, Moneda } from '@types/index';
-import { CATEGORIA_LABELS, METODO_PAGO_LABELS } from '@types/index';
+import type { CategoriaGasto, MetodoPago, Moneda } from '@types';
+import { CATEGORIA_LABELS, METODO_PAGO_LABELS } from '@types';
 
 /**
  * Formatear cantidad monetaria

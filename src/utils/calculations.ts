@@ -28,8 +28,8 @@ import type {
   MetodoPago,
   Presupuesto,
   Moneda,
-} from '@types/index';
-import { CATEGORIAS_GASTO, METODOS_PAGO } from '@types/index';
+} from '@types';
+import { CATEGORIAS_GASTO, METODOS_PAGO } from '@types';
 
 /**
  * Calcular total de gastos
@@ -308,7 +308,7 @@ export function generarRecomendaciones(
         prioridad: 'alta',
         titulo: `Presupuesto excedido en ${presupuesto.categoria}`,
         descripcion: `Has excedido tu presupuesto en un ${(porcentaje - 100).toFixed(1)}%. Considera reducir gastos en esta categoría.`,
-        categoria: presupuesto.categoria,
+        categoria: presupuesto.categoria === 'general' ? undefined : (presupuesto.categoria as CategoriaGasto),
         ahorroPotencial: presupuesto.gastado - presupuesto.limite,
         accion: 'Revisar gastos recientes y eliminar gastos innecesarios',
       });
@@ -319,7 +319,7 @@ export function generarRecomendaciones(
         prioridad: 'media',
         titulo: `Cerca del límite en ${presupuesto.categoria}`,
         descripcion: `Has usado el ${porcentaje.toFixed(1)}% de tu presupuesto. Quedan ${(presupuesto.limite - presupuesto.gastado).toFixed(2)} disponibles.`,
-        categoria: presupuesto.categoria,
+        categoria: presupuesto.categoria === 'general' ? undefined : (presupuesto.categoria as CategoriaGasto),
         accion: 'Moderar gastos hasta fin de mes',
       });
     }

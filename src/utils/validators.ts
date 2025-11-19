@@ -3,8 +3,8 @@
  */
 
 import { z } from 'zod';
-import type { CategoriaGasto, MetodoPago } from '@types/index';
-import { CATEGORIAS_GASTO, METODOS_PAGO } from '@types/index';
+import type { CategoriaGasto, MetodoPago } from '../types';
+import { CATEGORIAS_GASTO, METODOS_PAGO } from '../types';
 
 // ============================================================================
 // Schemas de Validación con Zod
@@ -18,8 +18,8 @@ export const gastoFormSchema = z.object({
     },
     { message: 'Fecha inválida' }
   ),
-  categoria: z.enum(CATEGORIAS_GASTO as [CategoriaGasto, ...CategoriaGasto[]], {
-    errorMap: () => ({ message: 'Selecciona una categoría válida' }),
+  categoria: z.enum(CATEGORIAS_GASTO, {
+    message: 'Selecciona una categoría válida',
   }),
   monto: z
     .string()
@@ -35,8 +35,8 @@ export const gastoFormSchema = z.object({
     .string()
     .min(3, 'La descripción debe tener al menos 3 caracteres')
     .max(200, 'La descripción no puede exceder 200 caracteres'),
-  metodoPago: z.enum(METODOS_PAGO as [MetodoPago, ...MetodoPago[]], {
-    errorMap: () => ({ message: 'Selecciona un método de pago válido' }),
+  metodoPago: z.enum(METODOS_PAGO, {
+    message: 'Selecciona un método de pago válido',
   }),
   tags: z.array(z.string()).optional(),
   recurrente: z.boolean().optional(),
@@ -44,8 +44,8 @@ export const gastoFormSchema = z.object({
 
 export const presupuestoFormSchema = z.object({
   mes: z.string().regex(/^\d{4}-\d{2}$/, 'Formato de mes inválido (YYYY-MM)'),
-  categoria: z.enum(CATEGORIAS_GASTO as [CategoriaGasto, ...CategoriaGasto[]], {
-    errorMap: () => ({ message: 'Selecciona una categoría válida' }),
+  categoria: z.enum(CATEGORIAS_GASTO, {
+    message: 'Selecciona una categoría válida',
   }),
   limite: z
     .string()
@@ -79,10 +79,10 @@ export const registroSchema = z
 export const filtrosGastosSchema = z.object({
   fechaInicio: z.string().optional(),
   fechaFin: z.string().optional(),
-  categorias: z.array(z.enum(CATEGORIAS_GASTO as [CategoriaGasto, ...CategoriaGasto[]])).optional(),
+  categorias: z.array(z.enum(CATEGORIAS_GASTO)).optional(),
   montoMin: z.number().min(0).optional(),
   montoMax: z.number().min(0).optional(),
-  metodoPago: z.enum(METODOS_PAGO as [MetodoPago, ...MetodoPago[]]).optional(),
+  metodoPago: z.enum(METODOS_PAGO).optional(),
   busqueda: z.string().optional(),
 });
 
@@ -328,7 +328,7 @@ export function validarConSchema<T>(
   }
 
   const errors: Record<string, string[]> = {};
-  result.error.errors.forEach((err) => {
+  result.error.issues.forEach((err) => {
     const path = err.path.join('.');
     if (!errors[path]) {
       errors[path] = [];

@@ -86,21 +86,4 @@ export default defineConfig({
       '@mocks': path.resolve(__dirname, './src/mocks'),
     },
   },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/tests/setup.ts',
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'src/tests/',
-        '**/*.test.{ts,tsx}',
-        '**/*.spec.{ts,tsx}',
-        '**/types/**',
-        '**/*.d.ts',
-      ],
-    },
-  },
 })

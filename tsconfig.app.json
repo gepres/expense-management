@@ -24,6 +24,7 @@
       "@hooks/*": ["./src/hooks/*"],
       "@context/*": ["./src/context/*"],
       "@services/*": ["./src/services/*"],
+      "@types": ["./src/types/index.ts"],
       "@types/*": ["./src/types/*"],
       "@utils/*": ["./src/utils/*"],
       "@mocks/*": ["./src/mocks/*"]

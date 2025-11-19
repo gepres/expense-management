@@ -6,7 +6,7 @@
  * TODO: Mejorar para mostrar totales separados por moneda o implementar conversión de monedas.
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGastos } from '@hooks/useGastos';
 import { usePresupuestos } from '@hooks/usePresupuestos';
@@ -18,7 +18,7 @@ import {
   agruparGastosPorMoneda,
 } from '@utils/calculations';
 import { formatearMoneda, formatearFecha } from '@utils/formatters';
-import { CATEGORIA_LABELS, CATEGORIA_GENERAL, MONEDA_SIMBOLOS, type CategoriaGasto } from '@types/index';
+import { CATEGORIA_LABELS, CATEGORIA_GENERAL, type CategoriaGasto } from '@types';
 import {
   BarChart,
   Bar,
@@ -29,10 +29,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Wallet, TrendingDown, TrendingUp, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Hand, Target, Clipboard, Cloud, Plus, Bot, FileText } from 'lucide-react';
+import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Hand, Target, Clipboard, Cloud, Plus, Bot, FileText } from 'lucide-react';
 
 // Función helper para obtener el icono de la categoría
 const getCategoryIcon = (categoria: string, className?: string) => {
@@ -73,7 +72,7 @@ const COLORES_CATEGORIAS: Record<string, string> = {
   otros: '#6b7280',
 };
 
-export default function Dashboard(): JSX.Element {
+export default function Dashboard() {
   const { usuario } = useAuth();
   const { gastos, estado, cargarGastos } = useGastos();
   const { presupuestos, estado: estadoPresupuestos, cargarPresupuestos } = usePresupuestos();
@@ -415,7 +414,7 @@ export default function Dashboard(): JSX.Element {
                   cy="50%"
                   labelLine={false}
                   label={({ name, percent }) =>
-                    `${name}: ${(percent * 100).toFixed(0)}%`
+                    `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
                   }
                   outerRadius={100}
                   fill="#8884d8"

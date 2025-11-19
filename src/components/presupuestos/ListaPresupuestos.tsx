@@ -2,7 +2,7 @@
  * Vista de presupuestos con gestión completa
  */
 
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { usePresupuestos } from '@hooks/usePresupuestos';
 import { useGastos } from '@hooks/useGastos';
 import { useAuth } from '@context/AuthContext';
@@ -18,7 +18,7 @@ import {
   type CategoriaGastoOGeneral,
   type Moneda,
   type Presupuesto,
-} from '@types/index';
+} from '@types';
 import { formatearMoneda, parsearMesKey } from '@utils/formatters';
 import { calcularGastosPorCategoria } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
@@ -26,11 +26,12 @@ import { Plus, Wallet, Target, UtensilsCrossed, Car, Pill, Film, ShoppingCart, B
 
 interface FormPresupuesto {
   categoria: CategoriaGastoOGeneral;
+  subcategoria: string;
   limite: string;
   moneda: Moneda;
 }
 
-export default function ListaPresupuestos(): JSX.Element {
+export default function ListaPresupuestos() {
   const { usuario } = useAuth();
   const { presupuestos, estado, cargarPresupuestos, crear, actualizar, eliminar } = usePresupuestos();
   const { gastos, cargarGastos } = useGastos();
@@ -133,7 +134,7 @@ export default function ListaPresupuestos(): JSX.Element {
 
     // Si cambia la categoría, resetear subcategoría
     if (name === 'categoria') {
-      setFormData((prev) => ({ ...prev, [name]: value, subcategoria: '' }));
+      setFormData((prev) => ({ ...prev, [name]: value as CategoriaGastoOGeneral, subcategoria: '' }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
@@ -507,7 +508,7 @@ export default function ListaPresupuestos(): JSX.Element {
       {presupuestosCategorias.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {presupuestosCategorias.map((presupuesto) => {
-            const gastado = gastosPorCategoria[presupuesto.categoria] || 0;
+            const gastado = presupuesto.categoria === 'general' ? 0 : (gastosPorCategoria[presupuesto.categoria as CategoriaGasto] || 0);
             const porcentaje = calcularPorcentaje(gastado, presupuesto.limite);
             const restante = presupuesto.limite - gastado;
 

@@ -2,10 +2,9 @@
  * Vista de lista de gastos con filtros y acciones
  */
 
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGastos } from '@hooks/useGastos';
-import { useAuth } from '@context/AuthContext';
 import {
   CATEGORIAS_GASTO,
   CATEGORIA_LABELS,
@@ -14,17 +13,15 @@ import {
   SUBCATEGORIAS,
   type CategoriaGasto,
   type MetodoPago,
-  type Gasto,
   type Moneda,
-} from '@types/index';
+} from '@types';
 import { formatearMoneda, formatearFecha } from '@utils/formatters';
-import { calcularTotalGastos, filtrarGastosPorMoneda, agruparGastosPorMoneda } from '@utils/calculations';
+import { calcularTotalGastos, agruparGastosPorMoneda } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
 import { Plus, FileText, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package } from 'lucide-react';
 
-export default function ListaGastos(): JSX.Element {
+export default function ListaGastos() {
   const navigate = useNavigate();
-  const { usuario } = useAuth();
   const { gastos, estado, cargarGastos, eliminar } = useGastos();
 
   // Estados de filtros

@@ -11,9 +11,8 @@ import type {
   ConfiguracionColumnas,
   CategoriaGasto,
   MetodoPago,
-  EstadisticasPeriodo,
-} from '@types/index';
-import { CATEGORIAS_GASTO, METODOS_PAGO, CATEGORIA_LABELS, METODO_PAGO_LABELS } from '@types/index';
+} from '@types';
+import { CATEGORIAS_GASTO, METODOS_PAGO, CATEGORIA_LABELS, METODO_PAGO_LABELS } from '@types';
 
 // ============================================================================
 // Validación con Zod
@@ -147,7 +146,7 @@ export const excelService = {
   async importar(
     archivo: File,
     userId: string,
-    configuracion?: ConfiguracionColumnas
+    _configuracion?: ConfiguracionColumnas
   ): Promise<ResultadoImportacion> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -192,6 +191,7 @@ export const excelService = {
                 fecha: new Date(validado.fecha),
                 categoria: validado.categoria as CategoriaGasto,
                 monto: validado.monto,
+                moneda: 'PEN',
                 descripcion: validado.descripcion,
                 metodoPago: (validado.metodoPago || 'otros') as MetodoPago,
               };
@@ -262,8 +262,8 @@ export const excelService = {
    * Exportar estadísticas a Excel
    */
   exportarEstadisticas(
-    estadisticas: EstadisticasPeriodo,
-    periodo: string,
+    estadisticas: any,
+    _periodo: string,
     nombreArchivo = 'estadisticas.xlsx'
   ): void {
     // Resumen general
@@ -279,8 +279,8 @@ export const excelService = {
     const porCategoria = Object.entries(estadisticas.gastosPorCategoria).map(
       ([cat, monto]) => ({
         Categoría: CATEGORIA_LABELS[cat as CategoriaGasto],
-        Monto: monto,
-        Porcentaje: ((monto / estadisticas.totalGastado) * 100).toFixed(2) + '%',
+        Monto: monto as number,
+        Porcentaje: (((monto as number) / estadisticas.totalGastado) * 100).toFixed(2) + '%',
       })
     );
 
@@ -288,8 +288,8 @@ export const excelService = {
     const porMetodoPago = Object.entries(estadisticas.gastosPorMetodoPago).map(
       ([metodo, monto]) => ({
         'Método de Pago': METODO_PAGO_LABELS[metodo as MetodoPago],
-        Monto: monto,
-        Porcentaje: ((monto / estadisticas.totalGastado) * 100).toFixed(2) + '%',
+        Monto: monto as number,
+        Porcentaje: (((monto as number) / estadisticas.totalGastado) * 100).toFixed(2) + '%',
       })
     );
 

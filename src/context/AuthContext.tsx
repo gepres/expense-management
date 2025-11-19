@@ -2,7 +2,7 @@
  * Context de autenticación
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from 'firebase/auth';
 import { authService } from '@services/firebase';
 import type {
@@ -10,7 +10,7 @@ import type {
   AuthState,
   LoginCredenciales,
   RegistroCredenciales,
-} from '@types/index';
+} from '@types';
 
 // ============================================================================
 // Tipos
@@ -35,10 +35,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // ============================================================================
 
 interface AuthProviderProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
+export function AuthProvider({ children }: AuthProviderProps) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [cargando, setCargando] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +101,8 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       setError(null);
       setCargando(true);
       const usuarioData = await authService.loginConGoogle();
+      console.log('usuarioData',usuarioData);
+      
       setUsuario(usuarioData);
     } catch (err: unknown) {
       const errorMessage =

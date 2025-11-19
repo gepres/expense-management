@@ -27,7 +27,6 @@ import {
   query,
   where,
   orderBy,
-  limit,
   Timestamp,
   serverTimestamp,
   setDoc,
@@ -44,7 +43,7 @@ import type {
   PresupuestoFirestore,
   LoginCredenciales,
   RegistroCredenciales,
-} from '@types/index';
+} from '@types';
 
 // ============================================================================
 // Configuración de Firebase
@@ -534,14 +533,14 @@ export const presupuestosService = {
    * Actualizar un presupuesto
    */
   async actualizar(id: string, presupuestoData: Partial<Presupuesto>): Promise<void> {
-    const updateData: Partial<PresupuestoFirestore> = {
+    const updateData: any = {
       ...presupuestoData,
-      updatedAt: serverTimestamp() as Timestamp,
+      updatedAt: serverTimestamp(),
     };
 
     // Eliminar campos que no deben estar en la actualización
-    delete (updateData as Partial<Presupuesto>).id;
-    delete (updateData as Partial<Presupuesto>).createdAt;
+    delete updateData.id;
+    delete updateData.createdAt;
 
     await updateDoc(doc(db, 'presupuestos', id), updateData);
   },

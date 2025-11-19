@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { gastosService } from '@services/firebase';
-import type { Gasto, FiltrosGastos, Estado } from '@types/index';
+import type { Gasto, FiltrosGastos, Estado } from '@types';
 import { useAuth } from '@context/AuthContext';
 import toast from 'react-hot-toast';
 

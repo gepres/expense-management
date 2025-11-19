@@ -4,14 +4,14 @@
  * Interfaz de chat para interactuar con el asistente financiero
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAssistant } from '@hooks/useAssistant';
 import { SUGGESTED_QUESTIONS } from '@services/ai';
 import { useAuth } from '@context/AuthContext';
 import { formatearFecha } from '@utils/formatters';
 import { Lightbulb, Send } from 'lucide-react';
 
-export default function AsistenteIA(): JSX.Element {
+export default function AsistenteIA() {
   const { usuario } = useAuth();
   const { messages, isLoading, sendMessage, clearConversation } = useAssistant();
   const [inputMessage, setInputMessage] = useState('');

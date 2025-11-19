@@ -4,7 +4,7 @@
  * Permite importar gastos desde archivos Excel/CSV
  */
 
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   validateFileFormat,
@@ -18,11 +18,11 @@ import {
   type FileValidationResult,
 } from '@services/import';
 import { toast } from 'react-hot-toast';
-import { FileText, Download, XCircle, Check, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { FileText, Download, Check, CheckCircle2, AlertTriangle, X as XCircle } from 'lucide-react';
 
 type Step = 'upload' | 'preview' | 'importing' | 'results';
 
-export default function ImportarExcel(): JSX.Element {
+export default function ImportarExcel() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -385,7 +385,7 @@ export default function ImportarExcel(): JSX.Element {
                               {row.valid ? (
                                 <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                               ) : (
-                                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" title={row.errors.join(', ')} />
+                                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                               )}
                             </td>
                           </tr>

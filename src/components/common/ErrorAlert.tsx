@@ -2,7 +2,6 @@
  * Componente para mostrar alertas de error
  */
 
-import React from 'react';
 import { Lock, X as XCircle } from 'lucide-react';
 
 interface ErrorAlertProps {
@@ -10,7 +9,7 @@ interface ErrorAlertProps {
   onDismiss?: () => void;
 }
 
-export default function ErrorAlert({ error, onDismiss }: ErrorAlertProps): JSX.Element | null {
+export default function ErrorAlert({ error, onDismiss }: ErrorAlertProps) {
   if (!error) return null;
 
   const isPermissionError = error.toLowerCase().includes('permission') ||

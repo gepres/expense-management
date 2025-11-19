@@ -2,13 +2,13 @@
  * Componente de Registro
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import toast from 'react-hot-toast';
-import type { RegistroCredenciales } from '@types/index';
+import type { RegistroCredenciales } from '@types';
 
-export default function Registro(): JSX.Element {
+export default function Registro() {
   const navigate = useNavigate();
   const { registrar, loginConGoogle, cargando } = useAuth();
 

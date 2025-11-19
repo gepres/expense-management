@@ -5,7 +5,7 @@
  */
 
 import { auth } from './firebase';
-import type { Gasto, Presupuesto } from '@types/index';
+import type { Gasto, Presupuesto } from '@types';
 
 // URL base del backend API (configurable por entorno)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';

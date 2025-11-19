@@ -10,8 +10,8 @@ import type {
   EstadisticasPeriodo,
   Presupuesto,
   CategoriaGasto,
-} from '@types/index';
-import { CATEGORIA_LABELS } from '@types/index';
+} from '@types';
+import { CATEGORIA_LABELS } from '@types';
 import { formatearMoneda } from '@utils/formatters';
 
 // ============================================================================
@@ -59,7 +59,8 @@ function generarContextoUsuario(contexto: ContextoUsuario): string {
     texto += '### Presupuestos Activos:\n';
     presupuestos.forEach(p => {
       const porcentaje = (p.gastado / p.limite) * 100;
-      texto += `- ${CATEGORIA_LABELS[p.categoria]}: ${formatearMoneda(p.gastado)} / ${formatearMoneda(p.limite)} (${porcentaje.toFixed(1)}%)\n`;
+      const categoriaLabel = p.categoria === 'general' ? 'General' : CATEGORIA_LABELS[p.categoria as CategoriaGasto];
+      texto += `- ${categoriaLabel}: ${formatearMoneda(p.gastado)} / ${formatearMoneda(p.limite)} (${porcentaje.toFixed(1)}%)\n`;
     });
     texto += '\n';
   }

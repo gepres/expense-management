@@ -2,14 +2,14 @@
  * Layout principal de la aplicación
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
 import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut } from 'lucide-react';
 
-export default function Layout(): JSX.Element {
+export default function Layout() {
   const navigate = useNavigate();
   const { usuario, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();

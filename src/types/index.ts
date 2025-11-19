@@ -472,13 +472,18 @@ export type OmitFirestoreFields<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
 // ============================================================================
 
 export class GastosAppError extends Error {
+  code: string;
+  details?: unknown;
+
   constructor(
     message: string,
-    public code: string,
-    public details?: unknown
+    code: string,
+    details?: unknown
   ) {
     super(message);
     this.name = 'GastosAppError';
+    this.code = code;
+    this.details = details;
   }
 }
 

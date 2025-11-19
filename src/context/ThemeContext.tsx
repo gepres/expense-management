@@ -2,8 +2,8 @@
  * Context para manejo de tema (modo oscuro/claro)
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { TemaApp } from '@types/index';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { TemaApp } from '@types';
 
 // ============================================================================
 // Tipos
@@ -32,10 +32,10 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 // ============================================================================
 
 interface ThemeProviderProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
+export function ThemeProvider({ children }: ThemeProviderProps) {
   const [tema, setTemaState] = useState<TemaApp>(() => {
     // Obtener tema guardado en localStorage
     const temaGuardado = localStorage.getItem('tema-app') as TemaApp;

@@ -2,14 +2,14 @@
  * Componente de Login
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import toast from 'react-hot-toast';
-import type { LoginCredenciales } from '@types/index';
+import type { LoginCredenciales } from '@types';
 import { Wallet, Eye, EyeOff } from 'lucide-react';
 
-export default function Login(): JSX.Element {
+export default function Login() {
   const navigate = useNavigate();
   const { login, loginConGoogle, cargando } = useAuth();
 
@@ -74,7 +74,7 @@ export default function Login(): JSX.Element {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev: LoginCredenciales) => ({ ...prev, [name]: value }));
     // Limpiar error del campo cuando el usuario empieza a escribir
     if (errores[name as keyof typeof errores]) {
       setErrores((prev) => ({ ...prev, [name]: undefined }));
