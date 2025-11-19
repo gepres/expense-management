@@ -70,7 +70,6 @@ export function useGastos(): UseGastosReturn {
     try {
       const nuevoGasto = await gastosService.crear(gastoData);
       setGastos((prev) => [nuevoGasto, ...prev]);
-      toast.success('Gasto creado exitosamente');
       return nuevoGasto;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Error al crear gasto';
@@ -90,7 +89,6 @@ export function useGastos(): UseGastosReturn {
           gasto.id === id ? { ...gasto, ...gastoData, updatedAt: new Date() } : gasto
         )
       );
-      toast.success('Gasto actualizado exitosamente');
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Error al actualizar gasto';
       toast.error(errorMsg);
@@ -105,7 +103,6 @@ export function useGastos(): UseGastosReturn {
     try {
       await gastosService.eliminar(id);
       setGastos((prev) => prev.filter((gasto) => gasto.id !== id));
-      toast.success('Gasto eliminado exitosamente');
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Error al eliminar gasto';
       toast.error(errorMsg);

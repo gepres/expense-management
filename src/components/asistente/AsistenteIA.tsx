@@ -9,7 +9,7 @@ import { useAssistant } from '@hooks/useAssistant';
 import { SUGGESTED_QUESTIONS } from '@services/ai';
 import { useAuth } from '@context/AuthContext';
 import { formatearFecha } from '@utils/formatters';
-import { Lightbulb, Send, Calendar, MessageSquare, Plus, Trash2, Menu, X, Edit2, Check } from 'lucide-react';
+import { Lightbulb, Send, Calendar, MessageSquare, Plus, Trash2, Menu, X, Edit2, Check, TrendingUp } from 'lucide-react';
 
 export default function AsistenteIA() {
   const { usuario } = useAuth();
@@ -21,7 +21,6 @@ export default function AsistenteIA() {
     isLoadingConversations,
     loadConversations,
     selectConversation,
-    createNewConversation,
     deleteChat,
     renameChat,
     sendMessage,
@@ -264,18 +263,50 @@ export default function AsistenteIA() {
               <p className="text-muted-foreground mb-8 max-w-md">
                 Selecciona un mes y año para analizar tus gastos o haz una pregunta general.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl w-full px-4">
-                {SUGGESTED_QUESTIONS.slice(0, 4).map((question, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSuggestedQuestion(question)}
-                    disabled={isLoading}
-                    className="p-4 bg-card hover:bg-accent border border-border hover:border-primary/50 rounded-xl text-sm text-left transition-all hover:shadow-md group flex items-start gap-3"
-                  >
-                    <Lightbulb className="h-5 w-5 text-yellow-500 group-hover:text-yellow-600 mt-0.5 flex-shrink-0" />
-                    <span className="group-hover:text-foreground text-muted-foreground">{question}</span>
-                  </button>
-                ))}
+              <div className="w-full max-w-3xl px-4 space-y-6">
+                {/* Análisis de Gastos */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider pl-1">
+                    Análisis de Gastos
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {SUGGESTED_QUESTIONS.slice(0, 4).map((question, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestedQuestion(question)}
+                        disabled={isLoading}
+                        className="p-4 bg-card hover:bg-accent border border-border hover:border-primary/50 rounded-xl text-sm text-left transition-all hover:shadow-md group flex items-start gap-3"
+                      >
+                        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                          <Lightbulb className="h-4 w-4" />
+                        </div>
+                        <span className="group-hover:text-foreground text-muted-foreground font-medium self-center">{question}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Inversiones y Consejos */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider pl-1">
+                    Inversiones y Consejos
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {SUGGESTED_QUESTIONS.slice(8, 12).map((question, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestedQuestion(question)}
+                        disabled={isLoading}
+                        className="p-4 bg-card hover:bg-accent border border-border hover:border-green-500/50 rounded-xl text-sm text-left transition-all hover:shadow-md group flex items-start gap-3"
+                      >
+                        <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform">
+                          <TrendingUp className="h-4 w-4" />
+                        </div>
+                        <span className="group-hover:text-foreground text-muted-foreground font-medium self-center">{question}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           ) : (

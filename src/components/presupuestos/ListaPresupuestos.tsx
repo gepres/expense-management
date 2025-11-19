@@ -22,7 +22,8 @@ import {
 import { formatearMoneda, parsearMesKey } from '@utils/formatters';
 import { calcularGastosPorCategoria } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
-import { Plus, Wallet, Target, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar, DollarSign, TrendingDown, TrendingUp, AlertCircle, Target, X, Check, ChevronDown, ChevronUp, Wallet, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package } from 'lucide-react';
+import CustomLoader from '@components/common/CustomLoader';
 
 interface FormPresupuesto {
   categoria: CategoriaGastoOGeneral;
@@ -282,8 +283,8 @@ export default function ListaPresupuestos() {
     return (
       <div className="flex items-center justify-center p-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando presupuestos...</p>
+          <CustomLoader />
+          <p className="text-muted-foreground mt-4">Cargando presupuestos...</p>
         </div>
       </div>
     );

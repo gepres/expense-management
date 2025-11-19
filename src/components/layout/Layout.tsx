@@ -9,6 +9,7 @@ import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
 import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home } from 'lucide-react';
 import MobileMenu from './MobileMenu';
+import BudgetMonitor from '../common/BudgetMonitor';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
+      <BudgetMonitor />
       {/* Desktop Header */}
       <header className="hidden md:block bg-card border-b border-border sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

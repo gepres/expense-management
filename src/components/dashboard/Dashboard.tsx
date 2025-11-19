@@ -10,7 +10,6 @@ import { useAuth } from '@context/AuthContext';
 import {
   calcularTotalGastos,
   calcularGastosPorCategoria,
-  calcularPromedioGastos,
   agruparGastosPorMoneda,
 } from '@utils/calculations';
 import { formatearMoneda, formatearFecha } from '@utils/formatters';
@@ -18,17 +17,16 @@ import { CATEGORIA_LABELS, CATEGORIA_GENERAL, type CategoriaGasto } from '@types
 import {
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Hand, Target, Clipboard, Cloud, Plus, Bot, FileText, ArrowRight } from 'lucide-react';
+import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Target, Plus, Bot, ArrowRight } from 'lucide-react';
 import AIInsights from './AIInsights';
+import InstallPWA from '../common/InstallPWA';
+import CustomLoader from '../common/CustomLoader';
 
 // Función helper para obtener el icono de la categoría
 const getCategoryIcon = (categoria: string, className?: string) => {
@@ -56,18 +54,6 @@ const getCategoryIcon = (categoria: string, className?: string) => {
   }
 };
 
-// Colores para las categorías
-const COLORES_CATEGORIAS: Record<string, string> = {
-  alimentacion: '#3b82f6',
-  transporte: '#8b5cf6',
-  entretenimiento: '#ec4899',
-  salud: '#10b981',
-  servicios: '#f59e0b',
-  compras: '#ef4444',
-  educacion: '#6366f1',
-  vivienda: '#14b8a6',
-  otros: '#6b7280',
-};
 
 export default function Dashboard() {
   const { usuario } = useAuth();
@@ -116,12 +102,10 @@ export default function Dashboard() {
   const tienePresupuestoGeneral = presupuestosGenerales.length > 0;
   const presupuestoTotalReferencia = tienePresupuestoGeneral ? limitePresupuestoGeneral : totalPresupuestosCategorias;
   const presupuestoRestante = presupuestoTotalReferencia - totalGastosDelMes;
-  const presupuestoNoAsignado = tienePresupuestoGeneral ? limitePresupuestoGeneral - totalPresupuestosCategorias : 0;
 
   const porcentajeGastado = presupuestoTotalReferencia > 0
     ? (totalGastosDelMes / presupuestoTotalReferencia) * 100
     : 0;
-  const promedioGastos = calcularPromedioGastos(gastosDelMes);
 
   // Datos para gráficos
   const gastosPorCategoria = calcularGastosPorCategoria(gastosDelMes);
@@ -132,13 +116,6 @@ export default function Dashboard() {
     })
   );
 
-  const datosGraficoPie = Object.entries(gastosPorCategoria)
-    .filter(([, total]) => total > 0)
-    .map(([categoria, total]) => ({
-      name: CATEGORIA_LABELS[categoria as CategoriaGasto],
-      value: total,
-      color: COLORES_CATEGORIAS[categoria] || '#6b7280',
-    }));
 
   // Obtener últimos 5 gastos
   const ultimosGastos = [...gastos]
@@ -149,8 +126,8 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground animate-pulse">Cargando tus finanzas...</p>
+          <CustomLoader />
+          <p className="text-muted-foreground animate-pulse mt-4">Cargando tus finanzas...</p>
         </div>
       </div>
     );
@@ -184,6 +161,9 @@ export default function Dashboard() {
 
         {/* AI Insights Component */}
         <AIInsights month={month} year={year} />
+        
+        {/* PWA Install Banner */}
+        <InstallPWA />
       </div>
 
       {/* Tarjetas de estadísticas principales */}

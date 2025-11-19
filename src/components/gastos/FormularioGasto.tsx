@@ -21,6 +21,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { scanReceipt, validateImageFormat } from '@services/receipts';
 import { obtenerTagsSugeridos, tieneTagsSugeridos } from '@utils/tagsSugeridos';
+import CustomLoader from '@components/common/CustomLoader';
 import { Camera, Upload, CircleDollarSign, Lightbulb, Check } from 'lucide-react';
 
 // Combinaciones predefinidas (atajos rápidos)
@@ -296,12 +297,12 @@ export default function FormularioGasto() {
       nuevosErrores.moneda = 'La moneda es requerida';
     }
 
-    // Descripción requerida
-    if (!formData.descripcion.trim()) {
-      nuevosErrores.descripcion = 'La descripción es requerida';
-    } else if (formData.descripcion.trim().length < 3) {
-      nuevosErrores.descripcion = 'La descripción debe tener al menos 3 caracteres';
-    }
+    // Descripción ya no es requerida
+    // if (!formData.descripcion.trim()) {
+    //   nuevosErrores.descripcion = 'La descripción es requerida';
+    // } else if (formData.descripcion.trim().length < 3) {
+    //   nuevosErrores.descripcion = 'La descripción debe tener al menos 3 caracteres';
+    // }
 
     // Método de pago requerido
     if (!formData.metodoPago) {
@@ -387,8 +388,8 @@ export default function FormularioGasto() {
     return (
       <div className="flex items-center justify-center p-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando gasto...</p>
+          <CustomLoader />
+          <p className="text-muted-foreground mt-4">Cargando gasto...</p>
         </div>
       </div>
     );
@@ -686,7 +687,7 @@ export default function FormularioGasto() {
               {/* Descripción */}
               <div>
                 <label htmlFor="descripcion-mobile" className="block text-sm font-medium text-foreground mb-1">
-                  Descripción <span className="text-destructive">*</span>
+                  Descripción
                 </label>
                 <textarea
                   id="descripcion-mobile"
@@ -939,6 +940,28 @@ export default function FormularioGasto() {
                 />
                 {errores.monto && <p className="mt-1 text-sm text-destructive">{errores.monto}</p>}
               </div>
+              <div>
+                <label htmlFor="moneda" className="block text-sm font-medium text-foreground mb-1">
+                  Moneda <span className="text-destructive">*</span>
+                </label>
+                <select
+                  id="moneda"
+                  name="moneda"
+                  value={formData.moneda}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-2 rounded-md border ${
+                    errores.moneda ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
+                  } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
+                  disabled={cargando}
+                >
+                  {MONEDAS.map((moneda) => (
+                    <option key={moneda} value={moneda}>
+                      {MONEDA_LABELS[moneda]}
+                    </option>
+                  ))}
+                </select>
+                {errores.moneda && <p className="mt-1 text-sm text-destructive">{errores.moneda}</p>}
+              </div>
 
               <div>
                 <label htmlFor="metodoPago" className="block text-sm font-medium text-foreground mb-1">
@@ -967,7 +990,7 @@ export default function FormularioGasto() {
             {/* 6. Descripción con tags sugeridos debajo */}
             <div>
               <label htmlFor="descripcion" className="block text-sm font-medium text-foreground mb-1">
-                Descripción <span className="text-destructive">*</span>
+                Descripción
               </label>
               <textarea
                 id="descripcion"

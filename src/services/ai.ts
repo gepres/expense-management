@@ -31,15 +31,6 @@ export interface Conversation {
 }
 
 /**
- * Interfaz para la solicitud al asistente
- */
-interface ChatRequest {
-  message: string;
-  month: number;
-  year: number;
-}
-
-/**
  * Interfaz para la respuesta del asistente
  */
 export interface AssistantResponse {
@@ -206,6 +197,10 @@ export const SUGGESTED_QUESTIONS = [
   '¿Cuál es mi patrón de gastos?',
   'Dame consejos para mejorar mis finanzas',
   '¿Debo ajustar mis presupuestos?',
+  '¿Cómo puedo empezar a invertir?',
+  '¿Qué opciones de inversión tengo con poco dinero?',
+  'Dame ideas para generar ingresos extra',
+  '¿Cómo crear un fondo de emergencia?',
 ];
 
 /**

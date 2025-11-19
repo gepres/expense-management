@@ -8,6 +8,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@context/AuthContext';
 import { ThemeProvider } from '@context/ThemeContext';
 import ErrorAlert from '@components/common/ErrorAlert';
+import CustomLoader from '@components/common/CustomLoader';
 
 // Componentes que se cargarán de forma lazy
 const Login = lazy(() => import('@components/auth/Login'));
@@ -29,8 +30,8 @@ function LoadingScreen() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <p className="text-muted-foreground">Cargando...</p>
+        <CustomLoader />
+        <p className="text-muted-foreground mt-4">Cargando...</p>
       </div>
     </div>
   );

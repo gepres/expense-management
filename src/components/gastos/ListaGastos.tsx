@@ -17,7 +17,8 @@ import {
 import { formatearMoneda, formatearFecha } from '@utils/formatters';
 import { calcularTotalGastos, agruparGastosPorMoneda } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
-import { Plus, FileText, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Download, X, Search, Filter, Calendar, CreditCard, Tag } from 'lucide-react';
+import { Plus, FileText, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Download, X, Search, Filter, Calendar, CreditCard, TrendingUp, Lightbulb, ChevronRight, Trash2 } from 'lucide-react';
+import CustomLoader from '@components/common/CustomLoader';
 import { ExpensesService } from '../../services/expenses';
 
 export default function ListaGastos() {
@@ -183,8 +184,8 @@ export default function ListaGastos() {
     return (
       <div className="flex items-center justify-center p-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando gastos...</p>
+          <CustomLoader />
+          <p className="text-muted-foreground mt-4">Cargando gastos...</p>
         </div>
       </div>
     );
@@ -192,34 +193,57 @@ export default function ListaGastos() {
 
   return (
     <div className="space-y-6 pb-20 md:pb-0">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Mis Gastos</h1>
-            <p className="text-muted-foreground mt-1">
-              {gastosFiltrados.length} {gastosFiltrados.length === 1 ? 'gasto' : 'gastos'}{' '}
-              {categoriaFiltro !== 'todas' && `en ${CATEGORIA_LABELS[categoriaFiltro]}`}
-            </p>
+        {/* Header */}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground tracking-tight">Mis Gastos</h1>
+              <p className="text-muted-foreground mt-1">
+                {gastosFiltrados.length} {gastosFiltrados.length === 1 ? 'gasto' : 'gastos'}{' '}
+                {categoriaFiltro !== 'todas' && `en ${CATEGORIA_LABELS[categoriaFiltro]}`}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="inline-flex items-center justify-center gap-2 bg-secondary/80 hover:bg-secondary text-secondary-foreground font-semibold py-2 px-4 rounded-xl transition-all backdrop-blur-sm"
+              >
+                <Download className="h-5 w-5" />
+                <span className="hidden sm:inline">Descargar</span>
+              </button>
+              <Link
+                to="/gastos/nuevo"
+                className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 px-4 rounded-xl transition-all shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Plus className="h-5 w-5" />
+                <span className="hidden sm:inline">Nuevo Gasto</span>
+                <span className="sm:hidden">Nuevo</span>
+              </Link>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowExportModal(true)}
-              className="inline-flex items-center justify-center gap-2 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold py-2 px-4 rounded-md transition-colors"
-            >
-              <Download className="h-5 w-5" />
-              <span className="hidden sm:inline">Descargar</span>
-            </button>
-            <Link
-              to="/gastos/nuevo"
-              className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 px-4 rounded-md transition-colors"
-            >
-              <Plus className="h-5 w-5" />
-              <span className="hidden sm:inline">Nuevo Gasto</span>
-              <span className="sm:hidden">Nuevo</span>
-            </Link>
+
+          {/* AI Financial Tip Widget (Mobile & Desktop) */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-4 relative overflow-hidden group cursor-pointer transition-all hover:shadow-md" onClick={() => navigate('/asistente')}>
+            <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+              <TrendingUp className="h-24 w-24 text-blue-600" />
+            </div>
+            <div className="relative z-10 flex items-start gap-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-xl text-blue-600 dark:text-blue-300">
+                <Lightbulb className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-sm mb-1">
+                  Consejo Financiero IA
+                </h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                  ¿Quieres aprender a invertir tus ahorros? Pregúntame sobre opciones de bajo riesgo y cómo generar ingresos pasivos.
+                </p>
+                <div className="mt-2 flex items-center text-xs font-medium text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform">
+                  Ir al Asistente <ChevronRight className="h-3 w-3 ml-1" />
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
         {/* Resumen por moneda */}
         <div className="grid grid-cols-2 gap-4">
@@ -237,22 +261,24 @@ export default function ListaGastos() {
           </div>
         </div>
 
-        {/* Barra de búsqueda y botón de filtros móvil */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* Barra de búsqueda y botón de filtros móvil (iOS Style) */}
+        <div className="flex gap-3">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <input
               type="text"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               placeholder="Buscar gastos..."
-              className="w-full pl-9 pr-4 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-input bg-background/50 backdrop-blur-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
             />
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`p-2 rounded-md border border-input transition-colors ${
-              showFilters ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground hover:bg-accent'
+            className={`p-2.5 rounded-xl border transition-all shadow-sm ${
+              showFilters 
+                ? 'bg-primary text-primary-foreground border-primary shadow-md' 
+                : 'bg-background/50 backdrop-blur-sm text-foreground border-input hover:bg-accent hover:border-accent'
             }`}
           >
             <Filter className="h-5 w-5" />
@@ -401,69 +427,64 @@ export default function ListaGastos() {
         </div>
       </div>
 
-      {/* Vista Móvil (Tarjetas) */}
-      <div className="md:hidden space-y-3">
+      {/* Vista Móvil (Tarjetas iOS Style) */}
+      <div className="md:hidden space-y-4">
         {gastosFiltrados.length > 0 ? (
           gastosFiltrados.map((gasto) => (
-            <div key={gasto.id} className="bg-card border border-border rounded-lg p-4 shadow-sm active:scale-[0.99] transition-transform">
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full bg-primary/10 text-primary`}>
+            <div 
+              key={gasto.id} 
+              onClick={() => navigate(`/gastos/editar/${gasto.id}`)}
+              className="bg-card/80 backdrop-blur-md border border-border/50 rounded-2xl p-4 shadow-sm active:scale-[0.98] transition-all duration-200 cursor-pointer hover:shadow-md"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-3.5">
+                  <div className={`p-2.5 rounded-xl bg-primary/10 text-primary shadow-sm`}>
                     {obtenerIconoCategoria(gasto.categoria)}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground line-clamp-1">{gasto.descripcion}</h3>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <h3 className="font-semibold text-foreground line-clamp-1 text-base">{gasto.descripcion}</h3>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                       <Calendar className="h-3 w-3" />
                       {formatearFecha(gasto.fecha)}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-foreground">
+                  <p className="font-bold text-foreground text-lg tracking-tight">
                     {formatearMoneda(gasto.monto, gasto.moneda)}
-                  </p>
-                  <p className="text-xs text-muted-foreground flex items-center justify-end gap-1">
-                    <CreditCard className="h-3 w-3" />
-                    {METODO_PAGO_LABELS[gasto.metodoPago]}
                   </p>
                 </div>
               </div>
               
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
                 <div className="flex flex-wrap gap-2">
-                  <span className="text-xs px-2 py-1 rounded-md bg-secondary text-secondary-foreground font-medium">
+                  <span className="text-[10px] font-medium px-2 py-1 rounded-lg bg-secondary/80 text-secondary-foreground backdrop-blur-sm">
                     {CATEGORIA_LABELS[gasto.categoria]}
                   </span>
                   {gasto.subcategoria && (
-                    <span className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">
+                    <span className="text-[10px] font-medium px-2 py-1 rounded-lg bg-muted/80 text-muted-foreground backdrop-blur-sm">
                       {gasto.subcategoria}
                     </span>
                   )}
+                  <span className="text-[10px] font-medium px-2 py-1 rounded-lg bg-muted/50 text-muted-foreground flex items-center gap-1">
+                    <CreditCard className="h-3 w-3" />
+                    {METODO_PAGO_LABELS[gasto.metodoPago]}
+                  </span>
                 </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => navigate(`/gastos/editar/${gasto.id}`)}
-                    className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-primary"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => setGastoAEliminar(gasto.id)}
-                    className="p-2 rounded-full hover:bg-accent text-muted-foreground hover:text-destructive"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setGastoAEliminar(gasto.id);
+                  }}
+                  className="p-2 -mr-2 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             </div>
           ))
         ) : (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-16 text-muted-foreground bg-card/30 rounded-3xl border border-dashed border-border">
             <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" />
             <p>No se encontraron gastos</p>
           </div>

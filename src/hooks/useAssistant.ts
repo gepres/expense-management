@@ -2,7 +2,7 @@
  * Hook personalizado para el Asistente de IA con soporte para conversaciones
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
   getConversations,
   createConversation,
