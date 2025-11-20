@@ -7,7 +7,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import { useGastos } from '@hooks/useGastos';
-import { type GastoFormData } from '@types';
+import { type GastoFormData, type CategoriaGasto, type MetodoPago, type Moneda } from '@types';
 import { toast } from 'react-hot-toast';
 import { scanReceipt, validateImageFormat } from '@services/receipts';
 import { obtenerTagsSugeridos, tieneTagsSugeridos } from '@utils/tagsSugeridos';
@@ -139,11 +139,11 @@ export default function FormularioGasto() {
     if (shortcut) {
       setFormData(prev => ({
         ...prev,
-        ...(shortcut.category && { categoria: shortcut.category }),
+        ...(shortcut.category && { categoria: shortcut.category as CategoriaGasto }),
         ...(shortcut.subcategory && { subcategoria: shortcut.subcategory }),
-        ...(shortcut.paymentMethod && { metodoPago: shortcut.paymentMethod }),
+        ...(shortcut.paymentMethod && { metodoPago: shortcut.paymentMethod as MetodoPago }),
         ...(shortcut.amount && { monto: shortcut.amount.toString() }),
-        ...(shortcut.currency && { moneda: shortcut.currency }),
+        ...(shortcut.currency && { moneda: shortcut.currency as Moneda }),
         ...(shortcut.description && { descripcion: shortcut.description }),
         ...(shortcut.tags && { tags: shortcut.tags }),
         ...(shortcut.isRecurring !== undefined && { recurrente: shortcut.isRecurring }),
@@ -213,7 +213,7 @@ export default function FormularioGasto() {
           if (categoriaEncontrada) {
             setFormData(prev => ({
               ...prev,
-              categoria: categoriaEncontrada.id,
+              categoria: categoriaEncontrada.id as CategoriaGasto,
               subcategoria: data.subcategory || prev.subcategoria,
             }));
           }
