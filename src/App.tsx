@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@context/AuthContext';
 import { ThemeProvider, useTheme } from '@context/ThemeContext';
+import { ConfigProvider } from '@context/ConfigContext';
 import ErrorAlert from '@components/common/ErrorAlert';
 import CustomLoader from '@components/common/CustomLoader';
 
@@ -195,8 +196,10 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <AppRoutes />
-          <ToasterWithTheme />
+          <ConfigProvider>
+            <AppRoutes />
+            <ToasterWithTheme />
+          </ConfigProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

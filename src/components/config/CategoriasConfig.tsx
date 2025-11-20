@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { ConfigService, type Category, type Subcategory } from '../../services/config';
+import { useConfig } from '@context/ConfigContext';
 import { Plus, Edit2, Trash2, Save, X, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 
 export default function CategoriasConfig() {
+  const { reloadCategories } = useConfig();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -32,6 +34,8 @@ export default function CategoriasConfig() {
     try {
       const data = await ConfigService.getCategories();
       setCategories(data);
+      // Sincronizar con el contexto global
+      await reloadCategories();
     } catch {
       toast.error('Error al cargar categorías');
     } finally {
@@ -398,6 +402,7 @@ export default function CategoriasConfig() {
                           className="w-full px-3 py-2 rounded-md border border-border bg-background disabled:opacity-50"
                           disabled={!!editingSubcatId}
                         />
+                        <p className="text-xs text-muted-foreground">Solo minúsculas, números y guiones bajos.</p>
                       </div>
                       <div className="space-y-1">
                         <input

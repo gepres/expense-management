@@ -4,9 +4,10 @@ import MetodosPagoConfig from './MetodosPagoConfig';
 import MonedasConfig from './MonedasConfig';
 import PerfilConfig from './PerfilConfig';
 import AparienciaConfig from './AparienciaConfig';
-import { Layers, CreditCard, Coins, User, Palette } from 'lucide-react';
+import AtajosConfig from './AtajosConfig';
+import { Layers, CreditCard, Coins, User, Palette, Zap } from 'lucide-react';
 
-type Tab = 'perfil' | 'apariencia' | 'categorias' | 'metodos' | 'monedas';
+type Tab = 'perfil' | 'apariencia' | 'categorias' | 'metodos' | 'monedas' | 'atajos';
 
 export default function Configuracion() {
   const [activeTab, setActiveTab] = useState<Tab>('perfil');
@@ -17,6 +18,7 @@ export default function Configuracion() {
     { id: 'categorias', label: 'Categorías', icon: Layers },
     { id: 'metodos', label: 'Métodos de Pago', icon: CreditCard },
     { id: 'monedas', label: 'Monedas', icon: Coins },
+    { id: 'atajos', label: 'Atajos', icon: Zap },
   ] as const;
 
   return (
@@ -55,6 +57,7 @@ export default function Configuracion() {
         {activeTab === 'categorias' && <CategoriasConfig />}
         {activeTab === 'metodos' && <MetodosPagoConfig />}
         {activeTab === 'monedas' && <MonedasConfig />}
+        {activeTab === 'atajos' && <AtajosConfig />}
       </div>
     </div>
   );

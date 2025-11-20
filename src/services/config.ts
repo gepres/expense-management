@@ -68,6 +68,33 @@ export interface CreateCurrencyDto {
 
 export type UpdateCurrencyDto = Partial<CreateCurrencyDto>;
 
+export interface Shortcut {
+  id: string;
+  nombre: string; // max 15 chars - button label
+  categoria?: string;
+  subcategoria?: string;
+  monto?: number;
+  moneda?: string;
+  metodoPago?: string;
+  descripcion?: string;
+  tags?: string[];
+  recurrente?: boolean;
+}
+
+export interface CreateShortcutDto {
+  nombre: string;
+  categoria?: string;
+  subcategoria?: string;
+  monto?: number;
+  moneda?: string;
+  metodoPago?: string;
+  descripcion?: string;
+  tags?: string[];
+  recurrente?: boolean;
+}
+
+export type UpdateShortcutDto = Partial<CreateShortcutDto>;
+
 const getHeaders = async () => {
   const auth = getAuth();
   const token = await auth.currentUser?.getIdToken();
@@ -225,5 +252,44 @@ export const ConfigService = {
       headers,
     });
     if (!response.ok) throw new Error('Error deleting currency');
+  },
+
+  // Shortcuts
+  async getShortcuts(): Promise<Shortcut[]> {
+    const headers = await getHeaders();
+    const response = await fetch(`${API_URL}/shortcuts`, { headers });
+    if (!response.ok) throw new Error('Error fetching shortcuts');
+    return response.json();
+  },
+
+  async createShortcut(data: CreateShortcutDto): Promise<Shortcut> {
+    const headers = await getHeaders();
+    const response = await fetch(`${API_URL}/shortcuts`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Error creating shortcut');
+    return response.json();
+  },
+
+  async updateShortcut(id: string, data: UpdateShortcutDto): Promise<Shortcut> {
+    const headers = await getHeaders();
+    const response = await fetch(`${API_URL}/shortcuts/${id}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Error updating shortcut');
+    return response.json();
+  },
+
+  async deleteShortcut(id: string): Promise<void> {
+    const headers = await getHeaders();
+    const response = await fetch(`${API_URL}/shortcuts/${id}`, {
+      method: 'DELETE',
+      headers,
+    });
+    if (!response.ok) throw new Error('Error deleting shortcut');
   },
 };

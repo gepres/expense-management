@@ -6,14 +6,10 @@ import { useEffect, useState, useMemo } from 'react';
 import { usePresupuestos } from '@hooks/usePresupuestos';
 import { useGastos } from '@hooks/useGastos';
 import { useAuth } from '@context/AuthContext';
+import { useConfig } from '@context/ConfigContext';
 import {
-  CATEGORIAS_GASTO,
-  CATEGORIA_LABELS,
-  CATEGORIA_LABELS_CON_GENERAL,
   CATEGORIA_GENERAL,
   SUBCATEGORIAS_PRESUPUESTO_GENERAL,
-  MONEDAS,
-  MONEDA_LABELS,
   type CategoriaGasto,
   type CategoriaGastoOGeneral,
   type Moneda,
@@ -36,6 +32,7 @@ export default function ListaPresupuestos() {
   const { usuario } = useAuth();
   const { presupuestos, estado, cargarPresupuestos, crear, actualizar, eliminar } = usePresupuestos();
   const { gastos, cargarGastos } = useGastos();
+  const { categories, currencies, getCategoryLabel, getCurrencySymbol } = useConfig();
 
   const [mesActual, setMesActual] = useState(() => {
     const fecha = new Date();
@@ -158,8 +155,10 @@ export default function ListaPresupuestos() {
       );
 
       if (existePresupuesto) {
+        const currencyObj = currencies.find(c => c.codigoISO === formData.moneda);
+        const currencyLabel = currencyObj ? currencyObj.nombre : formData.moneda;
         toast.error(
-          `Ya existe un presupuesto para ${CATEGORIA_LABELS[formData.categoria]} en ${MONEDA_LABELS[formData.moneda]}`
+          `Ya existe un presupuesto para ${getCategoryLabel(formData.categoria)} en ${currencyLabel}`
         );
         return false;
       }
@@ -556,10 +555,12 @@ export default function ListaPresupuestos() {
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-foreground">
-                        {CATEGORIA_LABELS_CON_GENERAL[presupuesto.categoria]}
+                        {presupuesto.categoria === CATEGORIA_GENERAL
+                          ? 'Presupuesto General'
+                          : getCategoryLabel(presupuesto.categoria)}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {MONEDA_LABELS[presupuesto.moneda]}
+                        {currencies.find(c => c.codigoISO === presupuesto.moneda)?.nombre || presupuesto.moneda}
                       </p>
                     </div>
                   </div>
@@ -715,12 +716,12 @@ export default function ListaPresupuestos() {
                   disabled={cargando || !!presupuestoEditando}
                 >
                   <option value={CATEGORIA_GENERAL}>
-                    {CATEGORIA_LABELS_CON_GENERAL[CATEGORIA_GENERAL]}
+                    Presupuesto General
                   </option>
                   <option disabled>──────────</option>
-                  {CATEGORIAS_GASTO.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {CATEGORIA_LABELS[cat]}
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.nombre}
                     </option>
                   ))}
                 </select>
@@ -769,9 +770,9 @@ export default function ListaPresupuestos() {
                   className="w-full px-4 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   disabled={cargando || !!presupuestoEditando}
                 >
-                  {MONEDAS.map((mon) => (
-                    <option key={mon} value={mon}>
-                      {MONEDA_LABELS[mon]}
+                  {currencies.map((currency) => (
+                    <option key={currency.id} value={currency.codigoISO}>
+                      {currency.simbolo} {currency.nombre}
                     </option>
                   ))}
                 </select>

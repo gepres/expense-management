@@ -9,6 +9,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useConfig } from '@context/ConfigContext';
 import {
   validateFile,
   analyzeExpenses,
@@ -37,6 +38,7 @@ type Step = 'upload' | 'validating' | 'preview-valid' | 'analyzing' | 'preview-e
 export default function ImportarExcel() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { getCategoryLabel, getCurrencySymbol } = useConfig();
 
   // Estado del flujo
   const [step, setStep] = useState<Step>('upload');
@@ -442,7 +444,7 @@ export default function ImportarExcel() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{row.descripcion}</p>
                         <p className="text-[10px] md:text-xs text-muted-foreground">
-                          {row.fecha} • {row.categoria}
+                          {row.fecha} • {getCategoryLabel(row.categoria)}
                         </p>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -668,7 +670,7 @@ export default function ImportarExcel() {
                           <span>{row.fecha}</span>
                           <span>•</span>
                           <span className={row.categoriaSugerida ? 'text-purple-600 font-medium' : ''}>
-                            {row.categoria}
+                            {getCategoryLabel(row.categoria)}
                           </span>
                           {row.categoriaSugerida && (
                             <Sparkles className="h-2.5 w-2.5 text-purple-500" />

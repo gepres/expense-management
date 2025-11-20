@@ -7,13 +7,14 @@ import { Link } from 'react-router-dom';
 import { useGastos } from '@hooks/useGastos';
 import { usePresupuestos } from '@hooks/usePresupuestos';
 import { useAuth } from '@context/AuthContext';
+import { useConfig } from '@context/ConfigContext';
 import {
   calcularTotalGastos,
   calcularGastosPorCategoria,
   agruparGastosPorMoneda,
 } from '@utils/calculations';
 import { formatearMoneda, formatearFecha } from '@utils/formatters';
-import { CATEGORIA_LABELS, CATEGORIA_GENERAL, type CategoriaGasto } from '@types';
+import { CATEGORIA_GENERAL } from '@types';
 import {
   BarChart,
   Bar,
@@ -59,6 +60,7 @@ export default function Dashboard() {
   const { usuario } = useAuth();
   const { gastos, estado, cargarGastos } = useGastos();
   const { presupuestos, estado: estadoPresupuestos, cargarPresupuestos } = usePresupuestos();
+  const { getCategoryLabel, getPaymentMethodLabel } = useConfig();
 
   const [mesActual] = useState(() => {
     const fecha = new Date();
@@ -111,7 +113,7 @@ export default function Dashboard() {
   const gastosPorCategoria = calcularGastosPorCategoria(gastosDelMes);
   const datosGraficoBarras = Object.entries(gastosPorCategoria).map(
     ([categoria, total]) => ({
-      categoria: CATEGORIA_LABELS[categoria as CategoriaGasto],
+      categoria: getCategoryLabel(categoria),
       total,
     })
   );
@@ -331,7 +333,7 @@ export default function Dashboard() {
                         {formatearMoneda(gasto.monto, gasto.moneda)}
                       </p>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                        {gasto.metodoPago}
+                        {getPaymentMethodLabel(gasto.metodoPago)}
                       </p>
                     </div>
                   </div>

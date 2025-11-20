@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { ConfigService, type Currency } from '../../services/config';
+import { useConfig } from '@context/ConfigContext';
 import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function MonedasConfig() {
+  const { reloadCurrencies } = useConfig();
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -26,6 +28,8 @@ export default function MonedasConfig() {
     try {
       const data = await ConfigService.getCurrencies();
       setCurrencies(data);
+      // Sincronizar con el contexto global
+      await reloadCurrencies();
     } catch {
       toast.error('Error al cargar monedas');
     } finally {

@@ -5,19 +5,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
+import { useConfig } from '@context/ConfigContext';
 import { useGastos } from '@hooks/useGastos';
-import {
-  CATEGORIAS_GASTO,
-  CATEGORIA_LABELS,
-  METODOS_PAGO,
-  METODO_PAGO_LABELS,
-  MONEDAS,
-  MONEDA_LABELS,
-  SUBCATEGORIAS,
-  type CategoriaGasto,
-  type MetodoPago,
-  type GastoFormData,
-} from '@types';
+import { type GastoFormData } from '@types';
 import { toast } from 'react-hot-toast';
 import { scanReceipt, validateImageFormat } from '@services/receipts';
 import { obtenerTagsSugeridos, tieneTagsSugeridos } from '@utils/tagsSugeridos';
@@ -69,6 +59,15 @@ export default function FormularioGasto() {
   const { id } = useParams<{ id: string }>();
   const { usuario } = useAuth();
   const { crear, actualizar, obtenerPorId } = useGastos();
+  const {
+    categories,
+    paymentMethods,
+    currencies,
+    getCategoryLabel,
+    getPaymentMethodLabel,
+    getCurrencySymbol,
+    getSubcategories
+  } = useConfig();
 
   const esEdicion = Boolean(id);
   const [cargandoGasto, setCargandoGasto] = useState(esEdicion);
@@ -240,13 +239,13 @@ export default function FormularioGasto() {
 
         // Si hay categoría y subcategoría, intentar mapearlas
         if (data.category) {
-          const categoriaEncontrada = CATEGORIAS_GASTO.find(
-            cat => CATEGORIA_LABELS[cat].toLowerCase() === data.category?.toLowerCase()
+          const categoriaEncontrada = categories.find(
+            cat => cat.nombre.toLowerCase() === data.category?.toLowerCase()
           );
           if (categoriaEncontrada) {
             setFormData(prev => ({
               ...prev,
-              categoria: categoriaEncontrada,
+              categoria: categoriaEncontrada.id,
               subcategoria: data.subcategory || prev.subcategoria,
             }));
           }
@@ -605,9 +604,9 @@ export default function FormularioGasto() {
                     } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
                     disabled={cargando}
                   >
-                    {CATEGORIAS_GASTO.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {CATEGORIA_LABELS[cat]}
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.nombre}
                       </option>
                     ))}
                   </select>
@@ -627,7 +626,7 @@ export default function FormularioGasto() {
                     disabled={cargando}
                   >
                     <option value="">Sin subcategoría</option>
-                    {SUBCATEGORIAS[formData.categoria].map((sub) => (
+                    {getSubcategories(formData.categoria).map((sub) => (
                       <option key={sub} value={sub}>
                         {sub}
                       </option>
@@ -651,9 +650,9 @@ export default function FormularioGasto() {
                   } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
                   disabled={cargando}
                 >
-                  {MONEDAS.map((moneda) => (
-                    <option key={moneda} value={moneda}>
-                      {MONEDA_LABELS[moneda]}
+                  {currencies.map((currency) => (
+                    <option key={currency.id} value={currency.codigoISO}>
+                      {currency.simbolo} {currency.nombre}
                     </option>
                   ))}
                 </select>
@@ -675,9 +674,9 @@ export default function FormularioGasto() {
                   } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
                   disabled={cargando}
                 >
-                  {METODOS_PAGO.map((metodo) => (
-                    <option key={metodo} value={metodo}>
-                      {METODO_PAGO_LABELS[metodo]}
+                  {paymentMethods.map((method) => (
+                    <option key={method.id} value={method.id}>
+                      {method.nombre}
                     </option>
                   ))}
                 </select>
@@ -863,9 +862,9 @@ export default function FormularioGasto() {
                   } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
                   disabled={cargando}
                 >
-                  {CATEGORIAS_GASTO.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {CATEGORIA_LABELS[cat]}
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.nombre}
                     </option>
                   ))}
                 </select>
@@ -885,7 +884,7 @@ export default function FormularioGasto() {
                   disabled={cargando}
                 >
                   <option value="">Sin subcategoría</option>
-                  {SUBCATEGORIAS[formData.categoria].map((sub) => (
+                  {getSubcategories(formData.categoria).map((sub) => (
                     <option key={sub} value={sub}>
                       {sub}
                     </option>
@@ -907,9 +906,9 @@ export default function FormularioGasto() {
                   } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
                   disabled={cargando}
                 >
-                  {MONEDAS.map((moneda) => (
-                    <option key={moneda} value={moneda}>
-                      {MONEDA_LABELS[moneda]}
+                  {currencies.map((currency) => (
+                    <option key={currency.id} value={currency.codigoISO}>
+                      {currency.simbolo} {currency.nombre}
                     </option>
                   ))}
                 </select>
@@ -940,28 +939,6 @@ export default function FormularioGasto() {
                 />
                 {errores.monto && <p className="mt-1 text-sm text-destructive">{errores.monto}</p>}
               </div>
-              <div>
-                <label htmlFor="moneda" className="block text-sm font-medium text-foreground mb-1">
-                  Moneda <span className="text-destructive">*</span>
-                </label>
-                <select
-                  id="moneda"
-                  name="moneda"
-                  value={formData.moneda}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded-md border ${
-                    errores.moneda ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                  } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
-                  disabled={cargando}
-                >
-                  {MONEDAS.map((moneda) => (
-                    <option key={moneda} value={moneda}>
-                      {MONEDA_LABELS[moneda]}
-                    </option>
-                  ))}
-                </select>
-                {errores.moneda && <p className="mt-1 text-sm text-destructive">{errores.moneda}</p>}
-              </div>
 
               <div>
                 <label htmlFor="metodoPago" className="block text-sm font-medium text-foreground mb-1">
@@ -977,9 +954,9 @@ export default function FormularioGasto() {
                   } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
                   disabled={cargando}
                 >
-                  {METODOS_PAGO.map((metodo) => (
-                    <option key={metodo} value={metodo}>
-                      {METODO_PAGO_LABELS[metodo]}
+                  {paymentMethods.map((method) => (
+                    <option key={method.id} value={method.id}>
+                      {method.nombre}
                     </option>
                   ))}
                 </select>

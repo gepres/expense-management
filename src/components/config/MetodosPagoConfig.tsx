@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { ConfigService, type PaymentMethod } from '../../services/config';
+import { useConfig } from '@context/ConfigContext';
 import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 
 export default function MetodosPagoConfig() {
+  const { reloadPaymentMethods } = useConfig();
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,6 +27,8 @@ export default function MetodosPagoConfig() {
     try {
       const data = await ConfigService.getPaymentMethods();
       setMethods(data);
+      // Sincronizar con el contexto global
+      await reloadPaymentMethods();
     } catch {
       toast.error('Error al cargar métodos de pago');
     } finally {

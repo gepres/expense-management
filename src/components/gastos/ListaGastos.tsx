@@ -5,15 +5,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGastos } from '@hooks/useGastos';
-import {
-  CATEGORIAS_GASTO,
-  CATEGORIA_LABELS,
-  METODOS_PAGO,
-  METODO_PAGO_LABELS,
-  SUBCATEGORIAS,
-  type CategoriaGasto,
-  type MetodoPago,
-} from '@types';
+import { useConfig } from '@context/ConfigContext';
 import { formatearMoneda, formatearFecha } from '@utils/formatters';
 import { calcularTotalGastos, agruparGastosPorMoneda } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
@@ -24,12 +16,19 @@ import { ExpensesService } from '../../services/expenses';
 export default function ListaGastos() {
   const navigate = useNavigate();
   const { gastos, estado, cargarGastos, eliminar } = useGastos();
+  const {
+    categories,
+    paymentMethods,
+    getCategoryLabel,
+    getPaymentMethodLabel,
+    getSubcategories
+  } = useConfig();
 
   // Estados de filtros
   const [busqueda, setBusqueda] = useState('');
-  const [categoriaFiltro, setCategoriaFiltro] = useState<CategoriaGasto | 'todas'>('todas');
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string>('todas');
   const [subcategoriaFiltro, setSubcategoriaFiltro] = useState<string>('todas');
-  const [metodoPagoFiltro, setMetodoPagoFiltro] = useState<MetodoPago | 'todos'>('todos');
+  const [metodoPagoFiltro, setMetodoPagoFiltro] = useState<string>('todos');
   const [mesActual, setMesActual] = useState(() => {
     const fecha = new Date();
     return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
@@ -82,13 +81,13 @@ export default function ListaGastos() {
       resultado = resultado.filter(
         (gasto) =>
           gasto.descripcion.toLowerCase().includes(busquedaLower) ||
-          CATEGORIA_LABELS[gasto.categoria].toLowerCase().includes(busquedaLower) ||
+          getCategoryLabel(gasto.categoria).toLowerCase().includes(busquedaLower) ||
           gasto.tags?.some((tag) => tag.toLowerCase().includes(busquedaLower))
       );
     }
 
     return resultado;
-  }, [gastos, categoriaFiltro, subcategoriaFiltro, metodoPagoFiltro, busqueda, mesActual]);
+  }, [gastos, categoriaFiltro, subcategoriaFiltro, metodoPagoFiltro, busqueda, mesActual, getCategoryLabel]);
 
   // Calcular totales por moneda
   const totalesPorMoneda = useMemo(() => {
@@ -112,7 +111,7 @@ export default function ListaGastos() {
   };
 
   // Manejar cambio de categoría (resetear subcategoría)
-  const handleCategoriaChange = (nuevaCategoria: CategoriaGasto | 'todas') => {
+  const handleCategoriaChange = (nuevaCategoria: string) => {
     setCategoriaFiltro(nuevaCategoria);
     setSubcategoriaFiltro('todas'); // Resetear subcategoría cuando cambia la categoría
   };
@@ -130,11 +129,11 @@ export default function ListaGastos() {
       return Array.from(subcategoriasSet).sort();
     }
     // Si hay categoría seleccionada, mostrar sus subcategorías
-    return SUBCATEGORIAS[categoriaFiltro] || [];
-  }, [categoriaFiltro, gastos]);
+    return getSubcategories(categoriaFiltro);
+  }, [categoriaFiltro, gastos, getSubcategories]);
 
   // Obtener icono de categoría
-  const obtenerIconoCategoria = (categoria: CategoriaGasto, className: string = "h-5 w-5") => {
+  const obtenerIconoCategoria = (categoria: string, className: string = "h-5 w-5") => {
     const iconProps = { className };
 
     switch (categoria) {
@@ -200,7 +199,7 @@ export default function ListaGastos() {
               <h1 className="text-3xl font-bold text-foreground tracking-tight">Mis Gastos</h1>
               <p className="text-muted-foreground mt-1">
                 {gastosFiltrados.length} {gastosFiltrados.length === 1 ? 'gasto' : 'gastos'}{' '}
-                {categoriaFiltro !== 'todas' && `en ${CATEGORIA_LABELS[categoriaFiltro]}`}
+                {categoriaFiltro !== 'todas' && `en ${getCategoryLabel(categoriaFiltro)}`}
               </p>
             </div>
             <div className="flex gap-2">
@@ -302,12 +301,12 @@ export default function ListaGastos() {
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Categoría</label>
                 <select
                   value={categoriaFiltro}
-                  onChange={(e) => handleCategoriaChange(e.target.value as CategoriaGasto | 'todas')}
+                  onChange={(e) => handleCategoriaChange(e.target.value)}
                   className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
                 >
                   <option value="todas">Todas</option>
-                  {CATEGORIAS_GASTO.map((cat) => (
-                    <option key={cat} value={cat}>{CATEGORIA_LABELS[cat]}</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                   ))}
                 </select>
               </div>
@@ -329,12 +328,12 @@ export default function ListaGastos() {
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Método de Pago</label>
                 <select
                   value={metodoPagoFiltro}
-                  onChange={(e) => setMetodoPagoFiltro(e.target.value as MetodoPago | 'todos')}
+                  onChange={(e) => setMetodoPagoFiltro(e.target.value)}
                   className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
                 >
                   <option value="todos">Todos</option>
-                  {METODOS_PAGO.map((metodo) => (
-                    <option key={metodo} value={metodo}>{METODO_PAGO_LABELS[metodo]}</option>
+                  {paymentMethods.map((metodo) => (
+                    <option key={metodo.id} value={metodo.id}>{metodo.nombre}</option>
                   ))}
                 </select>
               </div>
@@ -368,7 +367,7 @@ export default function ListaGastos() {
                     <td className="px-4 py-3 text-sm">
                       <div className="flex items-center gap-2">
                         {obtenerIconoCategoria(gasto.categoria, "h-4 w-4 text-primary")}
-                        <span>{CATEGORIA_LABELS[gasto.categoria]}</span>
+                        <span>{getCategoryLabel(gasto.categoria)}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
@@ -387,7 +386,7 @@ export default function ListaGastos() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {METODO_PAGO_LABELS[gasto.metodoPago]}
+                      {getPaymentMethodLabel(gasto.metodoPago)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right font-semibold">
                       {formatearMoneda(gasto.monto, gasto.moneda)}
@@ -459,7 +458,7 @@ export default function ListaGastos() {
               <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
                 <div className="flex flex-wrap gap-2">
                   <span className="text-[10px] font-medium px-2 py-1 rounded-lg bg-secondary/80 text-secondary-foreground backdrop-blur-sm">
-                    {CATEGORIA_LABELS[gasto.categoria]}
+                    {getCategoryLabel(gasto.categoria)}
                   </span>
                   {gasto.subcategoria && (
                     <span className="text-[10px] font-medium px-2 py-1 rounded-lg bg-muted/80 text-muted-foreground backdrop-blur-sm">
@@ -468,7 +467,7 @@ export default function ListaGastos() {
                   )}
                   <span className="text-[10px] font-medium px-2 py-1 rounded-lg bg-muted/50 text-muted-foreground flex items-center gap-1">
                     <CreditCard className="h-3 w-3" />
-                    {METODO_PAGO_LABELS[gasto.metodoPago]}
+                    {getPaymentMethodLabel(gasto.metodoPago)}
                   </span>
                 </div>
                 <button
