@@ -7,6 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import toast from 'react-hot-toast';
 import type { RegistroCredenciales } from '@types';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function Registro() {
   const navigate = useNavigate();
@@ -212,7 +213,11 @@ export default function Registro() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                 >
-                  {mostrarPassword ? '🙈' : '👁️'}
+                  {mostrarPassword ? (
+                    <Eye className="h-5 w-5" />
+                  ) : (
+                    <EyeOff className="h-5 w-5" />
+                  )}
                 </button>
               </div>
               {errores.password && (
@@ -252,7 +257,11 @@ export default function Registro() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                 >
-                  {mostrarConfirmPassword ? '🙈' : '👁️'}
+                  {mostrarConfirmPassword ? (
+                    <Eye className="h-5 w-5" />
+                  ) : (
+                    <EyeOff className="h-5 w-5" />
+                  )}
                 </button>
               </div>
               {errores.confirmPassword && (
