@@ -11,6 +11,7 @@ import {
   type Category,
   type PaymentMethod,
   type Currency,
+  type Shortcut,
 } from '@services/config';
 
 // ============================================================================
@@ -22,6 +23,7 @@ interface ConfigContextType {
   categories: Category[];
   paymentMethods: PaymentMethod[];
   currencies: Currency[];
+  shortcuts: Shortcut[];
 
   // Estado de carga
   isLoading: boolean;
@@ -40,6 +42,7 @@ interface ConfigContextType {
   reloadCategories: () => Promise<void>;
   reloadPaymentMethods: () => Promise<void>;
   reloadCurrencies: () => Promise<void>;
+  reloadShortcuts: () => Promise<void>;
   reloadAll: () => Promise<void>;
 }
 
@@ -95,6 +98,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
   const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(DEFAULT_PAYMENT_METHODS);
   const [currencies, setCurrencies] = useState<Currency[]>(DEFAULT_CURRENCIES);
+  const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -150,6 +154,18 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     }
   }, [usuario]);
 
+  const reloadShortcuts = useCallback(async () => {
+    if (!usuario) return;
+
+    try {
+      const data = await ConfigService.getShortcuts();
+      setShortcuts(data || []);
+    } catch (err) {
+      console.error('[ConfigContext] Error loading shortcuts:', err);
+      setShortcuts([]);
+    }
+  }, [usuario]);
+
   const reloadAll = useCallback(async () => {
     if (!usuario) return;
 
@@ -161,6 +177,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
         reloadCategories(),
         reloadPaymentMethods(),
         reloadCurrencies(),
+        reloadShortcuts(),
       ]);
     } catch (err) {
       console.error('[ConfigContext] Error loading config:', err);
@@ -168,7 +185,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [usuario, reloadCategories, reloadPaymentMethods, reloadCurrencies]);
+  }, [usuario, reloadCategories, reloadPaymentMethods, reloadCurrencies, reloadShortcuts]);
 
   // Cargar datos cuando el usuario se autentica
   useEffect(() => {
@@ -179,6 +196,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
       setCategories(DEFAULT_CATEGORIES);
       setPaymentMethods(DEFAULT_PAYMENT_METHODS);
       setCurrencies(DEFAULT_CURRENCIES);
+      setShortcuts([]);
     }
   }, [usuario, reloadAll]);
 
@@ -231,6 +249,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     categories,
     paymentMethods,
     currencies,
+    shortcuts,
     isLoading,
     error,
     getCategoryLabel,
@@ -243,6 +262,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     reloadCategories,
     reloadPaymentMethods,
     reloadCurrencies,
+    reloadShortcuts,
     reloadAll,
   };
 

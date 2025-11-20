@@ -3,126 +3,120 @@ import { ConfigService, type Shortcut } from '../../services/config';
 import { useConfig } from '@context/ConfigContext';
 import { Plus, Edit2, Trash2, X, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
+import EmojiPicker, { Theme } from 'emoji-picker-react';
 
 export default function AtajosConfig() {
   const {
     categories,
     paymentMethods,
     currencies,
+    shortcuts,
     getCategoryLabel,
     getPaymentMethodLabel,
-    getSubcategories
+    getSubcategories,
+    reloadShortcuts
   } = useConfig();
 
-  const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingShortcut, setEditingShortcut] = useState<Shortcut | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Form states
-  const [nombre, setNombre] = useState('');
-  const [categoria, setCategoria] = useState('');
-  const [subcategoria, setSubcategoria] = useState('');
-  const [monto, setMonto] = useState('');
-  const [moneda, setMoneda] = useState('');
-  const [metodoPago, setMetodoPago] = useState('');
-  const [descripcion, setDescripcion] = useState('');
+  const [name, setName] = useState('');
+  const [icon, setIcon] = useState('');
+  const [category, setCategory] = useState('');
+  const [subcategory, setSubcategory] = useState('');
+  const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [description, setDescription] = useState('');
   const [tagsInput, setTagsInput] = useState('');
-  const [recurrente, setRecurrente] = useState(false);
-
-  useEffect(() => {
-    loadShortcuts();
-  }, []);
-
-  const loadShortcuts = async () => {
-    try {
-      const data = await ConfigService.getShortcuts();
-      setShortcuts(data);
-    } catch {
-      toast.error('Error al cargar atajos');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [isRecurring, setIsRecurring] = useState(false);
 
   const openModal = (shortcut?: Shortcut) => {
     if (shortcut) {
       setEditingShortcut(shortcut);
-      setNombre(shortcut.nombre);
-      setCategoria(shortcut.categoria || '');
-      setSubcategoria(shortcut.subcategoria || '');
-      setMonto(shortcut.monto?.toString() || '');
-      setMoneda(shortcut.moneda || '');
-      setMetodoPago(shortcut.metodoPago || '');
-      setDescripcion(shortcut.descripcion || '');
+      setName(shortcut.name);
+      setIcon(shortcut.icon || '');
+      setCategory(shortcut.category || '');
+      setSubcategory(shortcut.subcategory || '');
+      setAmount(shortcut.amount?.toString() || '');
+      setCurrency(shortcut.currency || '');
+      setPaymentMethod(shortcut.paymentMethod || '');
+      setDescription(shortcut.description || '');
       setTagsInput(shortcut.tags?.join(', ') || '');
-      setRecurrente(shortcut.recurrente || false);
+      setIsRecurring(shortcut.isRecurring || false);
     } else {
       setEditingShortcut(null);
       resetForm();
     }
     setIsModalOpen(true);
+    setShowEmojiPicker(false);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingShortcut(null);
+    setShowEmojiPicker(false);
     resetForm();
   };
 
   const resetForm = () => {
-    setNombre('');
-    setCategoria('');
-    setSubcategoria('');
-    setMonto('');
-    setMoneda('');
-    setMetodoPago('');
-    setDescripcion('');
+    setName('');
+    setIcon('');
+    setCategory('');
+    setSubcategory('');
+    setAmount('');
+    setCurrency('');
+    setPaymentMethod('');
+    setDescription('');
     setTagsInput('');
-    setRecurrente(false);
+    setIsRecurring(false);
   };
 
-  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.slice(0, 15);
-    setNombre(value);
+    setName(value);
   };
 
-  const handleCategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setCategoria(e.target.value);
-    setSubcategoria(''); // Reset subcategoria when categoria changes
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCategory(e.target.value);
+    setSubcategory(''); // Reset subcategory when category changes
   };
 
   const validateForm = (): boolean => {
-    // Nombre es obligatorio
-    if (!nombre.trim()) {
+    // Name es obligatorio
+    if (!name.trim()) {
       toast.error('El nombre del botón es obligatorio');
       return false;
     }
 
-    // Al menos un campo adicional debe estar completo
-    const hasCategoria = !!categoria;
-    const hasSubcategoria = !!subcategoria;
-    const hasMonto = !!monto && parseFloat(monto) > 0;
-    const hasMoneda = !!moneda;
-    const hasMetodoPago = !!metodoPago;
-    const hasDescripcion = !!descripcion.trim();
+    // Al menos 2 campos adicionales deben estar completos
+    const hasIcon = !!icon;
+    const hasCategory = !!category;
+    const hasSubcategory = !!subcategory;
+    const hasAmount = !!amount && parseFloat(amount) > 0;
+    const hasCurrency = !!currency;
+    const hasPaymentMethod = !!paymentMethod;
+    const hasDescription = !!description.trim();
     const hasTags = !!tagsInput.trim();
-    const hasRecurrente = recurrente;
+    const hasIsRecurring = isRecurring;
 
     const filledFields = [
-      hasCategoria,
-      hasSubcategoria,
-      hasMonto,
-      hasMoneda,
-      hasMetodoPago,
-      hasDescripcion,
+      hasIcon,
+      hasCategory,
+      hasSubcategory,
+      hasAmount,
+      hasCurrency,
+      hasPaymentMethod,
+      hasDescription,
       hasTags,
-      hasRecurrente
+      hasIsRecurring
     ].filter(Boolean).length;
 
-    if (filledFields < 1) {
-      toast.error('Debes completar al menos un campo adicional');
+    if (filledFields < 2) {
+      toast.error('Debes completar al menos 2 campos adicionales');
       return false;
     }
 
@@ -143,18 +137,19 @@ export default function AtajosConfig() {
         .filter(tag => tag.length > 0);
 
       const data: any = {
-        nombre: nombre.trim(),
+        name: name.trim(),
       };
 
       // Solo agregar campos que tienen valor
-      if (categoria) data.categoria = categoria;
-      if (subcategoria) data.subcategoria = subcategoria;
-      if (monto) data.monto = parseFloat(monto);
-      if (moneda) data.moneda = moneda;
-      if (metodoPago) data.metodoPago = metodoPago;
-      if (descripcion.trim()) data.descripcion = descripcion.trim();
+      if (icon) data.icon = icon;
+      if (category) data.category = category;
+      if (subcategory) data.subcategory = subcategory;
+      if (amount) data.amount = parseFloat(amount);
+      if (currency) data.currency = currency;
+      if (paymentMethod) data.paymentMethod = paymentMethod;
+      if (description.trim()) data.description = description.trim();
       if (tags.length > 0) data.tags = tags;
-      if (recurrente) data.recurrente = true;
+      if (isRecurring) data.isRecurring = true;
 
       if (editingShortcut) {
         await ConfigService.updateShortcut(editingShortcut.id, data);
@@ -164,7 +159,7 @@ export default function AtajosConfig() {
         toast.success('Atajo creado');
       }
 
-      loadShortcuts();
+      await reloadShortcuts();
       closeModal();
     } catch {
       toast.error('Error al guardar atajo');
@@ -179,16 +174,14 @@ export default function AtajosConfig() {
     try {
       await ConfigService.deleteShortcut(id);
       toast.success('Atajo eliminado');
-      loadShortcuts();
+      await reloadShortcuts();
     } catch {
       toast.error('Error al eliminar atajo');
     }
   };
 
   // Get subcategories for selected category
-  const subcategorias = categoria ? getSubcategories(categoria) : [];
-
-  if (loading) return <div>Cargando...</div>;
+  const subcategorias = category ? getSubcategories(category) : [];
 
   return (
     <div className="space-y-6">
@@ -225,11 +218,11 @@ export default function AtajosConfig() {
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Zap className="h-5 w-5 text-primary" />
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-xl">
+                    {shortcut.icon || <Zap className="h-5 w-5 text-primary" />}
                   </div>
                   <div>
-                    <h3 className="font-bold text-foreground">{shortcut.nombre}</h3>
+                    <h3 className="font-bold text-foreground">{shortcut.name}</h3>
                   </div>
                 </div>
                 <div className="flex gap-1">
@@ -250,22 +243,22 @@ export default function AtajosConfig() {
 
               {/* Preview of shortcut data */}
               <div className="space-y-1 text-xs text-muted-foreground">
-                {shortcut.categoria && (
-                  <p>Categoría: <span className="text-foreground">{getCategoryLabel(shortcut.categoria)}</span></p>
+                {shortcut.category && (
+                  <p>Categoría: <span className="text-foreground">{getCategoryLabel(shortcut.category)}</span></p>
                 )}
-                {shortcut.subcategoria && (
-                  <p>Subcategoría: <span className="text-foreground">{shortcut.subcategoria}</span></p>
+                {shortcut.subcategory && (
+                  <p>Subcategoría: <span className="text-foreground">{shortcut.subcategory}</span></p>
                 )}
-                {shortcut.monto && (
-                  <p>Monto: <span className="text-foreground font-medium">{shortcut.moneda || ''} {shortcut.monto}</span></p>
+                {shortcut.amount && (
+                  <p>Monto: <span className="text-foreground font-medium">{shortcut.currency || ''} {shortcut.amount}</span></p>
                 )}
-                {shortcut.metodoPago && (
-                  <p>Método: <span className="text-foreground">{getPaymentMethodLabel(shortcut.metodoPago)}</span></p>
+                {shortcut.paymentMethod && (
+                  <p>Método: <span className="text-foreground">{getPaymentMethodLabel(shortcut.paymentMethod)}</span></p>
                 )}
-                {shortcut.descripcion && (
-                  <p className="truncate">Desc: <span className="text-foreground">{shortcut.descripcion}</span></p>
+                {shortcut.description && (
+                  <p className="truncate">Desc: <span className="text-foreground">{shortcut.description}</span></p>
                 )}
-                {shortcut.recurrente && (
+                {shortcut.isRecurring && (
                   <p className="text-primary font-medium">Recurrente</p>
                 )}
               </div>
@@ -288,28 +281,57 @@ export default function AtajosConfig() {
             </div>
 
             <form onSubmit={handleSave} className="p-6 space-y-4">
-              {/* Nombre del botón */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Nombre del Botón <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={nombre}
-                  onChange={handleNombreChange}
-                  className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                  placeholder="Ej: Pollería"
-                  required
-                  maxLength={15}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {nombre.length}/15 caracteres
-                </p>
+              {/* Nombre del botón e Icono */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-sm font-medium">
+                    Nombre del Botón <span className="text-destructive">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={handleNameChange}
+                    className="w-full px-3 py-2 rounded-md border border-border bg-background"
+                    placeholder="Ej: Pollería"
+                    required
+                    maxLength={15}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {name.length}/15 caracteres
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Icono</label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className="w-full px-3 py-2 text-left rounded-md border border-border bg-background flex items-center gap-2 h-[42px]"
+                    >
+                      <span className="text-xl">{icon || '😊'}</span>
+                    </button>
+                    {showEmojiPicker && (
+                      <div className="absolute z-20 top-full right-0 mt-2">
+                        <div className="fixed inset-0 z-10" onClick={() => setShowEmojiPicker(false)} />
+                        <div className="relative z-20">
+                          <EmojiPicker
+                            theme={Theme.AUTO}
+                            onEmojiClick={(emojiData) => {
+                              setIcon(emojiData.emoji);
+                              setShowEmojiPicker(false);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="border-t border-border pt-4">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Completa al menos uno de los siguientes campos:
+                  Completa al menos 2 de los siguientes campos:
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -317,8 +339,8 @@ export default function AtajosConfig() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Categoría</label>
                     <select
-                      value={categoria}
-                      onChange={handleCategoriaChange}
+                      value={category}
+                      onChange={handleCategoryChange}
                       className="w-full px-3 py-2 rounded-md border border-border bg-background"
                     >
                       <option value="">Sin definir</option>
@@ -334,10 +356,10 @@ export default function AtajosConfig() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Subcategoría</label>
                     <select
-                      value={subcategoria}
-                      onChange={(e) => setSubcategoria(e.target.value)}
+                      value={subcategory}
+                      onChange={(e) => setSubcategory(e.target.value)}
                       className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                      disabled={!categoria}
+                      disabled={!category}
                     >
                       <option value="">Sin definir</option>
                       {subcategorias.map((sub) => (
@@ -353,8 +375,8 @@ export default function AtajosConfig() {
                     <label className="text-sm font-medium">Monto</label>
                     <input
                       type="number"
-                      value={monto}
-                      onChange={(e) => setMonto(e.target.value)}
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
                       className="w-full px-3 py-2 rounded-md border border-border bg-background"
                       placeholder="0.00"
                       step="0.01"
@@ -366,14 +388,14 @@ export default function AtajosConfig() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Moneda</label>
                     <select
-                      value={moneda}
-                      onChange={(e) => setMoneda(e.target.value)}
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
                       className="w-full px-3 py-2 rounded-md border border-border bg-background"
                     >
                       <option value="">Sin definir</option>
-                      {currencies.map((currency) => (
-                        <option key={currency.id} value={currency.codigoISO}>
-                          {currency.simbolo} {currency.nombre}
+                      {currencies.map((curr) => (
+                        <option key={curr.id} value={curr.codigoISO}>
+                          {curr.simbolo} {curr.nombre}
                         </option>
                       ))}
                     </select>
@@ -383,8 +405,8 @@ export default function AtajosConfig() {
                   <div className="space-y-2 md:col-span-2">
                     <label className="text-sm font-medium">Método de Pago</label>
                     <select
-                      value={metodoPago}
-                      onChange={(e) => setMetodoPago(e.target.value)}
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
                       className="w-full px-3 py-2 rounded-md border border-border bg-background"
                     >
                       <option value="">Sin definir</option>
@@ -401,8 +423,8 @@ export default function AtajosConfig() {
                     <label className="text-sm font-medium">Descripción</label>
                     <input
                       type="text"
-                      value={descripcion}
-                      onChange={(e) => setDescripcion(e.target.value)}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
                       className="w-full px-3 py-2 rounded-md border border-border bg-background"
                       placeholder="Descripción predeterminada..."
                     />
@@ -424,12 +446,12 @@ export default function AtajosConfig() {
                   <div className="md:col-span-2 flex items-center gap-2">
                     <input
                       type="checkbox"
-                      id="recurrente"
-                      checked={recurrente}
-                      onChange={(e) => setRecurrente(e.target.checked)}
+                      id="isRecurring"
+                      checked={isRecurring}
+                      onChange={(e) => setIsRecurring(e.target.checked)}
                       className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
                     />
-                    <label htmlFor="recurrente" className="text-sm font-medium cursor-pointer">
+                    <label htmlFor="isRecurring" className="text-sm font-medium cursor-pointer">
                       Gasto recurrente
                     </label>
                   </div>

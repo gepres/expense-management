@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import { useGastos } from '@hooks/useGastos';
@@ -12,47 +12,7 @@ import { toast } from 'react-hot-toast';
 import { scanReceipt, validateImageFormat } from '@services/receipts';
 import { obtenerTagsSugeridos, tieneTagsSugeridos } from '@utils/tagsSugeridos';
 import CustomLoader from '@components/common/CustomLoader';
-import { Camera, Upload, CircleDollarSign, Lightbulb, Check } from 'lucide-react';
-
-// Combinaciones predefinidas (atajos rápidos)
-interface CombinacionRapida {
-  id: string;
-  label: string;
-  categoria: CategoriaGasto;
-  subcategoria: string;
-  metodoPago: MetodoPago;
-}
-
-const COMBINACIONES_RAPIDAS: CombinacionRapida[] = [
-  {
-    id: 'polleria-yape',
-    label: 'Pollería + Yape',
-    categoria: 'alimentacion',
-    subcategoria: 'Pollería',
-    metodoPago: 'yape',
-  },
-  {
-    id: 'bodega-yape',
-    label: 'Bodega + Yape',
-    categoria: 'alimentacion',
-    subcategoria: 'Bodega',
-    metodoPago: 'yape',
-  },
-  {
-    id: 'market-yape',
-    label: 'Market + Yape',
-    categoria: 'alimentacion',
-    subcategoria: 'Market',
-    metodoPago: 'yape',
-  },
-  {
-    id: 'taxi-yape',
-    label: 'Taxi + Yape',
-    categoria: 'transporte',
-    subcategoria: 'Taxi',
-    metodoPago: 'yape',
-  },
-];
+import { Camera, Upload, CircleDollarSign, Lightbulb, Check, Plus } from 'lucide-react';
 
 export default function FormularioGasto() {
   const navigate = useNavigate();
@@ -63,6 +23,7 @@ export default function FormularioGasto() {
     categories,
     paymentMethods,
     currencies,
+    shortcuts,
     getCategoryLabel,
     getPaymentMethodLabel,
     getCurrencySymbol,
@@ -173,18 +134,28 @@ export default function FormularioGasto() {
     }
   };
 
-  // Manejar selección de combinación rápida
-  const handleCombinacionRapida = (combinacionId: string) => {
-    setCombinacionSeleccionada(combinacionId);
+  // Manejar selección de atajo rápido
+  const handleShortcutSelect = (shortcutId: string) => {
+    setCombinacionSeleccionada(shortcutId);
 
-    const combinacion = COMBINACIONES_RAPIDAS.find(c => c.id === combinacionId);
-    if (combinacion) {
+    const shortcut = shortcuts.find(s => s.id === shortcutId);
+    if (shortcut) {
       setFormData(prev => ({
         ...prev,
-        categoria: combinacion.categoria,
-        subcategoria: combinacion.subcategoria,
-        metodoPago: combinacion.metodoPago,
+        ...(shortcut.category && { categoria: shortcut.category }),
+        ...(shortcut.subcategory && { subcategoria: shortcut.subcategory }),
+        ...(shortcut.paymentMethod && { metodoPago: shortcut.paymentMethod }),
+        ...(shortcut.amount && { monto: shortcut.amount.toString() }),
+        ...(shortcut.currency && { moneda: shortcut.currency }),
+        ...(shortcut.description && { descripcion: shortcut.description }),
+        ...(shortcut.tags && { tags: shortcut.tags }),
+        ...(shortcut.isRecurring !== undefined && { recurrente: shortcut.isRecurring }),
       }));
+
+      // Actualizar tagsInput si hay tags
+      if (shortcut.tags && shortcut.tags.length > 0) {
+        setTagsInput(shortcut.tags.join(', '));
+      }
     }
   };
 
@@ -407,25 +378,40 @@ export default function FormularioGasto() {
             {/* 1. Atajos Rápidos */}
             {!esEdicion && (
               <div className="bg-muted/30 border border-border rounded-lg p-3">
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Atajos Rápidos
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Atajos Rápidos
+                  </label>
+                  <Link
+                    to="/configuracion?tab=atajos"
+                    className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+                {shortcuts.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2">
-                  {COMBINACIONES_RAPIDAS.map((combinacion) => (
+                  {shortcuts.map((shortcut) => (
                     <button
-                      key={combinacion.id}
+                      key={shortcut.id}
                       type="button"
-                      onClick={() => handleCombinacionRapida(combinacion.id)}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        combinacionSeleccionada === combinacion.id
+                      onClick={() => handleShortcutSelect(shortcut.id)}
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                        combinacionSeleccionada === shortcut.id
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-background hover:bg-accent text-foreground border border-border'
                       }`}
                     >
-                      {combinacion.label}
+                      {shortcut.icon && <span>{shortcut.icon}</span>}
+                      <span className="truncate">{shortcut.name}</span>
                     </button>
                   ))}
                 </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    No hay atajos configurados
+                  </p>
+                )}
               </div>
             )}
 
@@ -746,25 +732,40 @@ export default function FormularioGasto() {
             {/* 1. Atajos Rápidos */}
             {!esEdicion && (
               <div className="bg-muted/30 border border-border rounded-lg p-4">
-                <label className="block text-sm font-medium text-foreground mb-3">
-                  Atajos Rápidos
-                </label>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-foreground">
+                    Atajos Rápidos
+                  </label>
+                  <Link
+                    to="/configuracion?tab=atajos"
+                    className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Link>
+                </div>
+                {shortcuts.length > 0 ? (
                 <div className="grid grid-cols-4 gap-2">
-                  {COMBINACIONES_RAPIDAS.map((combinacion) => (
+                  {shortcuts.map((shortcut) => (
                     <button
-                      key={combinacion.id}
+                      key={shortcut.id}
                       type="button"
-                      onClick={() => handleCombinacionRapida(combinacion.id)}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                        combinacionSeleccionada === combinacion.id
+                      onClick={() => handleShortcutSelect(shortcut.id)}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${
+                        combinacionSeleccionada === shortcut.id
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-background hover:bg-accent text-foreground border border-border'
                       }`}
                     >
-                      {combinacion.label}
+                      {shortcut.icon && <span>{shortcut.icon}</span>}
+                      <span className="truncate">{shortcut.name}</span>
                     </button>
                   ))}
                 </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-3">
+                    No hay atajos configurados. Haz clic en + para crear uno.
+                  </p>
+                )}
               </div>
             )}
 

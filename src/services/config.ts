@@ -70,27 +70,29 @@ export type UpdateCurrencyDto = Partial<CreateCurrencyDto>;
 
 export interface Shortcut {
   id: string;
-  nombre: string; // max 15 chars - button label
-  categoria?: string;
-  subcategoria?: string;
-  monto?: number;
-  moneda?: string;
-  metodoPago?: string;
-  descripcion?: string;
+  name: string; // max 15 chars - button label
+  icon?: string;
+  category?: string;
+  subcategory?: string;
+  amount?: number;
+  currency?: string;
+  paymentMethod?: string;
+  description?: string;
   tags?: string[];
-  recurrente?: boolean;
+  isRecurring?: boolean;
 }
 
 export interface CreateShortcutDto {
-  nombre: string;
-  categoria?: string;
-  subcategoria?: string;
-  monto?: number;
-  moneda?: string;
-  metodoPago?: string;
-  descripcion?: string;
+  name: string;
+  icon?: string;
+  category?: string;
+  subcategory?: string;
+  amount?: number;
+  currency?: string;
+  paymentMethod?: string;
+  description?: string;
   tags?: string[];
-  recurrente?: boolean;
+  isRecurring?: boolean;
 }
 
 export type UpdateShortcutDto = Partial<CreateShortcutDto>;

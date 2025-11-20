@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import CategoriasConfig from './CategoriasConfig';
 import MetodosPagoConfig from './MetodosPagoConfig';
 import MonedasConfig from './MonedasConfig';
@@ -9,8 +10,19 @@ import { Layers, CreditCard, Coins, User, Palette, Zap } from 'lucide-react';
 
 type Tab = 'perfil' | 'apariencia' | 'categorias' | 'metodos' | 'monedas' | 'atajos';
 
+const validTabs: Tab[] = ['perfil', 'apariencia', 'categorias', 'metodos', 'monedas', 'atajos'];
+
 export default function Configuracion() {
-  const [activeTab, setActiveTab] = useState<Tab>('perfil');
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') as Tab | null;
+  const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'perfil';
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+
+  useEffect(() => {
+    if (tabFromUrl && validTabs.includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
 
   const tabs = [
     { id: 'perfil', label: 'Perfil', icon: User },
