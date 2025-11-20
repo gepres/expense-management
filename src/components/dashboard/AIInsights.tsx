@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { callAssistant } from '@services/ai';
 import { Sparkles } from 'lucide-react';
 
@@ -12,28 +12,36 @@ export default function AIInsights({ month, year }: AIInsightsProps) {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
+  // Cache para almacenar las promesas de las peticiones en curso o completadas
+  const promiseCache = useRef<{[key: string]: Promise<any>}>({});
 
   useEffect(() => {
     let mounted = true;
+    const currentKey = `${month}-${year}`;
 
-    const fetchInsights = async () => {
+    const loadInsights = async () => {
       try {
-        // Solicitamos insights específicos y cortos
-        const prompt = `Analiza mis gastos de ${month}/${year} y dame 3 consejos o datos clave muy breves (máximo 15 palabras cada uno). Sepáralos por el símbolo "|". Sé motivador o directo.`;
+        setLoading(true);
         
-        const response = await callAssistant(prompt, month, year);
+        // Si no hay una petición en curso para esta fecha, la iniciamos
+        if (!promiseCache.current[currentKey]) {
+          const prompt = `Analiza mis gastos de ${month}/${year} y dame 3 consejos o datos clave muy breves (máximo 15 palabras cada uno). Sepáralos por el símbolo "|". Sé motivador o directo.`;
+          promiseCache.current[currentKey] = callAssistant(prompt, month, year);
+        }
+
+        // Esperamos a que la promesa (nueva o existente) se resuelva
+        const response = await promiseCache.current[currentKey];
         
         if (mounted && response.success) {
           // Limpiamos y separamos la respuesta
           const parts = response.message
             .split('|')
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
+            .map((s: string) => s.trim())
+            .filter((s: string) => s.length > 0);
             
           if (parts.length > 0) {
             setInsights(parts);
           } else {
-            // Fallback si el formato no es el esperado
             setInsights([response.message]);
           }
         }
@@ -47,7 +55,7 @@ export default function AIInsights({ month, year }: AIInsightsProps) {
       }
     };
 
-    fetchInsights();
+    loadInsights();
 
     return () => { mounted = false; };
   }, [month, year]);

@@ -1,6 +1,6 @@
 import { getAuth } from 'firebase/auth';
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = process.env.NODE_ENV === 'development' ? 'http://localhost:3000/api' : process.env.VITE_API_BASE_URL;
 
 
 

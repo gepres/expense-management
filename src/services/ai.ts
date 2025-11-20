@@ -95,6 +95,8 @@ export async function callAssistant(
       body: JSON.stringify({ message, month, year }),
     });
     
+    console.log('data asistent',data);
+    
     return {
       success: true,
       message: data.response || 'No pude generar una respuesta.',

@@ -3,8 +3,8 @@
 > Documentación técnica completa para replicar el proyecto de Gestión de Gastos Personales
 
 **Fecha de creación**: 2025-11-14
-**Última actualización**: 2025-11-14
-**Versión**: 1.0.1
+**Última actualización**: 2025-11-20
+**Versión**: 2.0.0
 
 ---
 
@@ -33,12 +33,16 @@
 Aplicación web para gestionar gastos personales con análisis inteligente mediante IA (Claude de Anthropic).
 
 ### Características Principales
-- CRUD de gastos con categorización
-- Dashboard con estadísticas y gráficos
+- CRUD de gastos con categorización y subcategorías
+- Dashboard con estadísticas, gráficos y AI Insights
 - Importación/Exportación Excel
-- Presupuestos mensuales con alertas
-- Asistente IA conversacional
-- Modo oscuro/claro
+- Presupuestos mensuales con alertas (por categoría y general)
+- Asistente IA conversacional con historial de chats
+- Soporte multi-moneda (PEN/USD)
+- PWA completa (instalable, offline-first)
+- Sistema de configuración dinámica (categorías, métodos de pago, monedas)
+- Modo oscuro/claro con detección automática
+- Layout responsive con navegación móvil optimizada
 - Testing comprehensivo
 
 ### Usuarios Target
@@ -69,6 +73,16 @@ Personas que quieren llevar un control detallado de sus finanzas personales.
 }
 ```
 
+**Nota**: La comunicación con Anthropic ahora se hace a través de un backend propio (`http://localhost:3000/api`) en lugar de directamente desde el frontend.
+
+### PWA
+```json
+{
+  "vite-plugin-pwa": "^1.1.0",
+  "workbox-window": "^7.3.0"
+}
+```
+
 ### Librerías Clave
 ```json
 {
@@ -77,7 +91,9 @@ Personas que quieren llevar un control detallado de sus finanzas personales.
   "zod": "^4.1.12",
   "date-fns": "^4.1.0",
   "framer-motion": "^12.23.24",
-  "react-hot-toast": "^2.6.0"
+  "react-hot-toast": "^2.6.0",
+  "lucide-react": "^0.553.0",
+  "emoji-picker-react": "^4.15.1"
 }
 ```
 
@@ -131,23 +147,23 @@ Usuario → Componente → Hook → Servicio → Firebase/API
 
 ```
 src/
-├── components/      # UI Components
-│   ├── auth/       # Autenticación
-│   ├── dashboard/  # Dashboard
-│   ├── gastos/     # Gestión de gastos
-│   ├── graficos/   # Gráficos con Recharts
-│   ├── importar/   # Import/Export
-│   ├── asistente-ia/ # Chat IA
-│   ├── presupuestos/ # Presupuestos
-│   ├── layout/     # Layout y navegación
-│   └── common/     # Componentes reutilizables
-├── context/        # React Contexts
-├── hooks/          # Custom Hooks
-├── services/       # External Services
-├── types/          # TypeScript Types
-├── utils/          # Pure Functions
-├── mocks/          # Test Mocks
-└── tests/          # Test Setup
+├── components/         # UI Components
+│   ├── auth/          # Autenticación (Login, Registro)
+│   ├── dashboard/     # Dashboard (Dashboard, AIInsights)
+│   ├── gastos/        # Gestión de gastos (Lista, Formulario)
+│   ├── importar/      # Import/Export Excel
+│   ├── asistente/     # Chat IA con historial
+│   ├── presupuestos/  # Presupuestos mensuales
+│   ├── config/        # Configuración (Perfil, Apariencia, Categorías, etc.)
+│   ├── layout/        # Layout y navegación (Layout, MobileMenu)
+│   └── common/        # Componentes reutilizables (ErrorAlert, CustomLoader, InstallPWA, BudgetMonitor)
+├── context/           # React Contexts (Auth, Theme)
+├── hooks/             # Custom Hooks (useGastos, usePresupuestos, useAssistant, usePWAInstall)
+├── services/          # External Services (firebase, ai, config, excel, import)
+├── types/             # TypeScript Types
+├── utils/             # Pure Functions (formatters, calculations, validators, tagsSugeridos)
+├── mocks/             # Test Mocks
+└── tests/             # Test Setup
 ```
 
 **Razón**: Organización por feature facilita escalabilidad y mantenimiento.
@@ -185,7 +201,9 @@ interface Gasto {
   userId: string;
   fecha: Date;
   categoria: CategoriaGasto;
+  subcategoria?: string;
   monto: number;
+  moneda: Moneda; // 'PEN' | 'USD'
   descripcion: string;
   metodoPago: MetodoPago;
   tags?: string[];
@@ -193,6 +211,17 @@ interface Gasto {
   createdAt: Date;
   updatedAt: Date;
 }
+```
+
+#### Monedas
+```typescript
+export const MONEDAS = ['PEN', 'USD'] as const;
+export type Moneda = (typeof MONEDAS)[number];
+
+export const MONEDA_SIMBOLOS: Record<Moneda, string> = {
+  PEN: 'S/',
+  USD: '$',
+};
 ```
 
 #### Categorías (Type Literal)
@@ -216,12 +245,18 @@ export type CategoriaGasto = (typeof CATEGORIAS_GASTO)[number];
 
 #### Presupuesto
 ```typescript
+// Categoría especial para presupuesto general
+export const CATEGORIA_GENERAL = 'general' as const;
+export type CategoriaGastoOGeneral = CategoriaGasto | typeof CATEGORIA_GENERAL;
+
 interface Presupuesto {
   id: string;
   userId: string;
   mes: string; // YYYY-MM
-  categoria: CategoriaGasto;
+  categoria: CategoriaGastoOGeneral; // Incluye 'general' para presupuesto total
+  subcategoria?: string;
   limite: number;
+  moneda: Moneda;
   gastado: number;
   alertaEnviada80?: boolean;
   alertaEnviada100?: boolean;
@@ -229,6 +264,8 @@ interface Presupuesto {
   updatedAt: Date;
 }
 ```
+
+**Nota**: Los presupuestos con categoría `general` representan el ingreso/presupuesto total del mes (ej: sueldo, CTS, etc.).
 
 ### Conversión Firestore ↔ App
 
@@ -293,34 +330,58 @@ export const firestoreToGasto = (
 ### Vite (`vite.config.ts`)
 
 ```typescript
+import { VitePWA } from 'vite-plugin-pwa';
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      manifest: {
+        name: 'Gastos - Gestor de Finanzas Personales',
+        short_name: 'Gastos',
+        description: 'Aplicación minimalista para gestionar tus finanzas personales',
+        theme_color: '#5d6672',
+        background_color: '#f7f8fa',
+        display: 'standalone',
+        orientation: 'portrait',
+        icons: [
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+        ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: { cacheName: 'google-fonts-cache' }
+          },
+          {
+            urlPattern: /^https:\/\/firebasestorage\.googleapis\.com\/.*/i,
+            handler: 'NetworkFirst',
+            options: { cacheName: 'firebase-storage-cache' }
+          }
+        ]
+      },
+      devOptions: { enabled: true }
+    })
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
       // ... mismo que tsconfig
     },
   },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/tests/setup.ts',
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'src/tests/',
-        '**/*.test.{ts,tsx}',
-        '**/*.spec.{ts,tsx}',
-        '**/types/**',
-      ],
-    },
-  },
 });
 ```
 
-**Decisión**: v8 para coverage (más rápido que Istanbul).
+**Decisiones**:
+- PWA con Workbox para caching inteligente
+- Auto-update para actualizaciones automáticas
+- CacheFirst para fonts, NetworkFirst para datos dinámicos
 
 ### Tailwind CSS
 
@@ -513,40 +574,82 @@ export const presupuestosService = {
 - Tipos específicos para Firestore vs App
 - `serverTimestamp()` para fechas en Firestore
 
-### Anthropic Service (`src/services/anthropic.ts`)
+### AI Service (`src/services/ai.ts`)
 
-**Responsabilidad**: Comunicación con Claude AI.
+**Responsabilidad**: Comunicación con el backend para el asistente de IA.
 
 ```typescript
-export const anthropicService = {
-  enviarMensaje,
-  analizarGastos,
-  consejosAhorro,
-  explicarTendencia,
-  ayudarConPresupuesto,
-  compararPeriodos,
+// URL base del backend
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+
+// Funciones principales
+export async function callAssistant(message: string, month: number, year: number): Promise<AssistantResponse>;
+export async function getConversations(): Promise<Conversation[]>;
+export async function createConversation(title?: string): Promise<Conversation>;
+export async function getMessages(conversationId: string): Promise<ConversationMessage[]>;
+export async function sendMessageToConversation(conversationId: string, message: string, month?: number, year?: number): Promise<AssistantResponse>;
+export async function deleteConversation(id: string): Promise<void>;
+export async function updateConversation(id: string, title: string): Promise<Conversation>;
+
+// Preguntas sugeridas
+export const SUGGESTED_QUESTIONS = [
+  '¿Cómo van mis gastos este mes?',
+  '¿En qué categoría gasto más?',
+  '¿Qué puedo hacer para ahorrar más?',
+  '¿Cómo puedo empezar a invertir?',
+  // ... más sugerencias
+];
+```
+
+**Características**:
+- Autenticación via Firebase ID Token
+- Conversaciones persistentes
+- Historial de mensajes
+- Validación de mensajes (máx 1000 caracteres)
+
+**Arquitectura**:
+```
+Frontend → API Backend (localhost:3000) → Anthropic Claude
+              ↓
+         Firebase Auth (validación token)
+         Firestore (conversaciones)
+```
+
+### Config Service (`src/services/config.ts`)
+
+**Responsabilidad**: CRUD de configuración dinámica (categorías, métodos de pago, monedas).
+
+```typescript
+export const ConfigService = {
+  // Categories
+  getCategories(): Promise<Category[]>;
+  createCategory(data: CreateCategoryDto): Promise<Category>;
+  updateCategory(id: string, data: UpdateCategoryDto): Promise<Category>;
+  deleteCategory(id: string): Promise<void>;
+
+  // Subcategories
+  createSubcategory(categoryId: string, data: CreateSubcategoryDto): Promise<Subcategory>;
+  updateSubcategory(categoryId: string, subcategoryId: string, data: UpdateSubcategoryDto): Promise<Subcategory>;
+  deleteSubcategory(categoryId: string, subcategoryId: string): Promise<void>;
+
+  // Payment Methods
+  getPaymentMethods(): Promise<PaymentMethod[]>;
+  createPaymentMethod(data: CreatePaymentMethodDto): Promise<PaymentMethod>;
+  updatePaymentMethod(id: string, data: UpdatePaymentMethodDto): Promise<PaymentMethod>;
+  deletePaymentMethod(id: string): Promise<void>;
+
+  // Currencies
+  getCurrencies(): Promise<Currency[]>;
+  createCurrency(data: CreateCurrencyDto): Promise<Currency>;
+  updateCurrency(id: string, data: UpdateCurrencyDto): Promise<Currency>;
+  deleteCurrency(id: string): Promise<void>;
 };
 ```
 
 **Características**:
-- Contexto automático del usuario
-- Mensajes del sistema predefinidos
-- Streaming deshabilitado (respuesta completa)
-- Modelo: `claude-3-5-sonnet-20241022`
-
-**⚠️ Seguridad**:
-```typescript
-// DESARROLLO: OK usar en frontend
-const anthropic = new Anthropic({
-  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
-  dangerouslyAllowBrowser: true,
-});
-
-// PRODUCCIÓN: Mover a backend
-// - Crear API intermedia
-// - Rate limiting
-// - Autenticación
-```
+- Permite al usuario personalizar categorías, métodos de pago y monedas
+- Sincronizado con backend vía REST API
+- Autenticación via Firebase token
 
 ### Excel Service (`src/services/excel.ts`)
 
@@ -611,7 +714,7 @@ export function useAuth() {
 
 ### ThemeContext
 
-**Responsabilidad**: Modo oscuro/claro.
+**Responsabilidad**: Modo oscuro/claro con personalización de toasts.
 
 ```typescript
 interface ThemeContextType {
@@ -619,13 +722,22 @@ interface ThemeContextType {
   temaEfectivo: 'light' | 'dark';
   setTema: (tema: TemaApp) => void;
   toggleTema: () => void;
+  toastInvertido: boolean;
+  setToastInvertido: (invertido: boolean) => void;
+  // Aliases en inglés para compatibilidad
+  theme: TemaApp;
+  effectiveTheme: 'light' | 'dark';
+  setTheme: (tema: TemaApp) => void;
+  toggleTheme: () => void;
 }
 ```
 
 **Características**:
 - Detecta preferencia del sistema
-- Persiste en localStorage
+- Persiste en localStorage (`tema-app`, `toast-invertido`)
 - Aplica clase al `<html>`
+- Opción de invertir colores de toast
+- Aliases en inglés/español para flexibilidad
 
 ---
 
@@ -658,6 +770,52 @@ interface UseGastosReturn {
 ### usePresupuestos
 
 Similar a useGastos pero para presupuestos mensuales.
+
+### useAssistant
+
+**Responsabilidad**: Gestión del asistente IA con conversaciones persistentes.
+
+```typescript
+interface UseAssistantReturn {
+  conversations: Conversation[];
+  currentConversationId: string | null;
+  messages: ConversationMessage[];
+  isLoading: boolean;
+  isLoadingConversations: boolean;
+  error: string | null;
+  loadConversations: () => Promise<void>;
+  selectConversation: (id: string) => Promise<void>;
+  createNewConversation: (title?: string) => Promise<string>;
+  deleteChat: (id: string) => Promise<void>;
+  renameChat: (id: string, title: string) => Promise<void>;
+  sendMessage: (message: string, month?: number, year?: number) => Promise<void>;
+  clearCurrentConversation: () => void;
+}
+```
+
+**Patrón**:
+1. Carga de historial de conversaciones
+2. Selección y carga de mensajes
+3. Creación automática de conversación al primer mensaje
+4. Mensajes optimistas (actualiza UI antes de respuesta)
+5. Manejo de errores con toast
+
+### usePWAInstall
+
+**Responsabilidad**: Gestión de instalación PWA.
+
+```typescript
+interface UsePWAInstallReturn {
+  isInstallable: boolean;
+  install: () => Promise<void>;
+}
+```
+
+**Patrón**:
+1. Escucha evento `beforeinstallprompt`
+2. Almacena el evento para uso posterior
+3. Muestra botón de instalación cuando disponible
+4. Ejecuta prompt de instalación
 
 ---
 
@@ -832,6 +990,51 @@ const API_KEY = 'sk-ant-1234...';
 const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY;
 ```
 
+**Variables requeridas** (`.env`):
+```bash
+# Firebase
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+
+# Backend API
+VITE_API_BASE_URL=http://localhost:3000/api
+
+# Anthropic (solo si se usa directamente, ahora va en backend)
+# VITE_ANTHROPIC_API_KEY=
+```
+
+### Scripts Disponibles
+
+```bash
+# Desarrollo
+npm run dev              # Servidor de desarrollo
+npm run build            # Build de producción
+npm run preview          # Preview del build
+
+# Linting y Formato
+npm run lint             # ESLint
+npm run lint:fix         # ESLint con auto-fix
+npm run format           # Prettier
+npm run format:check     # Verificar formato
+
+# Testing
+npm run test             # Vitest en modo watch
+npm run test:run         # Vitest una vez
+npm run test:coverage    # Coverage
+npm run test:e2e         # Cypress
+
+# Utilidades
+npm run type-check       # TypeScript check
+npm run generate:icons   # Generar iconos PWA
+npm run check            # Type-check + Lint + Tests
+npm run clean            # Limpiar dist
+npm run reinstall        # Reinstalar dependencias
+```
+
 ---
 
 ## ⚡ Performance
@@ -964,13 +1167,22 @@ netlify deploy --prod --dir=dist
 
 ```
 1. Usuario escribe mensaje
-2. Recopilar contexto (gastos, estadísticas, presupuestos)
-3. anthropicService.enviarMensaje()
-4. API Anthropic con contexto
-5. Streaming response (opcional)
-6. Mostrar en UI
-7. Guardar historial
+2. Hook useAssistant.sendMessage()
+3. Si no hay conversación activa, crear una nueva
+4. Agregar mensaje optimista a UI
+5. Llamar API Backend (/chat/conversations/:id/messages)
+6. Backend obtiene contexto del usuario (gastos, presupuestos)
+7. Backend llama a Anthropic Claude con contexto
+8. Respuesta del asistente
+9. Agregar respuesta a mensajes
+10. Actualizar lista de conversaciones
 ```
+
+**Características adicionales**:
+- Selección de mes/año para análisis
+- Historial de conversaciones persistente
+- Renombrar y eliminar chats
+- Preguntas sugeridas predefinidas
 
 ---
 
@@ -997,18 +1209,21 @@ netlify deploy --prod --dir=dist
 
 ### Técnicas
 - [ ] Migrar a Server Components (Next.js)
-- [ ] Implementar Service Worker (PWA)
+- [x] ~~Implementar Service Worker (PWA)~~ ✅ Implementado v2.0.0
 - [ ] Agregar i18n (internacionalización)
 - [ ] WebSockets para tiempo real
-- [ ] Backend propio para Anthropic API
+- [x] ~~Backend propio para Anthropic API~~ ✅ Implementado v2.0.0
 
 ### Features
 - [ ] Gastos compartidos (multi-usuario)
 - [ ] Escaneo de recibos con OCR
 - [ ] Notificaciones push
 - [ ] Exportar a PDF
-- [ ] Categorías personalizadas
-- [ ] Múltiples monedas
+- [x] ~~Categorías personalizadas~~ ✅ Implementado v2.0.0
+- [x] ~~Múltiples monedas~~ ✅ Implementado v2.0.0 (PEN/USD)
+- [ ] Subcategorías dinámicas via UI
+- [ ] Dashboard con más métricas
+- [ ] Gráficos comparativos multi-periodo
 
 ---
 
@@ -1048,25 +1263,28 @@ netlify deploy --prod --dir=dist
 - [x] Contexts
 - [x] Hooks personalizados
 
-### Fase 3: UI (Pendiente)
-- [ ] Componentes de autenticación
-- [ ] Dashboard con gráficos
-- [ ] CRUD de gastos
-- [ ] Importar/Exportar
-- [ ] Chat IA
-- [ ] Presupuestos
+### Fase 3: UI ✅
+- [x] Componentes de autenticación (Login, Registro)
+- [x] Dashboard con gráficos y AI Insights
+- [x] CRUD de gastos con subcategorías
+- [x] Importar/Exportar Excel
+- [x] Chat IA con historial de conversaciones
+- [x] Presupuestos (categorías + general)
+- [x] Configuración (Perfil, Apariencia, Categorías, Métodos, Monedas)
+- [x] Layout responsive con navegación móvil
+- [x] PWA (instalable, offline-first)
 
-### Fase 4: Testing (Pendiente)
+### Fase 4: Testing (En progreso)
 - [ ] Unit tests (utils)
 - [ ] Component tests
 - [ ] Integration tests
 - [ ] E2E tests
 - [ ] Coverage > 80%
 
-### Fase 5: Deploy (Pendiente)
-- [ ] Configurar Firebase
-- [ ] Variables de entorno
-- [ ] Build de producción
+### Fase 5: Deploy (En progreso)
+- [x] Configurar Firebase
+- [x] Variables de entorno
+- [ ] Build de producción optimizado
 - [ ] Deploy a hosting
 - [ ] Monitoreo
 
@@ -1113,6 +1331,43 @@ Los custom hooks (useGastos, usePresupuestos) ya tienen toda la lógica.
 
 ## 📜 Changelog
 
+### v2.0.0 (2025-11-20)
+**Release**: Implementación completa de UI y funcionalidades avanzadas
+
+**Nuevas Funcionalidades**:
+- ✅ PWA completa con Workbox (instalable, offline-first)
+- ✅ Backend API propio para comunicación con Anthropic
+- ✅ Sistema de conversaciones persistentes para el asistente IA
+- ✅ Soporte multi-moneda (PEN/USD)
+- ✅ Presupuesto General (además de por categoría)
+- ✅ Subcategorías para gastos
+- ✅ Configuración dinámica (categorías, métodos de pago, monedas)
+- ✅ Página de Configuración con tabs (Perfil, Apariencia, Categorías, etc.)
+- ✅ Layout responsive con bottom navigation móvil
+- ✅ AIInsights en Dashboard
+- ✅ BudgetMonitor para alertas de presupuesto
+- ✅ Toast invertido (opción de apariencia)
+
+**Componentes Implementados**:
+- Dashboard, AIInsights, InstallPWA
+- AsistenteIA con historial de chats
+- ListaPresupuestos con soporte general
+- Configuracion (Perfil, Apariencia, Categorías, Métodos, Monedas)
+- Layout con MobileMenu y BudgetMonitor
+- CustomLoader, ErrorAlert
+
+**Nuevos Hooks**:
+- useAssistant (gestión de chat IA)
+- usePWAInstall (instalación PWA)
+
+**Nuevos Servicios**:
+- ai.ts (comunicación con backend)
+- config.ts (CRUD de configuración)
+
+**Dependencias Agregadas**:
+- vite-plugin-pwa, workbox-window
+- lucide-react, emoji-picker-react, sharp
+
 ### v1.0.1 (2025-11-14)
 **Cambio**: Downgrade de Tailwind CSS v4 a v3
 - **Problema**: Tailwind CSS v4.1.17 (beta) instalado automáticamente por npm
@@ -1133,9 +1388,9 @@ Los custom hooks (useGastos, usePresupuestos) ya tienen toda la lógica.
 
 ---
 
-**Última actualización**: 2025-11-14
+**Última actualización**: 2025-11-20
 **Mantenedor**: Claude (Anthropic)
-**Versión del proyecto**: 1.0.1
+**Versión del proyecto**: 2.0.0
 
 ---
 

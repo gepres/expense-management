@@ -1,43 +1,86 @@
 /**
- * Componente de Importación de Gastos
+ * Componente de Importación de Gastos - Flujo de 3 Pasos
  *
- * Permite importar gastos desde archivos Excel/CSV
+ * Paso 1: Validar archivo
+ * Paso 2: Analizar con opciones
+ * Paso 3: Confirmar e importar
  */
 
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
+  validateFile,
+  analyzeExpenses,
+  uploadExpenses,
   validateFileFormat,
-  validateImportFile,
-  importGastos,
   downloadTemplate,
   SUPPORTED_FORMATS,
-  REQUIRED_COLUMNS,
-  OPTIONAL_COLUMNS,
-  type ImportResult,
-  type FileValidationResult,
+  type ValidateResponse,
+  type AnalyzeResponse,
+  type UploadResponse,
+  type ValidatedExpense,
+  type EnhancedExpense,
+  type AnalyzeOptions,
 } from '@services/import';
 import { toast } from 'react-hot-toast';
-import { FileText, Download, Check, CheckCircle2, AlertTriangle, X as XCircle } from 'lucide-react';
+import {
+  Upload, FileText, Check, AlertTriangle, X, Settings,
+  Brain, ArrowRight, ArrowLeft, Sparkles, FileSpreadsheet,
+  AlertCircle, ChevronDown, ChevronUp, Filter, Zap,
+  CheckCircle2, XCircle, RefreshCw, Eye, Database
+} from 'lucide-react';
+import CustomLoader from '@components/common/CustomLoader';
 
-type Step = 'upload' | 'preview' | 'importing' | 'results';
+type Step = 'upload' | 'validating' | 'preview-valid' | 'analyzing' | 'preview-enhanced' | 'uploading' | 'results';
 
 export default function ImportarExcel() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Estado del flujo
   const [step, setStep] = useState<Step>('upload');
+  const [direction, setDirection] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [validationResult, setValidationResult] = useState<FileValidationResult | null>(null);
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
-  /**
-   * Manejar selección de archivo
-   */
-  const handleFileSelect = (file: File) => {
-    // Validar formato
+  // Datos de cada paso
+  const [validateResult, setValidateResult] = useState<ValidateResponse | null>(null);
+  const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResponse | null>(null);
+  const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null);
+
+  // Datos almacenados entre pasos
+  const [validatedData, setValidatedData] = useState<ValidatedExpense[]>([]);
+  const [enhancedData, setEnhancedData] = useState<EnhancedExpense[]>([]);
+
+  // Opciones de análisis
+  const [options, setOptions] = useState<AnalyzeOptions>({
+    skipDuplicates: true,
+    autoCategorizate: true,
+    batchSize: 100,
+  });
+
+  // UI state
+  const [showAllPreview, setShowAllPreview] = useState(false);
+  const [expandedOptions, setExpandedOptions] = useState(false);
+
+  // Animaciones
+  const variants = {
+    enter: (dir: number) => ({ x: dir > 0 ? 50 : -50, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (dir: number) => ({ x: dir < 0 ? 50 : -50, opacity: 0 })
+  };
+
+  const navigateStep = (newStep: Step, dir: number) => {
+    setDirection(dir);
+    setStep(newStep);
+  };
+
+  // ============================================================================
+  // PASO 1: Subir y Validar
+  // ============================================================================
+
+  const handleFileSelect = async (file: File) => {
     const validation = validateFileFormat(file);
     if (!validation.valid) {
       toast.error(validation.error || 'Archivo inválido');
@@ -45,488 +88,701 @@ export default function ImportarExcel() {
     }
 
     setSelectedFile(file);
-    setStep('preview');
-    validateFile(file);
-  };
-
-  /**
-   * Validar archivo con el backend
-   */
-  const validateFile = async (file: File) => {
-    setIsProcessing(true);
+    navigateStep('validating', 1);
 
     try {
-      const result = await validateImportFile(file);
-      setValidationResult(result);
+      const result = await validateFile(file);
+      setValidateResult(result);
+      setValidatedData(result.data);
 
-      if (!result.valid) {
-        toast.error('El archivo contiene errores. Revisa los detalles.');
-      } else if (result.warnings && result.warnings.length > 0) {
-        toast.success('Archivo validado con advertencias');
-      } else {
-        toast.success(`Archivo válido con ${result.rowCount} filas`);
-      }
+      setTimeout(() => {
+        navigateStep('preview-valid', 1);
+        if (result.invalidCount > 0) {
+          toast.error(`${result.invalidCount} registros con errores`);
+        } else {
+          toast.success(`${result.validCount} registros válidos`);
+        }
+      }, 800);
     } catch (error: any) {
-      toast.error(error.message || 'Error al validar el archivo');
-      console.error(error);
-    } finally {
-      setIsProcessing(false);
+      toast.error(error.message || 'Error al validar');
+      navigateStep('upload', -1);
     }
   };
 
-  /**
-   * Importar los gastos
-   */
-  const handleImport = async () => {
-    if (!selectedFile) return;
+  // ============================================================================
+  // PASO 2: Analizar con IA
+  // ============================================================================
 
-    setStep('importing');
-    setIsProcessing(true);
+  const handleAnalyze = async () => {
+    if (validatedData.length === 0) return;
+
+    navigateStep('analyzing', 1);
 
     try {
-      const result = await importGastos(selectedFile);
-      setImportResult(result);
-      setStep('results');
+      const result = await analyzeExpenses(validatedData, options);
+      setAnalyzeResult(result);
+      setEnhancedData(result.data);
 
-      if (result.success && result.errorCount === 0) {
-        toast.success(`${result.successCount} gastos importados correctamente`);
-      } else {
-        toast.success(`${result.successCount} gastos importados, ${result.errorCount} errores`);
-      }
+      setTimeout(() => {
+        navigateStep('preview-enhanced', 1);
+
+        const messages = [];
+        if (result.duplicatesRemoved > 0) {
+          messages.push(`${result.duplicatesRemoved} duplicados removidos`);
+        }
+        if (result.categorized > 0) {
+          messages.push(`${result.categorized} categorizados con IA`);
+        }
+        if (messages.length > 0) {
+          toast.success(messages.join(', '));
+        }
+      }, 1000);
     } catch (error: any) {
-      toast.error(error.message || 'Error al importar gastos');
-      setStep('preview');
-      console.error(error);
-    } finally {
-      setIsProcessing(false);
+      toast.error(error.message || 'Error al analizar');
+      navigateStep('preview-valid', -1);
     }
   };
 
-  /**
-   * Descargar plantilla de Excel
-   */
-  const handleDownloadTemplate = async () => {
+  // ============================================================================
+  // PASO 3: Importar
+  // ============================================================================
+
+  const handleUpload = async () => {
+    if (enhancedData.length === 0) return;
+
+    navigateStep('uploading', 1);
+
     try {
-      const blob = await downloadTemplate();
+      const result = await uploadExpenses(enhancedData, options.batchSize);
+      setUploadResult(result);
+
+      setTimeout(() => {
+        navigateStep('results', 1);
+        if (result.success) {
+          toast.success(`${result.imported} gastos importados`);
+        }
+      }, 1000);
+    } catch (error: any) {
+      toast.error(error.message || 'Error al importar');
+      navigateStep('preview-enhanced', -1);
+    }
+  };
+
+  // ============================================================================
+  // Utilidades
+  // ============================================================================
+
+  const handleDownloadTemplate = async (format: 'excel' | 'json') => {
+    try {
+      const blob = await downloadTemplate(format);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'plantilla_gastos.xlsx';
+      link.download = format === 'excel' ? 'plantilla_gastos.xlsx' : 'plantilla_gastos.json';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-
       toast.success('Plantilla descargada');
-    } catch (error: any) {
-      toast.error(error.message || 'Error al descargar la plantilla');
+    } catch {
+      toast.error('Error al descargar');
     }
   };
 
-  /**
-   * Reiniciar el proceso
-   */
-  const handleReset = () => {
-    setStep('upload');
-    setSelectedFile(null);
-    setValidationResult(null);
-    setImportResult(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  /**
-   * Manejar drag & drop
-   */
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
+    setDragActive(e.type === 'dragenter' || e.type === 'dragover');
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    if (e.dataTransfer.files?.[0]) {
       handleFileSelect(e.dataTransfer.files[0]);
     }
   };
 
+  const resetFlow = () => {
+    setStep('upload');
+    setSelectedFile(null);
+    setValidateResult(null);
+    setAnalyzeResult(null);
+    setUploadResult(null);
+    setValidatedData([]);
+    setEnhancedData([]);
+    setShowAllPreview(false);
+  };
+
+  const getCurrentStep = () => {
+    if (['upload', 'validating'].includes(step)) return 1;
+    if (['preview-valid', 'analyzing'].includes(step)) return 2;
+    return 3;
+  };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
   return (
-    <div className="space-y-6">
+    <div className="max-w-2xl mx-auto px-4 pb-20">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Importar Gastos</h1>
-        <p className="text-muted-foreground mt-1">
-          Importa tus gastos desde un archivo Excel o CSV
+      <div className="mb-6 text-center">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Importar Gastos</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Sube tu archivo y procesa tus gastos en 3 simples pasos
         </p>
       </div>
 
-      {/* Pasos del proceso */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <div className="flex items-center justify-between">
-          {(['upload', 'preview', 'importing', 'results'] as Step[]).map((s, index) => (
-            <div key={s} className="flex items-center">
-              <div
-                className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                  step === s
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : index < (['upload', 'preview', 'importing', 'results'] as Step[]).indexOf(step)
-                    ? 'border-primary bg-primary/20 text-primary'
-                    : 'border-border bg-background text-muted-foreground'
-                }`}
-              >
-                {index + 1}
+      {/* Progress Steps */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between max-w-md mx-auto">
+          {[
+            { num: 1, label: 'Validar', icon: FileText },
+            { num: 2, label: 'Analizar', icon: Brain },
+            { num: 3, label: 'Importar', icon: Database }
+          ].map((s, i) => {
+            const Icon = s.icon;
+            const current = getCurrentStep();
+            const isActive = current === s.num;
+            const isPast = current > s.num;
+
+            return (
+              <div key={s.num} className="flex items-center">
+                <div className="flex flex-col items-center">
+                  <div className={`
+                    h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300
+                    ${isActive ? 'bg-primary text-primary-foreground scale-110 shadow-lg shadow-primary/30' : ''}
+                    ${isPast ? 'bg-green-500 text-white' : ''}
+                    ${!isActive && !isPast ? 'bg-muted text-muted-foreground' : ''}
+                  `}>
+                    {isPast ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                  </div>
+                  <span className={`text-xs mt-1.5 font-medium ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {s.label}
+                  </span>
+                </div>
+                {i < 2 && (
+                  <div className={`w-12 md:w-20 h-0.5 mx-2 mb-5 transition-colors ${isPast ? 'bg-green-500' : 'bg-muted'}`} />
+                )}
               </div>
-              {index < 3 && (
-                <div
-                  className={`h-0.5 w-24 mx-2 ${
-                    index < (['upload', 'preview', 'importing', 'results'] as Step[]).indexOf(step)
-                      ? 'bg-primary'
-                      : 'bg-border'
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-between mt-2 px-2">
-          <span className="text-sm">Subir</span>
-          <span className="text-sm">Vista Previa</span>
-          <span className="text-sm">Importando</span>
-          <span className="text-sm">Resultados</span>
+            );
+          })}
         </div>
       </div>
 
-      {/* Paso 1: Subir archivo */}
-      {step === 'upload' && (
-        <div className="space-y-6">
-          {/* Instrucciones */}
-          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">
-              📋 Antes de importar
-            </h3>
-            <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
-              <li>El archivo debe ser Excel (.xlsx, .xls) o CSV (.csv)</li>
-              <li>Tamaño máximo: 5MB</li>
-              <li>Primera fila debe contener los nombres de las columnas</li>
-              <li>
-                Columnas requeridas: <strong>{REQUIRED_COLUMNS.join(', ')}</strong>
-              </li>
-              <li>
-                Columnas opcionales: {OPTIONAL_COLUMNS.join(', ')}
-              </li>
-            </ul>
-          </div>
+      {/* Content */}
+      <div className="relative min-h-[450px]">
+        <AnimatePresence initial={false} custom={direction} mode="wait">
 
-          {/* Área de drop */}
-          <div
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-              dragActive
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
-            }`}
-          >
-            <div className="max-w-md mx-auto">
-              <div className="mb-4 flex justify-center">
-                <FileText className="h-24 w-24 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                Arrastra tu archivo aquí
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                o haz clic para seleccionarlo
-              </p>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={SUPPORTED_FORMATS.ALL.join(',')}
-                onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
-                className="hidden"
-                id="file-upload"
-              />
-
-              <label
-                htmlFor="file-upload"
-                className="inline-block px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg cursor-pointer transition-colors"
-              >
-                Seleccionar Archivo
-              </label>
-
-              <p className="text-xs text-muted-foreground mt-4">
-                Formatos: .xlsx, .xls, .csv
-              </p>
-            </div>
-          </div>
-
-          {/* Botón de plantilla */}
-          <div className="text-center">
-            <button
-              onClick={handleDownloadTemplate}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold rounded-lg transition-colors"
+          {/* PASO 1: UPLOAD */}
+          {step === 'upload' && (
+            <motion.div
+              key="upload"
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="space-y-5"
             >
-              <Download className="h-5 w-5" />
-              <span>Descargar Plantilla de Excel</span>
-            </button>
-            <p className="text-xs text-muted-foreground mt-2">
-              Usa esta plantilla como guía para formatear tus datos
-            </p>
-          </div>
-        </div>
-      )}
+              <div
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`
+                  relative overflow-hidden group cursor-pointer
+                  border-2 border-dashed rounded-2xl p-8 md:p-10 text-center transition-all duration-300
+                  ${dragActive
+                    ? 'border-primary bg-primary/5 scale-[1.02]'
+                    : 'border-border hover:border-primary/50 hover:bg-muted/30'
+                  }
+                `}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-      {/* Paso 2: Vista previa */}
-      {step === 'preview' && (
-        <div className="space-y-6">
-          {/* Info del archivo */}
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">
-              Archivo Seleccionado
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Nombre</p>
-                <p className="font-medium">{selectedFile?.name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tamaño</p>
-                <p className="font-medium">
-                  {selectedFile ? (selectedFile.size / 1024).toFixed(2) : 0} KB
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Filas detectadas</p>
-                <p className="font-medium">
-                  {isProcessing ? '...' : validationResult?.rowCount || 0}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Resultado de validación */}
-          {validationResult && !isProcessing && (
-            <>
-              {/* Errores */}
-              {validationResult.errors && validationResult.errors.length > 0 && (
-                <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                  <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 mb-2 flex items-center gap-2">
-                    <XCircle className="h-4 w-4" />
-                    <span>Errores encontrados ({validationResult.errors.length})</span>
-                  </h4>
-                  <ul className="text-sm text-red-800 dark:text-red-200 space-y-1 list-disc list-inside max-h-40 overflow-y-auto">
-                    {validationResult.errors.slice(0, 10).map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                    {validationResult.errors.length > 10 && (
-                      <li className="font-semibold">
-                        ... y {validationResult.errors.length - 10} errores más
-                      </li>
-                    )}
-                  </ul>
-                </div>
-              )}
-
-              {/* Advertencias */}
-              {validationResult.warnings && validationResult.warnings.length > 0 && (
-                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                  <h4 className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-2">
-                    ⚠️ Advertencias ({validationResult.warnings.length})
-                  </h4>
-                  <ul className="text-sm text-yellow-800 dark:text-yellow-200 space-y-1 list-disc list-inside max-h-40 overflow-y-auto">
-                    {validationResult.warnings.map((warning, index) => (
-                      <li key={index}>{warning}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Preview de datos */}
-              {validationResult.preview && validationResult.preview.length > 0 && (
-                <div className="bg-card border border-border rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-foreground mb-4">
-                    Vista Previa (primeras 5 filas)
-                  </h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left p-2 text-muted-foreground">#</th>
-                          <th className="text-left p-2 text-muted-foreground">Fecha</th>
-                          <th className="text-left p-2 text-muted-foreground">Categoría</th>
-                          <th className="text-left p-2 text-muted-foreground">Monto</th>
-                          <th className="text-left p-2 text-muted-foreground">Descripción</th>
-                          <th className="text-left p-2 text-muted-foreground">Estado</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {validationResult.preview.slice(0, 5).map((row) => (
-                          <tr key={row.rowNumber} className="border-b border-border">
-                            <td className="p-2 text-muted-foreground">{row.rowNumber}</td>
-                            <td className="p-2">{row.fecha}</td>
-                            <td className="p-2">{row.categoria}</td>
-                            <td className="p-2">
-                              {row.moneda} {row.monto}
-                            </td>
-                            <td className="p-2 max-w-xs truncate">{row.descripcion}</td>
-                            <td className="p-2">
-                              {row.valid ? (
-                                <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                              ) : (
-                                <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                <div className="relative z-10 flex flex-col items-center gap-3">
+                  <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Upload className="h-8 w-8 md:h-10 md:w-10 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg md:text-xl font-semibold text-foreground">
+                      Arrastra o toca para subir
+                    </h3>
+                    <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                      Excel, CSV o JSON (máx 5MB)
+                    </p>
                   </div>
                 </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={SUPPORTED_FORMATS.ALL.join(',')}
+                  onChange={(e) => e.target.files && handleFileSelect(e.target.files[0])}
+                  className="hidden"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => handleDownloadTemplate('excel')}
+                  className="flex items-center justify-center gap-2 p-3 md:p-4 rounded-xl bg-card border border-border hover:bg-accent/50 transition-colors group"
+                >
+                  <FileSpreadsheet className="h-4 w-4 md:h-5 md:w-5 text-green-600 group-hover:scale-110 transition-transform" />
+                  <span className="font-medium text-xs md:text-sm">Plantilla Excel</span>
+                </button>
+                <button
+                  onClick={() => handleDownloadTemplate('json')}
+                  className="flex items-center justify-center gap-2 p-3 md:p-4 rounded-xl bg-card border border-border hover:bg-accent/50 transition-colors group"
+                >
+                  <FileText className="h-4 w-4 md:h-5 md:w-5 text-blue-600 group-hover:scale-110 transition-transform" />
+                  <span className="font-medium text-xs md:text-sm">Guía JSON</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* VALIDATING */}
+          {step === 'validating' && (
+            <motion.div
+              key="validating"
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="flex flex-col items-center justify-center py-16 text-center space-y-6"
+            >
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
+                <div className="relative bg-background p-5 rounded-full shadow-xl border border-border">
+                  <FileText className="h-10 w-10 text-primary animate-pulse" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Validando archivo...</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Verificando estructura y datos
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* PREVIEW VALIDADOS */}
+          {step === 'preview-valid' && validateResult && (
+            <motion.div
+              key="preview-valid"
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-4"
+            >
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-card border border-border p-3 rounded-xl text-center">
+                  <p className="text-xl md:text-2xl font-bold">{validateResult.totalRows}</p>
+                  <p className="text-[10px] md:text-xs text-muted-foreground uppercase">Total</p>
+                </div>
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3 rounded-xl text-center">
+                  <p className="text-xl md:text-2xl font-bold text-green-600">{validateResult.validCount}</p>
+                  <p className="text-[10px] md:text-xs text-green-700/70 uppercase">Válidos</p>
+                </div>
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 rounded-xl text-center">
+                  <p className="text-xl md:text-2xl font-bold text-red-600">{validateResult.invalidCount}</p>
+                  <p className="text-[10px] md:text-xs text-red-700/70 uppercase">Errores</p>
+                </div>
+              </div>
+
+              {/* Warnings */}
+              {validateResult.warnings.length > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-700 dark:text-amber-400">Advertencias</span>
+                  </div>
+                  <ul className="text-xs text-amber-700/80 dark:text-amber-300/80 space-y-1">
+                    {validateResult.warnings.map((w, i) => (
+                      <li key={i}>• {w}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
-            </>
-          )}
 
-          {/* Loading */}
-          {isProcessing && (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Validando archivo...</p>
-            </div>
-          )}
+              {/* Preview Table */}
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="p-3 border-b border-border bg-muted/30 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="font-semibold text-sm">Vista Previa</h3>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {showAllPreview ? validatedData.length : Math.min(5, validatedData.length)} de {validatedData.length}
+                  </span>
+                </div>
 
-          {/* Botones */}
-          <div className="flex gap-4">
-            <button
-              onClick={handleReset}
-              className="px-6 py-3 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold rounded-lg transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleImport}
-              disabled={!validationResult?.valid || isProcessing}
-              className="flex-1 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isProcessing ? 'Validando...' : 'Importar Gastos'}
-            </button>
-          </div>
-        </div>
-      )}
+                <div className={`overflow-y-auto ${showAllPreview ? 'max-h-[400px]' : 'max-h-[250px]'}`}>
+                  {validatedData.slice(0, showAllPreview ? undefined : 5).map((row, i) => (
+                    <div
+                      key={i}
+                      className="p-3 border-b border-border last:border-0 flex items-center gap-3 hover:bg-muted/20 transition-colors"
+                    >
+                      <div className={`
+                        h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0
+                        ${row.valid ? 'bg-green-100 dark:bg-green-900/30 text-green-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}
+                      `}>
+                        {row.valid ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{row.descripcion}</p>
+                        <p className="text-[10px] md:text-xs text-muted-foreground">
+                          {row.fecha} • {row.categoria}
+                        </p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-bold text-sm">{row.moneda} {row.monto}</p>
+                        {!row.valid && row.errors?.length > 0 && (
+                          <p className="text-[10px] text-red-500 truncate max-w-[100px]">{row.errors[0]}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-      {/* Paso 3: Importando */}
-      {step === 'importing' && (
-        <div className="text-center py-16">
-          <div className="max-w-md mx-auto">
-            <div className="mb-6">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent mx-auto"></div>
-            </div>
-            <h3 className="text-2xl font-bold text-foreground mb-2">
-              Importando Gastos...
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              Por favor espera mientras procesamos tu archivo
-            </p>
-            <div className="bg-card border border-border rounded-lg p-4">
-              <p className="text-sm text-muted-foreground">
-                No cierres esta página hasta que termine el proceso
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Paso 4: Resultados */}
-      {step === 'results' && importResult && (
-        <div className="space-y-6">
-          {/* Resumen */}
-          <div className="bg-card border border-border rounded-lg p-6">
-            <div className="text-center mb-6">
-              <div className="mb-4 flex justify-center">
-                {importResult.errorCount === 0 ? (
-                  <CheckCircle2 className="h-24 w-24 text-green-600 dark:text-green-400" />
-                ) : (
-                  <AlertTriangle className="h-24 w-24 text-yellow-600 dark:text-yellow-400" />
+                {validatedData.length > 5 && (
+                  <button
+                    onClick={() => setShowAllPreview(!showAllPreview)}
+                    className="w-full p-2 text-xs font-medium text-primary hover:bg-muted/30 transition-colors flex items-center justify-center gap-1"
+                  >
+                    {showAllPreview ? (
+                      <>Ver menos <ChevronUp className="h-3 w-3" /></>
+                    ) : (
+                      <>Ver todos ({validatedData.length}) <ChevronDown className="h-3 w-3" /></>
+                    )}
+                  </button>
                 )}
               </div>
-              <h3 className="text-2xl font-bold text-foreground">
-                Importación Completada
-              </h3>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-muted rounded-lg">
-                <p className="text-3xl font-bold text-foreground">
-                  {importResult.totalRows}
-                </p>
-                <p className="text-sm text-muted-foreground">Total Filas</p>
-              </div>
-              <div className="text-center p-4 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-                  {importResult.successCount}
-                </p>
-                <p className="text-sm text-green-700 dark:text-green-300">Importados</p>
-              </div>
-              <div className="text-center p-4 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                <p className="text-3xl font-bold text-red-600 dark:text-red-400">
-                  {importResult.errorCount}
-                </p>
-                <p className="text-sm text-red-700 dark:text-red-300">Errores</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Errores detallados */}
-          {importResult.errors && importResult.errors.length > 0 && (
-            <div className="bg-card border border-border rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4">
-                Errores Detallados
-              </h3>
-              <div className="max-h-60 overflow-y-auto space-y-2">
-                {importResult.errors.map((error, index) => (
-                  <div
-                    key={index}
-                    className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded text-sm"
-                  >
-                    <p className="font-semibold text-red-900 dark:text-red-100">
-                      Fila {error.row}
-                      {error.field && ` - Campo: ${error.field}`}
-                    </p>
-                    <p className="text-red-800 dark:text-red-200">{error.message}</p>
+              {/* Options Panel */}
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setExpandedOptions(!expandedOptions)}
+                  className="w-full p-3 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Settings className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-sm">Opciones de Análisis</span>
                   </div>
-                ))}
+                  {expandedOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+
+                <AnimatePresence>
+                  {expandedOptions && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-3 pt-0 space-y-3">
+                        {/* Skip Duplicates */}
+                        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">Omitir duplicados</p>
+                            <p className="text-[10px] text-muted-foreground">Compara con gastos existentes</p>
+                          </div>
+                          <button
+                            onClick={() => setOptions(p => ({ ...p, skipDuplicates: !p.skipDuplicates }))}
+                            className={`w-11 h-6 rounded-full transition-colors relative ${options.skipDuplicates ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+                          >
+                            <div className={`absolute top-1 left-1 h-4 w-4 bg-white rounded-full transition-transform ${options.skipDuplicates ? 'translate-x-5' : ''}`} />
+                          </button>
+                        </div>
+
+                        {/* Auto Categorize */}
+                        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
+                          <div className="flex-1">
+                            <p className="font-medium text-sm flex items-center gap-1">
+                              Auto-categorizar <Sparkles className="h-3 w-3 text-amber-500" />
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">Usa IA para clasificar</p>
+                          </div>
+                          <button
+                            onClick={() => setOptions(p => ({ ...p, autoCategorizate: !p.autoCategorizate }))}
+                            className={`w-11 h-6 rounded-full transition-colors relative ${options.autoCategorizate ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+                          >
+                            <div className={`absolute top-1 left-1 h-4 w-4 bg-white rounded-full transition-transform ${options.autoCategorizate ? 'translate-x-5' : ''}`} />
+                          </button>
+                        </div>
+
+                        {/* Batch Size */}
+                        <div className="p-3 bg-muted/30 rounded-xl">
+                          <div className="flex justify-between mb-2">
+                            <p className="font-medium text-sm">Tamaño del lote</p>
+                            <span className="text-xs font-mono bg-background px-2 py-0.5 rounded">{options.batchSize}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="50"
+                            max="500"
+                            step="50"
+                            value={options.batchSize}
+                            onChange={(e) => setOptions(p => ({ ...p, batchSize: parseInt(e.target.value) }))}
+                            className="w-full accent-primary h-1.5"
+                          />
+                          <p className="text-[10px] text-muted-foreground mt-1">50-500 registros por lote</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => navigateStep('upload', -1)}
+                  className="px-4 py-3 rounded-xl font-medium text-sm text-muted-foreground hover:bg-muted transition-colors flex items-center gap-1"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Atrás
+                </button>
+                <button
+                  onClick={handleAnalyze}
+                  disabled={validateResult.validCount === 0}
+                  className="flex-1 bg-primary text-primary-foreground px-4 py-3 rounded-xl font-semibold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                >
+                  <Zap className="h-4 w-4" />
+                  Analizar con IA
+                </button>
+              </div>
+            </motion.div>
           )}
 
-          {/* Botones */}
-          <div className="flex gap-4">
-            <button
-              onClick={handleReset}
-              className="px-6 py-3 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold rounded-lg transition-colors"
+          {/* ANALYZING */}
+          {step === 'analyzing' && (
+            <motion.div
+              key="analyzing"
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="flex flex-col items-center justify-center py-16 text-center space-y-6"
             >
-              Importar Otro Archivo
-            </button>
-            <button
-              onClick={() => navigate('/gastos')}
-              className="flex-1 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg transition-colors"
+              <div className="relative">
+                <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full animate-pulse" />
+                <div className="relative bg-background p-5 rounded-full shadow-xl border border-border">
+                  <Brain className="h-10 w-10 text-indigo-600 animate-pulse" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Analizando con IA...</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {options.autoCategorizate && 'Categorizando automáticamente'}
+                  {options.skipDuplicates && options.autoCategorizate && ' y '}
+                  {options.skipDuplicates && 'detectando duplicados'}
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* PREVIEW MEJORADOS */}
+          {step === 'preview-enhanced' && analyzeResult && (
+            <motion.div
+              key="preview-enhanced"
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-4"
             >
-              Ver Gastos Importados
-            </button>
-          </div>
-        </div>
-      )}
+              {/* AI Summary */}
+              {analyzeResult.summary && (
+                <div className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain className="h-4 w-4 text-indigo-600" />
+                    <span className="font-semibold text-sm text-indigo-700 dark:text-indigo-300">Análisis IA</span>
+                  </div>
+                  <p className="text-sm text-foreground/80">{analyzeResult.summary}</p>
+                </div>
+              )}
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-card border border-border p-3 rounded-xl text-center">
+                  <p className="text-xl md:text-2xl font-bold">{analyzeResult.totalProcessed}</p>
+                  <p className="text-[10px] md:text-xs text-muted-foreground uppercase">Procesados</p>
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-3 rounded-xl text-center">
+                  <p className="text-xl md:text-2xl font-bold text-purple-600">{analyzeResult.categorized}</p>
+                  <p className="text-[10px] md:text-xs text-purple-700/70 uppercase">Categorizados</p>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 rounded-xl text-center">
+                  <p className="text-xl md:text-2xl font-bold text-amber-600">{analyzeResult.duplicatesRemoved}</p>
+                  <p className="text-[10px] md:text-xs text-amber-700/70 uppercase">Duplicados</p>
+                </div>
+              </div>
+
+              {/* AI Suggestions */}
+              {analyzeResult.aiSuggestions.length > 0 && (
+                <div className="space-y-2">
+                  {analyzeResult.aiSuggestions.slice(0, 3).map((sug, i) => (
+                    <div key={i} className="flex items-start gap-2 p-3 bg-muted/30 rounded-xl">
+                      <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                      <div className="text-xs">
+                        <p className="text-muted-foreground">{sug.message}</p>
+                        <p className="font-medium text-foreground">{sug.suggestion}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Enhanced Preview */}
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="p-3 border-b border-border bg-muted/30 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="font-semibold text-sm">Datos Mejorados</h3>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{enhancedData.length} registros</span>
+                </div>
+
+                <div className="max-h-[300px] overflow-y-auto">
+                  {enhancedData.slice(0, 8).map((row, i) => (
+                    <div key={i} className="p-3 border-b border-border last:border-0 flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 flex items-center justify-center flex-shrink-0">
+                        <Check className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{row.descripcion}</p>
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <span>{row.fecha}</span>
+                          <span>•</span>
+                          <span className={row.categoriaSugerida ? 'text-purple-600 font-medium' : ''}>
+                            {row.categoria}
+                          </span>
+                          {row.categoriaSugerida && (
+                            <Sparkles className="h-2.5 w-2.5 text-purple-500" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="font-bold text-sm">{row.moneda} {row.monto}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => navigateStep('preview-valid', -1)}
+                  className="px-4 py-3 rounded-xl font-medium text-sm text-muted-foreground hover:bg-muted transition-colors flex items-center gap-1"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Atrás
+                </button>
+                <button
+                  onClick={handleUpload}
+                  className="flex-1 bg-primary text-primary-foreground px-4 py-3 rounded-xl font-semibold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                >
+                  <Database className="h-4 w-4" />
+                  Importar {enhancedData.length} gastos
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* UPLOADING */}
+          {step === 'uploading' && (
+            <motion.div
+              key="uploading"
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="flex flex-col items-center justify-center py-16 text-center space-y-6"
+            >
+              <div className="relative h-24 w-24">
+                <CustomLoader />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Guardando gastos...</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Importando {enhancedData.length} registros
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* RESULTS */}
+          {step === 'results' && uploadResult && (
+            <motion.div
+              key="results"
+              custom={direction}
+              variants={variants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-6"
+            >
+              <div className="bg-card border border-border rounded-2xl p-6 md:p-8 text-center">
+                <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
+                  <Check className="h-10 w-10 text-green-600 dark:text-green-400" />
+                </div>
+
+                <h2 className="text-2xl font-bold text-foreground mb-1">Importación Completada</h2>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Tus gastos han sido guardados correctamente
+                </p>
+
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  <div className="p-3 bg-muted/30 rounded-xl">
+                    <p className="text-xl font-bold">{uploadResult.totalRows}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">Total</p>
+                  </div>
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                    <p className="text-xl font-bold text-green-600">{uploadResult.imported}</p>
+                    <p className="text-[10px] text-green-700/70 uppercase">Importados</p>
+                  </div>
+                  <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                    <p className="text-xl font-bold text-red-600">{uploadResult.failed}</p>
+                    <p className="text-[10px] text-red-700/70 uppercase">Fallidos</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => navigate('/gastos')}
+                    className="w-full bg-primary text-primary-foreground px-4 py-3 rounded-xl font-semibold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  >
+                    Ver Mis Gastos
+                  </button>
+                  <button
+                    onClick={resetFlow}
+                    className="w-full px-4 py-3 rounded-xl font-medium text-sm text-muted-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Importar Otro Archivo
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

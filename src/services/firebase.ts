@@ -146,8 +146,12 @@ export const obtenerMensajeError = (error: unknown): string => {
 
 /**
  * Convierte un Timestamp de Firestore a Date
+ * Maneja valores undefined/null retornando la fecha actual
  */
-export const timestampToDate = (timestamp: Timestamp): Date => {
+export const timestampToDate = (timestamp: Timestamp | undefined | null): Date => {
+  if (!timestamp) {
+    return new Date();
+  }
   return timestamp.toDate();
 };
 

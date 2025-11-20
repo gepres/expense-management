@@ -14,11 +14,15 @@ interface ThemeContextType {
   temaEfectivo: 'light' | 'dark';
   setTema: (tema: TemaApp) => void;
   toggleTema: () => void;
+  toastInvertido: boolean;
+  setToastInvertido: (invertido: boolean) => void;
   // Aliases en inglés para compatibilidad
   theme: TemaApp;
   effectiveTheme: 'light' | 'dark';
   setTheme: (tema: TemaApp) => void;
   toggleTheme: () => void;
+  toastInverted: boolean;
+  setToastInverted: (invertido: boolean) => void;
 }
 
 // ============================================================================
@@ -43,6 +47,12 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   });
 
   const [temaEfectivo, setTemaEfectivo] = useState<'light' | 'dark'>('light');
+  
+  const [toastInvertido, setToastInvertidoState] = useState<boolean>(() => {
+    // Obtener preferencia guardada en localStorage
+    const preferencia = localStorage.getItem('toast-invertido');
+    return preferencia === 'true';
+  });
 
   // Detectar preferencia del sistema
   useEffect(() => {
@@ -100,16 +110,28 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     setTema(nuevoTema);
   };
 
+  /**
+   * Establecer inversión de toast
+   */
+  const setToastInvertido = (invertido: boolean): void => {
+    setToastInvertidoState(invertido);
+    localStorage.setItem('toast-invertido', String(invertido));
+  };
+
   const value: ThemeContextType = {
     tema,
     temaEfectivo,
     setTema,
     toggleTema,
+    toastInvertido,
+    setToastInvertido,
     // Aliases en inglés para compatibilidad
     theme: tema,
     effectiveTheme: temaEfectivo,
     setTheme: setTema,
     toggleTheme: toggleTema,
+    toastInverted: toastInvertido,
+    setToastInverted: setToastInvertido,
   };
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

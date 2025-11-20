@@ -22,7 +22,7 @@ import {
 import { formatearMoneda, parsearMesKey } from '@utils/formatters';
 import { calcularGastosPorCategoria } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
-import { Plus, Edit2, Trash2, Calendar, DollarSign, TrendingDown, TrendingUp, AlertCircle, Target, X, Check, ChevronDown, ChevronUp, Wallet, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package } from 'lucide-react';
+import { Plus, Target, Wallet, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package } from 'lucide-react';
 import CustomLoader from '@components/common/CustomLoader';
 
 interface FormPresupuesto {

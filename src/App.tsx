@@ -6,7 +6,7 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@context/AuthContext';
-import { ThemeProvider } from '@context/ThemeContext';
+import { ThemeProvider, useTheme } from '@context/ThemeContext';
 import ErrorAlert from '@components/common/ErrorAlert';
 import CustomLoader from '@components/common/CustomLoader';
 
@@ -137,10 +137,58 @@ function AppRoutes() {
     </>
   );
 }
-
 // ============================================================================
 // Componente principal
 // ============================================================================
+
+function ToasterWithTheme() {
+  const { toastInvertido, temaEfectivo } = useTheme();
+  
+  // Determine toast colors based on inversion setting
+  const getToastColors = () => {
+    if (toastInvertido) {
+      // Inverted: light toasts in dark mode, dark toasts in light mode
+      return temaEfectivo === 'dark' ? {
+        background: '#ffffff',
+        color: '#000000',
+        border: '1px solid #e5e7eb',
+      } : {
+        background: '#1f2937',
+        color: '#ffffff',
+        border: '1px solid #374151',
+      };
+    } else {
+      // Normal: follow theme
+      return {
+        background: 'hsl(var(--background))',
+        color: 'hsl(var(--foreground))',
+        border: '1px solid hsl(var(--border))',
+      };
+    }
+  };
+
+  return (
+    <Toaster
+      position="top-right"
+      toastOptions={{
+        duration: 3000,
+        style: getToastColors(),
+        success: {
+          iconTheme: {
+            primary: 'hsl(var(--primary))',
+            secondary: 'hsl(var(--primary-foreground))',
+          },
+        },
+        error: {
+          iconTheme: {
+            primary: 'hsl(var(--destructive))',
+            secondary: 'hsl(var(--destructive-foreground))',
+          },
+        },
+      }}
+    />
+  );
+}
 
 function App() {
   return (
@@ -148,29 +196,7 @@ function App() {
       <ThemeProvider>
         <AuthProvider>
           <AppRoutes />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: 'hsl(var(--background))',
-                color: 'hsl(var(--foreground))',
-                border: '1px solid hsl(var(--border))',
-              },
-              success: {
-                iconTheme: {
-                  primary: 'hsl(var(--primary))',
-                  secondary: 'hsl(var(--primary-foreground))',
-                },
-              },
-              error: {
-                iconTheme: {
-                  primary: 'hsl(var(--destructive))',
-                  secondary: 'hsl(var(--destructive-foreground))',
-                },
-              },
-            }}
-          />
+          <ToasterWithTheme />
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

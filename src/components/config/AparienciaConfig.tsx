@@ -2,7 +2,7 @@ import { useTheme } from '@context/ThemeContext';
 import { Moon, Sun, Monitor, Check } from 'lucide-react';
 
 export default function AparienciaConfig() {
-  const { tema, setTema } = useTheme();
+  const { tema, setTema, toastInvertido, setToastInvertido } = useTheme();
 
   const themes = [
     {
@@ -68,7 +68,33 @@ export default function AparienciaConfig() {
         })}
       </div>
 
+      {/* Toast Theme Toggle */}
       <div className="mt-8 p-6 rounded-xl bg-muted/50 border border-border">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-foreground mb-1">
+              Notificaciones Invertidas
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              En modo oscuro, las notificaciones serán claras. En modo claro, las notificaciones serán oscuras.
+            </p>
+          </div>
+          <button
+            onClick={() => setToastInvertido(!toastInvertido)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+              toastInvertido ? 'bg-primary' : 'bg-muted-foreground/30'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                toastInvertido ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 p-6 rounded-xl bg-muted/50 border border-border">
         <h3 className="text-sm font-medium text-foreground mb-4">Vista Previa</h3>
         <div className="bg-card p-4 rounded-lg shadow-sm border border-border max-w-sm mx-auto">
           <div className="flex items-center gap-3 mb-4">
