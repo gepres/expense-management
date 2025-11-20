@@ -32,7 +32,7 @@ export default function ListaPresupuestos() {
   const { usuario } = useAuth();
   const { presupuestos, estado, cargarPresupuestos, crear, actualizar, eliminar } = usePresupuestos();
   const { gastos, cargarGastos } = useGastos();
-  const { categories, currencies, getCategoryLabel, getCurrencySymbol } = useConfig();
+  const { categories, currencies, getCategoryLabel } = useConfig();
 
   const [mesActual, setMesActual] = useState(() => {
     const fecha = new Date();

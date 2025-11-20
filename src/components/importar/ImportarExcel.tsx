@@ -26,8 +26,8 @@ import {
 } from '@services/import';
 import { toast } from 'react-hot-toast';
 import {
-  Upload, FileText, Check, AlertTriangle, X, Settings,
-  Brain, ArrowRight, ArrowLeft, Sparkles, FileSpreadsheet,
+  Upload, FileText, Check, Settings,
+  Brain, ArrowLeft, Sparkles, FileSpreadsheet,
   AlertCircle, ChevronDown, ChevronUp, Filter, Zap,
   CheckCircle2, XCircle, RefreshCw, Eye, Database
 } from 'lucide-react';
@@ -38,12 +38,11 @@ type Step = 'upload' | 'validating' | 'preview-valid' | 'analyzing' | 'preview-e
 export default function ImportarExcel() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { getCategoryLabel, getCurrencySymbol } = useConfig();
+  const { getCategoryLabel } = useConfig();
 
   // Estado del flujo
   const [step, setStep] = useState<Step>('upload');
   const [direction, setDirection] = useState(0);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
   // Datos de cada paso
@@ -89,7 +88,6 @@ export default function ImportarExcel() {
       return;
     }
 
-    setSelectedFile(file);
     navigateStep('validating', 1);
 
     try {
@@ -208,7 +206,6 @@ export default function ImportarExcel() {
 
   const resetFlow = () => {
     setStep('upload');
-    setSelectedFile(null);
     setValidateResult(null);
     setAnalyzeResult(null);
     setUploadResult(null);

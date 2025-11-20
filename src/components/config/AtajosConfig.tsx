@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ConfigService, type Shortcut } from '../../services/config';
 import { useConfig } from '@context/ConfigContext';
 import { Plus, Edit2, Trash2, X, Zap } from 'lucide-react';

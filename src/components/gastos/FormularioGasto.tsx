@@ -24,9 +24,6 @@ export default function FormularioGasto() {
     paymentMethods,
     currencies,
     shortcuts,
-    getCategoryLabel,
-    getPaymentMethodLabel,
-    getCurrencySymbol,
     getSubcategories
   } = useConfig();
 

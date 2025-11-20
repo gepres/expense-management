@@ -4,7 +4,7 @@
  * Carga los datos desde Firebase y los proporciona globalmente
  */
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import {
   ConfigService,
