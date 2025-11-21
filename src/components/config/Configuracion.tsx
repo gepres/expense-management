@@ -6,11 +6,12 @@ import MonedasConfig from './MonedasConfig';
 import PerfilConfig from './PerfilConfig';
 import AparienciaConfig from './AparienciaConfig';
 import AtajosConfig from './AtajosConfig';
-import { Layers, CreditCard, Coins, User, Palette, Zap } from 'lucide-react';
+import AvanzadaConfig from './AvanzadaConfig';
+import { Layers, CreditCard, Coins, User, Palette, Zap, Settings } from 'lucide-react';
 
-type Tab = 'perfil' | 'apariencia' | 'categorias' | 'metodos' | 'monedas' | 'atajos';
+type Tab = 'perfil' | 'apariencia' | 'categorias' | 'metodos' | 'monedas' | 'atajos' | 'avanzada';
 
-const validTabs: Tab[] = ['perfil', 'apariencia', 'categorias', 'metodos', 'monedas', 'atajos'];
+const validTabs: Tab[] = ['perfil', 'apariencia', 'categorias', 'metodos', 'monedas', 'atajos', 'avanzada'];
 
 export default function Configuracion() {
   const [searchParams] = useSearchParams();
@@ -31,6 +32,7 @@ export default function Configuracion() {
     { id: 'metodos', label: 'Métodos de Pago', icon: CreditCard },
     { id: 'monedas', label: 'Monedas', icon: Coins },
     { id: 'atajos', label: 'Atajos', icon: Zap },
+    { id: 'avanzada', label: 'Avanzada', icon: Settings },
   ] as const;
 
   return (
@@ -70,6 +72,7 @@ export default function Configuracion() {
         {activeTab === 'metodos' && <MetodosPagoConfig />}
         {activeTab === 'monedas' && <MonedasConfig />}
         {activeTab === 'atajos' && <AtajosConfig />}
+        {activeTab === 'avanzada' && <AvanzadaConfig />}
       </div>
     </div>
   );

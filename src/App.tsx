@@ -8,6 +8,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@context/AuthContext';
 import { ThemeProvider, useTheme } from '@context/ThemeContext';
 import { ConfigProvider } from '@context/ConfigContext';
+import { PreferencesProvider } from '@context/PreferencesContext';
 import ErrorAlert from '@components/common/ErrorAlert';
 import CustomLoader from '@components/common/CustomLoader';
 
@@ -197,8 +198,10 @@ function App() {
       <ThemeProvider>
         <AuthProvider>
           <ConfigProvider>
-            <AppRoutes />
-            <ToasterWithTheme />
+            <PreferencesProvider>
+              <AppRoutes />
+              <ToasterWithTheme />
+            </PreferencesProvider>
           </ConfigProvider>
         </AuthProvider>
       </ThemeProvider>

@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
+import { usePreferences } from '@context/PreferencesContext';
 import { useGastos } from '@hooks/useGastos';
 import { type GastoFormData, type CategoriaGasto, type MetodoPago, type Moneda } from '@types';
 import { toast } from 'react-hot-toast';
@@ -27,6 +28,7 @@ export default function FormularioGasto() {
     shortcuts,
     getSubcategories
   } = useConfig();
+  const { preferences } = usePreferences();
 
   const esEdicion = Boolean(id);
   const [cargandoGasto, setCargandoGasto] = useState(esEdicion);
@@ -307,6 +309,46 @@ export default function FormularioGasto() {
         
         const confidencePercent = Math.round(expenseData.confidence * 100);
         toast.success(`Gasto detectado por voz (${confidencePercent}% confianza)`);
+
+        // Autoguardar si la preferencia está activada
+        if (preferences.autoSaveAfterVoice) {
+          console.log('💾 Autoguardado activado, guardando gasto...');
+          // Esperar un momento para que el estado se actualice
+          setTimeout(async () => {
+            try {
+              if (!usuario) {
+                toast.error('Debes iniciar sesión');
+                return;
+              }
+
+              const fechaHora = new Date(`${newFormData.fecha}T${newFormData.hora}:00`);
+              
+              const gastoData: any = {
+                userId: usuario.id,
+                fecha: fechaHora,
+                categoria: newFormData.categoria,
+                monto: parseFloat(newFormData.monto),
+                moneda: newFormData.moneda,
+                descripcion: newFormData.descripcion.trim(),
+                metodoPago: newFormData.metodoPago,
+                recurrente: newFormData.recurrente || false,
+              };
+
+              if (newFormData.subcategoria) {
+                gastoData.subcategoria = newFormData.subcategoria;
+              }
+
+              console.log('💾 Autoguardando gasto:', gastoData);
+
+              await crear(gastoData);
+              toast.success('¡Gasto guardado automáticamente!');
+              navigate('/gastos');
+            } catch (error: any) {
+              console.error('Error al autoguardar:', error);
+              toast.error('Error al guardar automáticamente. Revisa y guarda manualmente.');
+            }
+          }, 500);
+        }
       } else {
         toast.error('No pude entender bien el gasto. Intenta de nuevo o completa manualmente.');
       }
