@@ -14,7 +14,7 @@ import { scanReceipt, validateImageFormat } from '@services/receipts';
 import { useVoiceInput } from '@hooks/useVoiceInput';
 import { VoiceService } from '@services/voice';
 import CustomLoader from '@components/common/CustomLoader';
-import { Camera, Upload, CircleDollarSign, Lightbulb, Check, Plus, Mic, MicOff } from 'lucide-react';
+import { Camera, Upload, Lightbulb, Check, Plus, Mic, MicOff, ChevronDown, ChevronUp, Calendar, Clock, CreditCard, Repeat, AlignLeft, CircleDollarSign } from 'lucide-react';
 
 export default function FormularioGasto() {
   const navigate = useNavigate();
@@ -59,6 +59,7 @@ export default function FormularioGasto() {
   // Estado para entrada de voz
   const { isListening, transcript, startListening, stopListening, resetTranscript, isSupported, error: voiceError } = useVoiceInput();
   const [processingVoice, setProcessingVoice] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   // Obtener sugerencias desde ConfigContext
   const currentCategory = categories.find(cat => cat.id === formData.categoria);
@@ -505,10 +506,32 @@ export default function FormularioGasto() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-card border border-border rounded-lg shadow-sm p-4 md:p-6">
-        <div className="flex items-center justify-between mb-4 md:mb-6">
+      {/* class-border: bg-card border border-border */}
+      <div className="rounded-lg shadow-sm p-4 pt-0 lg:pt-4 md:p-6 lg:bg-card lg:border lg:border-border">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-foreground">
-            {esEdicion ? 'Editar Gasto' : 'Nuevo Gasto'}
+            {/* {esEdicion ? 'Editar Gasto' : 'Nuevo Gasto'} */}
+            {esEdicion ? 'Editar Gasto' : 
+              <div>
+                <button
+                  type="button"
+                  onClick={handleEscanearClick}
+                  disabled={escaneando}
+                  className={` p-3 rounded-full transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:scale-105 lg:hidden`}
+                  title={'Scanea yape/plin'}
+                >
+                 {escaneando ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent"></div>
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="h-5 w-5" />
+                    </>
+                  )}
+                </button>
+                <span className='hidden lg:inline'>Nuevo Gasto</span>
+              </div>}
           </h2>
           
           {/* Botón de Voz */}
@@ -570,370 +593,288 @@ export default function FormularioGasto() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* ========== VERSIÓN MOBILE/TABLET (md:hidden) ========== */}
-          <div className="md:hidden space-y-4">
-            {/* 1. Atajos Rápidos */}
-            {!esEdicion && (
-              <div className="bg-muted/30 border border-border rounded-lg p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Atajos Rápidos
-                  </label>
-                  <Link
-                    to="/configuracion?tab=atajos"
-                    className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-                {shortcuts.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
+          {/* ========== VERSIÓN MOBILE/TABLET (md:hidden) - iOS STYLE ========== */}
+          <div className="md:hidden space-y-6">
+            
+            {/* 1. Atajos Rápidos (Horizontal Scroll) */}
+            {!esEdicion && shortcuts.length > 0 && (
+              <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                <div className="flex gap-2 w-max">
                   {shortcuts.map((shortcut) => (
                     <button
                       key={shortcut.id}
                       type="button"
                       onClick={() => handleShortcutSelect(shortcut.id)}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors justify-center flex items-center gap-1.5 ${
+                      className={`flex flex-col items-center justify-center w-20 h-20 rounded-2xl transition-all active:scale-95 border ${
                         combinacionSeleccionada === shortcut.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-background hover:bg-accent text-foreground border border-border'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-card text-card-foreground border-border shadow-sm'
                       }`}
                     >
-                      {shortcut.icon && <span>{shortcut.icon}</span>}
-                      <span className="truncate">{shortcut.name}</span>
+                      <span className="text-2xl mb-1">{shortcut.icon || '⚡'}</span>
+                      <span className="text-[10px] font-medium truncate w-full text-center px-1">
+                        {shortcut.name}
+                      </span>
                     </button>
                   ))}
+                  <Link
+                    to="/configuracion?tab=atajos"
+                    className="flex flex-col items-center justify-center w-20 h-20 rounded-2xl bg-muted/50 border border-dashed border-muted-foreground/30 text-muted-foreground active:scale-95"
+                  >
+                    <Plus className="h-6 w-6 mb-1" />
+                    <span className="text-[10px] font-medium">Nuevo</span>
+                  </Link>
                 </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground text-center py-2">
-                    No hay atajos configurados
-                  </p>
-                )}
               </div>
             )}
 
-            {/* 2. Escanear Boleta */}
-            {!esEdicion && (
-              <div className="bg-accent/30 border border-border rounded-lg p-3">
-                <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                  <Camera className="h-4 w-4" />
-                  <span>Escanear Boleta</span>
-                </label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Sube tu recibo y autocompletamos el formulario
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImagenSeleccionada}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={handleEscanearClick}
-                  disabled={escaneando}
-                  className="w-full px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
-                >
-                  {escaneando ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent"></div>
-                      <span>Escaneando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4" />
-                      <span>Yape + Plin + Trans.</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-
-            {/* 3. Campo Monto - SOLO MONTO (sin moneda) */}
-            <div className="bg-primary/5 border-2 border-primary/20 rounded-lg p-4">
-              <label
-                htmlFor="monto-mobile"
-                className="block text-base font-bold text-foreground mb-3 text-center flex items-center justify-center gap-2"
-              >
-                <CircleDollarSign className="h-5 w-5" />
-                <span>¿Cuánto gastaste? <span className="text-destructive">*</span></span>
+            {/* 2. Monto Principal (Hero) */}
+            <div className="text-center py-2">
+              <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                ¿Cuánto gastaste?
               </label>
-              <input
-                type="number"
-                id="monto-mobile"
-                name="monto"
-                value={formData.monto}
-                onChange={handleChange}
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                className={`w-full px-6 py-4 text-3xl font-bold rounded-lg border-2 ${
-                  errores.monto
-                    ? 'border-destructive focus:ring-destructive'
-                    : 'border-primary/30 focus:ring-primary'
-                } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors text-center`}
-                disabled={cargando}
-                autoFocus={!esEdicion}
-              />
+              <div className="relative inline-block">
+                <span className="absolute left-8 top-1/2 -translate-y-1/2 -translate-x-full pr-2 text-2xl font-bold text-muted-foreground">
+                  {currencies.find(c => c.codigoISO === formData.moneda)?.simbolo}
+                </span>
+                <input
+                  type="number"
+                  name="monto"
+                  value={formData.monto}
+                  onChange={handleChange}
+                  placeholder="0.00"
+                  className="w-full bg-transparent text-6xl font-bold text-center focus:outline-none placeholder:text-muted-foreground/20 p-0 border-none"
+                  autoFocus={!esEdicion}
+                  min="0"
+                />
+              </div>
               {errores.monto && (
-                <p className="mt-2 text-sm text-destructive text-center font-medium">{errores.monto}</p>
+                <p className="text-sm text-destructive mt-1 font-medium animate-pulse">
+                  {errores.monto}
+                </p>
               )}
             </div>
 
-            {/* 4. Sugerencias de Subcategoría */}
-            <div className="bg-muted/30 border border-border rounded-lg p-3">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <Lightbulb className="h-4 w-4" />
-                  <span>Sugerencias para {subcategoryName || 'descripción'}</span>
-                </p>
-                <Link
-                  to="/configuracion?tab=categorias"
-                  className="h-6 w-6 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center hover:bg-secondary/80 transition-colors"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </Link>
+            {/* 3. Categoría (Horizontal Scroll Pills) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground px-1">
+                Categoría
+              </label>
+              <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                <div className="flex gap-2 w-max">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, categoria: cat.id as any, subcategoria: '' }))}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap border ${
+                        formData.categoria === cat.id
+                          ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                          : 'bg-card text-card-foreground border-border hover:bg-accent'
+                      }`}
+                    >
+                      {cat.nombre}
+                    </button>
+                  ))}
+                </div>
               </div>
-              {subcategorySuggestions.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
+            </div>
+
+            {/* 3.1 Subcategoría (Horizontal Scroll Pills) - Solo si hay categoría seleccionada */}
+            {formData.categoria && getSubcategories(formData.categoria).length > 0 && (
+              <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                <label className="text-sm font-medium text-muted-foreground px-1">
+                  Subcategoría
+                </label>
+                <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                  <div className="flex gap-2 w-max">
+                    {getSubcategories(formData.categoria).map((sub) => (
+                      <button
+                        key={sub}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, subcategoria: sub }))}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border ${
+                          formData.subcategoria === sub
+                            ? 'bg-secondary text-secondary-foreground border-secondary shadow-sm'
+                            : 'bg-card text-card-foreground border-border hover:bg-accent'
+                        }`}
+                      >
+                        {sub}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 4. Descripción */}
+            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+              <div className="p-3 border-b border-border/50 flex items-start gap-3">
+                <AlignLeft className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <textarea
+                  name="descripcion"
+                  value={formData.descripcion}
+                  onChange={handleChange}
+                  placeholder="¿En qué gastaste? (Opcional)"
+                  rows={2}
+                  className="flex-1 bg-transparent resize-none focus:outline-none text-base placeholder:text-muted-foreground/50"
+                />
+              </div>
+              
+              {/* Sugerencias rápidas */}
+              {subcategorySuggestions.length > 0 && (
+                <div className="p-2 bg-muted/30 flex gap-2 overflow-x-auto scrollbar-hide">
                   {subcategorySuggestions.map((suggestion, index) => (
                     <button
                       key={index}
                       type="button"
                       onClick={() => agregarTagSugerido(suggestion)}
-                      className="px-3 py-1.5 text-xs font-medium rounded-full bg-background hover:bg-primary hover:text-primary-foreground border border-border transition-colors active:scale-95"
+                      className="px-3 py-1 text-xs font-medium rounded-full bg-background border border-border shadow-sm active:scale-95 whitespace-nowrap"
                     >
                       {suggestion}
                     </button>
                   ))}
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground text-center py-1">
-                  {formData.subcategoria ? 'No hay sugerencias configuradas' : 'Selecciona una subcategoría'}
-                </p>
               )}
             </div>
 
-            {/* 5. Botones de Acción */}
-            <div className="flex gap-3 pt-2">
-              <button
-                type="submit"
-                disabled={cargando}
-                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-sm flex items-center justify-center gap-2"
-              >
-                {cargando ? (
-                  esEdicion ? 'Actualizando...' : 'Guardando...'
-                ) : (
-                  <>
-                    <Check className="h-4 w-4" />
-                    <span>{esEdicion ? 'Actualizar' : 'Guardar'}</span>
-                  </>
-                )}
-              </button>
+            {/* 5. Detalles Adicionales (Accordion) */}
+            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
               <button
                 type="button"
-                onClick={() => navigate('/gastos')}
-                disabled={cargando}
-                className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-sm"
+                onClick={() => setShowDetails(!showDetails)}
+                className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
               >
-                Cancelar
+                <span className="font-medium text-sm flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  Detalles (Fecha, Pago, Etiquetas)
+                </span>
+                {showDetails ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
               </button>
+
+              {showDetails && (
+                <div className="p-4 pt-0 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" /> Fecha
+                      </label>
+                      <input
+                        type="date"
+                        name="fecha"
+                        value={formData.fecha}
+                        onChange={handleChange}
+                        className="w-full bg-muted/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" /> Hora
+                      </label>
+                      <input
+                        type="time"
+                        name="hora"
+                        value={formData.hora}
+                        onChange={handleChange}
+                        className="w-full bg-muted/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      <CreditCard className="h-3.5 w-3.5" /> Método de Pago
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {paymentMethods.map((method) => (
+                        <button
+                          key={method.id}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, metodoPago: method.id as any }))}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+                            formData.metodoPago === method.id
+                              ? 'bg-primary/10 border-primary text-primary'
+                              : 'bg-background border-border hover:bg-muted'
+                          }`}
+                        >
+                          {method.nombre}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      <CircleDollarSign className="h-3.5 w-3.5" /> Moneda
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {currencies.map((currency) => (
+                        <button
+                          key={currency.id}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, moneda: currency.codigoISO as any }))}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
+                            formData.moneda === currency.codigoISO
+                              ? 'bg-primary/10 border-primary text-primary'
+                              : 'bg-background border-border hover:bg-muted'
+                          }`}
+                        >
+                          {currency.simbolo} {currency.nombre}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2">
+                    <label className="text-sm font-medium flex items-center gap-2 cursor-pointer">
+                      <Repeat className="h-4 w-4 text-muted-foreground" />
+                      Gasto recurrente
+                    </label>
+                    <input
+                      type="checkbox"
+                      name="recurrente"
+                      checked={formData.recurrente}
+                      onChange={handleChange}
+                      className="h-5 w-5 rounded border-primary text-primary focus:ring-primary"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* 6. Resto de campos */}
-            <div className="pt-4 border-t border-border space-y-4">
-              {/* Fecha y Hora */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="fecha-mobile" className="block text-sm font-medium text-foreground mb-1">
-                    Fecha <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    id="fecha-mobile"
-                    name="fecha"
-                    value={formData.fecha}
-                    onChange={handleChange}
-                    max={new Date().toISOString().split('T')[0]}
-                    className={`w-full px-3 py-2 rounded-md border text-sm ${
-                      errores.fecha ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                    } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
-                    disabled={cargando}
-                  />
-                  {errores.fecha && <p className="mt-1 text-xs text-destructive">{errores.fecha}</p>}
-                </div>
-
-                <div>
-                  <label htmlFor="hora-mobile" className="block text-sm font-medium text-foreground mb-1">
-                    Hora <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    id="hora-mobile"
-                    name="hora"
-                    value={formData.hora}
-                    onChange={handleChange}
-                    className={`w-full px-3 py-2 rounded-md border text-sm ${
-                      errores.hora ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                    } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
-                    disabled={cargando}
-                  />
-                  {errores.hora && <p className="mt-1 text-xs text-destructive">{errores.hora}</p>}
-                </div>
-              </div>
-
-              {/* Categoría y Subcategoría */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="categoria-mobile" className="block text-sm font-medium text-foreground mb-1">
-                    Categoría <span className="text-destructive">*</span>
-                  </label>
-                  <select
-                    id="categoria-mobile"
-                    name="categoria"
-                    value={formData.categoria}
-                    onChange={handleChange}
-                    className={`w-full px-3 py-2 rounded-md border text-sm ${
-                      errores.categoria ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                    } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
-                    disabled={cargando}
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  {errores.categoria && <p className="mt-1 text-xs text-destructive">{errores.categoria}</p>}
-                </div>
-
-                <div>
-                  <label htmlFor="subcategoria-mobile" className="block text-sm font-medium text-foreground mb-1">
-                    Subcategoría
-                  </label>
-                  <select
-                    id="subcategoria-mobile"
-                    name="subcategoria"
-                    value={formData.subcategoria}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-md border border-input focus:ring-primary bg-background text-foreground focus:outline-none focus:ring-2 transition-colors text-sm"
-                    disabled={cargando}
-                  >
-                    <option value="">Sin subcategoría</option>
-                    {getSubcategories(formData.categoria).map((sub) => (
-                      <option key={sub} value={sub}>
-                        {sub}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Moneda */}
-              <div>
-                <label htmlFor="moneda-mobile" className="block text-sm font-medium text-foreground mb-1">
-                  Moneda <span className="text-destructive">*</span>
-                </label>
-                <select
-                  id="moneda-mobile"
-                  name="moneda"
-                  value={formData.moneda}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 rounded-md border text-sm ${
-                    errores.moneda ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                  } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
-                  disabled={cargando}
+            {/* 6. Botones de Acción (Fixed Bottom) */}
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-md border-t border-border z-50 pb-safe">
+              <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
+                <button
+                  type="button"
+                  onClick={() => navigate('/gastos')}
+                  className="w-full py-3.5 rounded-xl font-semibold text-muted-foreground hover:bg-muted transition-colors bg-muted/20"
                 >
-                  {currencies.map((currency) => (
-                    <option key={currency.id} value={currency.codigoISO}>
-                      {currency.simbolo} {currency.nombre}
-                    </option>
-                  ))}
-                </select>
-                {errores.moneda && <p className="mt-1 text-xs text-destructive">{errores.moneda}</p>}
-              </div>
-
-              {/* Método de Pago */}
-              <div>
-                <label htmlFor="metodoPago-mobile" className="block text-sm font-medium text-foreground mb-1">
-                  Método de Pago <span className="text-destructive">*</span>
-                </label>
-                <select
-                  id="metodoPago-mobile"
-                  name="metodoPago"
-                  value={formData.metodoPago}
-                  onChange={handleChange}
-                  className={`w-full px-3 py-2 rounded-md border text-sm ${
-                    errores.metodoPago ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                  } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
                   disabled={cargando}
+                  className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {paymentMethods.map((method) => (
-                    <option key={method.id} value={method.id}>
-                      {method.nombre}
-                    </option>
-                  ))}
-                </select>
-                {errores.metodoPago && <p className="mt-1 text-xs text-destructive">{errores.metodoPago}</p>}
-              </div>
-
-              {/* Descripción */}
-              <div>
-                <label htmlFor="descripcion-mobile" className="block text-sm font-medium text-foreground mb-1">
-                  Descripción
-                </label>
-                <textarea
-                  id="descripcion-mobile"
-                  name="descripcion"
-                  value={formData.descripcion}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="Ej: Almuerzo en restaurante"
-                  className={`w-full px-3 py-2 rounded-md border text-sm ${
-                    errores.descripcion ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                  } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors resize-none`}
-                  disabled={cargando}
-                />
-                {errores.descripcion && <p className="mt-1 text-xs text-destructive">{errores.descripcion}</p>}
-              </div>
-
-              {/* Tags (opcional) */}
-              <div>
-                <label htmlFor="tags-mobile" className="block text-sm font-medium text-foreground mb-1">
-                  Etiquetas (opcional)
-                </label>
-                <input
-                  type="text"
-                  id="tags-mobile"
-                  name="tags"
-                  value={tagsInput}
-                  onChange={handleTagsChange}
-                  placeholder="Ej: trabajo, urgente (separadas por comas)"
-                  className="w-full px-3 py-2 rounded-md border border-input focus:ring-primary bg-background text-foreground focus:outline-none focus:ring-2 transition-colors text-sm"
-                  disabled={cargando}
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Separa las etiquetas con comas
-                </p>
-              </div>
-
-              {/* Recurrente (opcional) */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="recurrente-mobile"
-                  name="recurrente"
-                  checked={formData.recurrente}
-                  onChange={handleChange}
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary focus:ring-offset-0"
-                  disabled={cargando}
-                />
-                <label htmlFor="recurrente-mobile" className="text-sm font-medium text-foreground cursor-pointer">
-                  Gasto recurrente
-                </label>
+                  {cargando ? (
+                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Check className="h-5 w-5" />
+                      {esEdicion ? 'Actualizar' : 'Guardar'}
+                    </>
+                  )}
+                </button>
               </div>
             </div>
+            
+            {/* Espaciador para que el contenido no quede oculto por los botones fijos */}
+            <div className="h-24" />
           </div>
 
           {/* ========== VERSIÓN DESKTOP (hidden md:block) - FORMULARIO ORIGINAL ========== */}

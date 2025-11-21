@@ -178,7 +178,11 @@ export default function Layout() {
       <header className="md:hidden bg-card/80 backdrop-blur-md border-b border-border sticky top-0 z-40 px-4 h-14 flex items-center justify-center">
         <h1 className="text-lg font-bold text-primary flex items-center gap-2">
           <Wallet className="h-5 w-5" />
-          <span>Gestión de Gastos</span>
+          {(() => {
+            const { pathname } = useLocation();
+            return <span>{pathname === '/gastos/nuevo' ? 'Nuevo Gasto' : 'Gestión de Gastos'}</span>;
+          })()}
+
         </h1>
       </header>
 
