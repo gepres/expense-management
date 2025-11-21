@@ -14,7 +14,7 @@ import { scanReceipt, validateImageFormat } from '@services/receipts';
 import { useVoiceInput } from '@hooks/useVoiceInput';
 import { VoiceService } from '@services/voice';
 import CustomLoader from '@components/common/CustomLoader';
-import { Camera, Upload, Lightbulb, Check, Plus, Mic, MicOff, ChevronDown, ChevronUp, Calendar, Clock, CreditCard, Repeat, AlignLeft, CircleDollarSign } from 'lucide-react';
+import { Camera, Upload, Lightbulb, Check, Plus, Mic, MicOff, ChevronDown, ChevronUp, Calendar, Clock, CreditCard, Repeat, AlignLeft, CircleDollarSign, Zap } from 'lucide-react';
 
 export default function FormularioGasto() {
   const navigate = useNavigate();
@@ -611,7 +611,7 @@ export default function FormularioGasto() {
                           : 'bg-card text-card-foreground border-border shadow-sm'
                       }`}
                     >
-                      <span className="text-2xl mb-1">{shortcut.icon || '⚡'}</span>
+                      <span className="text-2xl mb-1">{shortcut.icon || <Zap />}</span>
                       <span className="text-[10px] font-medium truncate w-full text-center px-1">
                         {shortcut.name}
                       </span>

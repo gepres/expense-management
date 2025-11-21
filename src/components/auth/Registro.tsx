@@ -149,7 +149,7 @@ export default function Registro() {
                     ? 'border-destructive focus:ring-destructive'
                     : 'border-input focus:ring-primary'
                 } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
-                placeholder="Juan Pérez"
+                placeholder="Tu nombre"
                 disabled={cargando}
               />
               {errores.nombre && (
