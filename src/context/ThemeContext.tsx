@@ -1,5 +1,5 @@
 /**
- * Context para manejo de tema (modo oscuro/claro)
+ * Context para manejo de tema (modo oscuro/claro/medio) y paletas
  */
 
 import { createContext, useContext, useState, useEffect } from 'react';
@@ -9,10 +9,14 @@ import type { TemaApp } from '@app-types';
 // Tipos
 // ============================================================================
 
+export type PaletteApp = 'default' | 'beige';
+
 interface ThemeContextType {
   tema: TemaApp;
   temaEfectivo: 'light' | 'dark';
+  palette: PaletteApp;
   setTema: (tema: TemaApp) => void;
+  setPalette: (palette: PaletteApp) => void;
   toggleTema: () => void;
   toastInvertido: boolean;
   setToastInvertido: (invertido: boolean) => void;
@@ -46,6 +50,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     return temaGuardado || 'system';
   });
 
+  const [palette, setPaletteState] = useState<PaletteApp>(() => {
+    const paletteGuardada = localStorage.getItem('palette-app') as PaletteApp;
+    return paletteGuardada || 'default';
+  });
+
   const [temaEfectivo, setTemaEfectivo] = useState<'light' | 'dark'>('light');
   
   const [toastInvertido, setToastInvertidoState] = useState<boolean>(() => {
@@ -54,13 +63,20 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     return preferencia === 'true';
   });
 
-  // Detectar preferencia del sistema
+  // Detectar preferencia del sistema y aplicar tema
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const root = window.document.documentElement;
 
     const actualizarTemaEfectivo = (): void => {
+      // Limpiar variante anterior
+      root.removeAttribute('data-variant');
+
       if (tema === 'system') {
         setTemaEfectivo(mediaQuery.matches ? 'dark' : 'light');
+      } else if (tema === 'medium') {
+        setTemaEfectivo('dark');
+        root.setAttribute('data-variant', 'medium');
       } else {
         setTemaEfectivo(tema as 'light' | 'dark');
       }
@@ -79,12 +95,17 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     return () => mediaQuery.removeEventListener('change', listener);
   }, [tema]);
 
-  // Aplicar clase al documento
+  // Aplicar clase y paleta al documento
   useEffect(() => {
     const root = window.document.documentElement;
+    
+    // Aplicar clase light/dark
     root.classList.remove('light', 'dark');
     root.classList.add(temaEfectivo);
-  }, [temaEfectivo]);
+
+    // Aplicar paleta
+    root.setAttribute('data-palette', palette);
+  }, [temaEfectivo, palette]);
 
   /**
    * Establecer tema
@@ -92,18 +113,18 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const setTema = (nuevoTema: TemaApp): void => {
     setTemaState(nuevoTema);
     localStorage.setItem('tema-app', nuevoTema);
-
-    // Actualizar tema efectivo inmediatamente
-    if (nuevoTema === 'light' || nuevoTema === 'dark') {
-      setTemaEfectivo(nuevoTema);
-    } else {
-      const preferenciaSistema = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setTemaEfectivo(preferenciaSistema ? 'dark' : 'light');
-    }
   };
 
   /**
-   * Alternar entre modo claro y oscuro
+   * Establecer paleta
+   */
+  const setPalette = (nuevaPalette: PaletteApp): void => {
+    setPaletteState(nuevaPalette);
+    localStorage.setItem('palette-app', nuevaPalette);
+  };
+
+  /**
+   * Alternar entre modo claro y oscuro (ignora medium/system para simplificar toggle rápido)
    */
   const toggleTema = (): void => {
     const nuevoTema = temaEfectivo === 'light' ? 'dark' : 'light';
@@ -121,7 +142,9 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const value: ThemeContextType = {
     tema,
     temaEfectivo,
+    palette,
     setTema,
+    setPalette,
     toggleTema,
     toastInvertido,
     setToastInvertido,

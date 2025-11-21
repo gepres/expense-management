@@ -423,7 +423,7 @@ export interface PaginacionState {
   totalPaginas: number;
 }
 
-export type TemaApp = 'light' | 'dark' | 'system';
+export type TemaApp = 'light' | 'dark' | 'medium' | 'system';
 
 export interface ConfiguracionUsuario {
   tema: TemaApp;

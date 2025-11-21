@@ -128,9 +128,9 @@ export default function Layout() {
                       {usuario?.nombre?.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <span className="text-sm font-medium text-foreground">
+                  {/* <span className="text-sm font-medium text-foreground">
                     {usuario?.nombre}
-                  </span>
+                  </span> */}
                 </button>
 
                 {menuUsuarioAbierto && (

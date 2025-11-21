@@ -33,6 +33,38 @@
     --info-foreground: 0 0% 98%;
   }
 
+  /* ========================================================================
+     PALETA BEIGE / CÁLIDA (User Custom)
+     Colors: #7a5c3c, #b08e6b, #e8c39e, #f5e1ce, #ffffff
+     ======================================================================== */
+  :root[data-palette='beige'] {
+    /* Light Mode - Beige */
+    --background: 29 65% 88%;
+    /* #f5e1ce */
+    --foreground: 32 34% 36%;
+    /* #7a5c3c */
+    --card: 0 0% 100%;
+    /* #ffffff */
+    --card-foreground: 32 34% 36%;
+    /* #7a5c3c */
+    --primary: 32 34% 36%;
+    /* #7a5c3c (Strong Brown) */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 30 60% 76%;
+    /* #e8c39e */
+    --secondary-foreground: 32 34% 36%;
+    --muted: 30 60% 76%;
+    /* #e8c39e */
+    --muted-foreground: 32 34% 46%;
+    --accent: 30 33% 55%;
+    /* #b08e6b */
+    --accent-foreground: 0 0% 100%;
+    --border: 30 33% 55%;
+    /* #b08e6b (Colored Borders) */
+    --input: 30 33% 55%;
+    --ring: 30 33% 55%;
+  }
+
   .dark {
     /* Dark Mode - Colores mates y opacos */
     --background: 220 18% 12%;
@@ -60,6 +92,63 @@
     --warning-foreground: 220 15% 15%;
     --info: 200 40% 55%;
     --info-foreground: 220 15% 15%;
+  }
+
+  /* ========================================================================
+     MODO MEDIO (Intercalado / Bordes)
+     "Bordes de color con fondo blando o a veces oscuro"
+     ======================================================================== */
+  .dark[data-variant='medium'] {
+    /* Soft Dark Background */
+    --background: 220 15% 18%;
+    /* Distinct Card Background */
+    --card: 220 15% 22%;
+    /* Colored/Visible Borders (using Primary tone) */
+    --border: 215 20% 45%;
+    --input: 215 20% 45%;
+    /* Softer Foreground */
+    --foreground: 210 20% 90%;
+  }
+
+  /* ========================================================================
+     PALETA BEIGE EN MODO OSCURO
+     ======================================================================== */
+  .dark[data-palette='beige'] {
+    /* Dark Mode - Warm Brown/Sepia */
+    --background: 32 34% 15%;
+    /* Dark Brown */
+    --foreground: 29 65% 88%;
+    /* Light Beige Text */
+    --card: 32 34% 20%;
+    /* Slightly lighter brown */
+    --card-foreground: 29 65% 88%;
+    --primary: 30 33% 55%;
+    /* Medium Brown */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 32 34% 25%;
+    --secondary-foreground: 29 65% 88%;
+    --muted: 32 34% 25%;
+    --muted-foreground: 30 33% 65%;
+    --accent: 32 34% 30%;
+    --accent-foreground: 29 65% 88%;
+    --border: 30 33% 40%;
+    /* Brownish Border */
+    --input: 30 33% 40%;
+    --ring: 30 33% 55%;
+  }
+
+  /* ========================================================================
+     PALETA BEIGE EN MODO MEDIO
+     ======================================================================== */
+  .dark[data-variant='medium'][data-palette='beige'] {
+    /* Medium Mode - Soft Warm */
+    --background: 32 20% 20%;
+    /* Desaturated Warm Dark */
+    --card: 32 20% 25%;
+    /* Colored Borders (using the accent/primary from palette) */
+    --border: 30 33% 55%;
+    /* #b08e6b - Visible Border */
+    --input: 30 33% 55%;
   }
 }
 
