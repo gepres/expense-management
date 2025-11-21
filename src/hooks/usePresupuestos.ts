@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { presupuestosService } from '@services/firebase';
-import type { Presupuesto, Estado } from '@types';
+import type { Presupuesto, Estado } from '@app-types';
 import { useAuth } from '@context/AuthContext';
 import { formatearMesKey } from '@utils/formatters';
 import toast from 'react-hot-toast';

@@ -10,7 +10,7 @@ import type {
   AuthState,
   LoginCredenciales,
   RegistroCredenciales,
-} from '@types';
+} from '@app-types';
 
 // ============================================================================
 // Tipos

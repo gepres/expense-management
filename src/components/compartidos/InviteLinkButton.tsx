@@ -11,7 +11,7 @@ interface Props {
   invitationLink?: string;
 }
 
-export default function InviteLinkButton({ groupId, invitationLink }: Props) {
+export default function InviteLinkButton({ invitationLink }: Props) {
   const [copied, setCopied] = useState(false);
 
   // Construir la URL completa

@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { SharedService } from '@services/shared';
 import { useConfig } from '@context/ConfigContext';
-import type { SharedExpenseGroup, CreateSharedGroupDto } from '@types/shared';
+import type { SharedExpenseGroup, CreateSharedGroupDto } from '@app-types/shared';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';

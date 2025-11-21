@@ -7,7 +7,7 @@ import { SharedService } from '@services/shared';
 import { useSharedExpenses, createExpenseNotification } from '@context/SharedExpensesContext';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
-import type { SharedExpense, CreateSharedExpenseDto } from '@types/shared';
+import type { SharedExpense, CreateSharedExpenseDto } from '@app-types/shared';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 

@@ -28,8 +28,8 @@ import type {
   MetodoPago,
   Presupuesto,
   Moneda,
-} from '@types';
-import { CATEGORIAS_GASTO, METODOS_PAGO } from '@types';
+} from '@app-types';
+import { CATEGORIAS_GASTO, METODOS_PAGO } from '@app-types';
 
 /**
  * Calcular total de gastos

@@ -3,7 +3,7 @@
  */
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import type { TemaApp } from '@types';
+import type { TemaApp } from '@app-types';
 
 // ============================================================================
 // Tipos

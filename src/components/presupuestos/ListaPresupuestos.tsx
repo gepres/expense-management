@@ -14,7 +14,7 @@ import {
   type CategoriaGastoOGeneral,
   type Moneda,
   type Presupuesto,
-} from '@types';
+} from '@app-types';
 import { formatearMoneda, parsearMesKey } from '@utils/formatters';
 import { calcularGastosPorCategoria } from '@utils/calculations';
 import { toast } from 'react-hot-toast';

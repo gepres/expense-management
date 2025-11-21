@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { SharedService } from '@services/shared';
-import type { SharedExpenseGroup, GroupStats } from '@types/shared';
+import type { SharedExpenseGroup, GroupStats } from '@app-types/shared';
 import { Crown, UserMinus, TrendingUp, TrendingDown, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import InviteLinkButton from './InviteLinkButton';

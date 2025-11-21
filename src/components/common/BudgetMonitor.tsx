@@ -3,7 +3,7 @@ import { useGastos } from '@hooks/useGastos';
 import { usePresupuestos } from '@hooks/usePresupuestos';
 import { formatearMesKey, formatearMoneda } from '@utils/formatters';
 import { toast } from 'react-hot-toast';
-import { CATEGORIA_LABELS } from '@types';
+import { CATEGORIA_LABELS } from '@app-types';
 
 export default function BudgetMonitor() {
   const { gastos } = useGastos();

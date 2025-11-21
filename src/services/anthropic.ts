@@ -10,8 +10,8 @@ import type {
   EstadisticasPeriodo,
   Presupuesto,
   CategoriaGasto,
-} from '@types';
-import { CATEGORIA_LABELS } from '@types';
+} from '@app-types';
+import { CATEGORIA_LABELS } from '@app-types';
 import { formatearMoneda } from '@utils/formatters';
 
 // ============================================================================

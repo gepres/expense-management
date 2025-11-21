@@ -7,7 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { SharedService } from '@services/shared';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
-import type { SharedExpenseGroup, SharedBudget, SharedExpense, GroupStats } from '@types/shared';
+import type { SharedExpenseGroup, SharedBudget, SharedExpense, GroupStats } from '@app-types/shared';
 import { ArrowLeft, MoreVertical, Plus, TrendingUp, TrendingDown, RefreshCw, Wallet, Receipt, FileJson, FileSpreadsheet } from 'lucide-react';
 
 import toast from 'react-hot-toast';

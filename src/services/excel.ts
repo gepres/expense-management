@@ -11,8 +11,8 @@ import type {
   ConfiguracionColumnas,
   CategoriaGasto,
   MetodoPago,
-} from '@types';
-import { CATEGORIAS_GASTO, METODOS_PAGO, CATEGORIA_LABELS, METODO_PAGO_LABELS } from '@types';
+} from '@app-types';
+import { CATEGORIAS_GASTO, METODOS_PAGO, CATEGORIA_LABELS, METODO_PAGO_LABELS } from '@app-types';
 
 // ============================================================================
 // Validación con Zod

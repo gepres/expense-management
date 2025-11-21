@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { SharedService } from '@services/shared';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
-import type { SharedExpenseGroup } from '@types/shared';
+import type { SharedExpenseGroup } from '@app-types/shared';
 import { Plus, Users, ChevronRight, Wallet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CustomLoader from '@components/common/CustomLoader';

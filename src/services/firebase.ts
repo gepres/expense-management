@@ -43,7 +43,7 @@ import type {
   PresupuestoFirestore,
   LoginCredenciales,
   RegistroCredenciales,
-} from '@types';
+} from '@app-types';
 
 // ============================================================================
 // Configuración de Firebase

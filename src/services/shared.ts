@@ -20,7 +20,7 @@ import type {
   GroupStats,
   SettlementResponse,
   GroupInsight,
-} from '@types/shared';
+} from '@app-types/shared';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 

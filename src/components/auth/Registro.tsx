@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import toast from 'react-hot-toast';
-import type { RegistroCredenciales } from '@types';
+import type { RegistroCredenciales } from '@app-types';
 import { Eye, EyeOff } from 'lucide-react';
 
 export default function Registro() {

@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { SharedService } from '@services/shared';
 import { useSharedExpenses, createBudgetNotification } from '@context/SharedExpensesContext';
 import { useAuth } from '@context/AuthContext';
-import type { SharedBudget, CreateSharedBudgetDto } from '@types/shared';
+import type { SharedBudget, CreateSharedBudgetDto } from '@app-types/shared';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 

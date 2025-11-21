@@ -14,7 +14,7 @@ import {
   agruparGastosPorMoneda,
 } from '@utils/calculations';
 import { formatearMoneda, formatearFecha } from '@utils/formatters';
-import { CATEGORIA_GENERAL } from '@types';
+import { CATEGORIA_GENERAL } from '@app-types';
 import {
   BarChart,
   Bar,

@@ -4,9 +4,9 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { SharedService } from '@services/shared';
-import type { GroupStats, GroupInsight, SharedBudget, SharedExpense } from '@types/shared';
+import type { GroupStats, GroupInsight, SharedBudget, SharedExpense } from '@app-types/shared';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { Lightbulb, TrendingUp, TrendingDown, Users, Receipt, PiggyBank } from 'lucide-react';
+import { Lightbulb, TrendingUp, Users, Receipt } from 'lucide-react';
 
 interface Props {
   groupId: string;
@@ -24,7 +24,6 @@ export default function SharedStatsTab({
   stats,
   budgets,
   expenses,
-  groupColor = '#6366f1',
   currencySymbol,
 }: Props) {
   const [insights, setInsights] = useState<GroupInsight[]>([]);

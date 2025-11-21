@@ -8,7 +8,7 @@ import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import { usePreferences } from '@context/PreferencesContext';
 import { useGastos } from '@hooks/useGastos';
-import { type GastoFormData, type CategoriaGasto, type MetodoPago, type Moneda } from '@types';
+import { type GastoFormData, type CategoriaGasto, type MetodoPago, type Moneda } from '@app-types';
 import { toast } from 'react-hot-toast';
 import { scanReceipt, validateImageFormat } from '@services/receipts';
 import { useVoiceInput } from '@hooks/useVoiceInput';

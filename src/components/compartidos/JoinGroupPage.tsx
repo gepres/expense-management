@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SharedService } from '@services/shared';
 import { useAuth } from '@context/AuthContext';
-import type { InvitePreview } from '@types/shared';
+import type { InvitePreview } from '@app-types/shared';
 import { Users, Calendar, UserPlus, AlertCircle } from 'lucide-react';
 import CustomLoader from '@components/common/CustomLoader';
 import toast from 'react-hot-toast';

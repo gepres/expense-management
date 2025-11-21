@@ -7,7 +7,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { SharedService } from '@services/shared';
-import type { SharedExpenseGroup, ActivityLog } from '@types/shared';
+import type { SharedExpenseGroup } from '@app-types/shared';
 import toast from 'react-hot-toast';
 
 // ============================================================================
