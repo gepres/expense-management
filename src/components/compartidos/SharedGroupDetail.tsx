@@ -160,7 +160,7 @@ export default function SharedGroupDetail() {
   return (
     <div className="max-w-2xl mx-auto pb-24">
       {/* Header */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur-lg z-10 -mx-4 px-4 py-3 border-b border-border">
+      <div className="sticky top-0 bg-background/95 backdrop-blur-lg z-10 -mx-4 px-4 pb-3 pt-0 border-b border-border">
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate('/compartidos')}
