@@ -10,7 +10,6 @@ import { useGastos } from '@hooks/useGastos';
 import { type GastoFormData, type CategoriaGasto, type MetodoPago, type Moneda } from '@types';
 import { toast } from 'react-hot-toast';
 import { scanReceipt, validateImageFormat } from '@services/receipts';
-import { obtenerTagsSugeridos, tieneTagsSugeridos } from '@utils/tagsSugeridos';
 import CustomLoader from '@components/common/CustomLoader';
 import { Camera, Upload, CircleDollarSign, Lightbulb, Check, Plus } from 'lucide-react';
 
@@ -53,9 +52,12 @@ export default function FormularioGasto() {
   const [escaneando, setEscaneando] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Tags sugeridos basados en la subcategoría
-  const tagsSugeridos = obtenerTagsSugeridos(formData.subcategoria);
-  const mostrarTagsSugeridos = tieneTagsSugeridos(formData.subcategoria) && tagsSugeridos.length > 0;
+  // Obtener sugerencias desde ConfigContext
+  const currentCategory = categories.find(cat => cat.id === formData.categoria);
+  // La subcategoría se guarda por nombre en el formulario
+  const currentSubcategory = currentCategory?.subcategorias?.find(sub => sub.nombre === formData.subcategoria || sub.id === formData.subcategoria);
+  const subcategorySuggestions = currentSubcategory?.suggestions_ideas || [];
+  const subcategoryName = currentSubcategory?.nombre || formData.subcategoria;
 
   // Cargar gasto si es edición
   useEffect(() => {
@@ -481,27 +483,39 @@ export default function FormularioGasto() {
               )}
             </div>
 
-            {/* 4. Sugerencias de Tags */}
-            {mostrarTagsSugeridos && (
-              <div className="bg-muted/30 border border-border rounded-lg p-3">
-                <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+            {/* 4. Sugerencias de Subcategoría */}
+            <div className="bg-muted/30 border border-border rounded-lg p-3">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
                   <Lightbulb className="h-4 w-4" />
-                  <span>Sugerencias para {formData.subcategoria}</span>
+                  <span>Sugerencias para {subcategoryName || 'descripción'}</span>
                 </p>
+                <Link
+                  to="/configuracion?tab=categorias"
+                  className="h-6 w-6 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center hover:bg-secondary/80 transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+              {subcategorySuggestions.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {tagsSugeridos.map((tag, index) => (
+                  {subcategorySuggestions.map((suggestion, index) => (
                     <button
                       key={index}
                       type="button"
-                      onClick={() => agregarTagSugerido(tag)}
+                      onClick={() => agregarTagSugerido(suggestion)}
                       className="px-3 py-1.5 text-xs font-medium rounded-full bg-background hover:bg-primary hover:text-primary-foreground border border-border transition-colors active:scale-95"
                     >
-                      {tag}
+                      {suggestion}
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-1">
+                  {formData.subcategoria ? 'No hay sugerencias configuradas' : 'Selecciona una subcategoría'}
+                </p>
+              )}
+            </div>
 
             {/* 5. Botones de Acción */}
             <div className="flex gap-3 pt-2">
@@ -981,27 +995,39 @@ export default function FormularioGasto() {
               />
               {errores.descripcion && <p className="mt-1 text-sm text-destructive">{errores.descripcion}</p>}
 
-              {/* Tags sugeridos */}
-              {mostrarTagsSugeridos && (
-                <div className="mt-3 bg-muted/30 border border-border rounded-lg p-3">
-                  <p className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+              {/* Sugerencias de subcategoría */}
+              <div className="mt-3 bg-muted/30 border border-border rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-foreground flex items-center gap-2">
                     <Lightbulb className="h-4 w-4" />
-                    <span>Sugerencias para {formData.subcategoria}</span>
+                    <span>Sugerencias para {subcategoryName || 'descripción'}</span>
                   </p>
+                  <Link
+                    to="/configuracion?tab=categorias"
+                    className="h-6 w-6 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center hover:bg-secondary/80 transition-colors"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Link>
+                </div>
+                {subcategorySuggestions.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {tagsSugeridos.map((tag, index) => (
+                    {subcategorySuggestions.map((suggestion, index) => (
                       <button
                         key={index}
                         type="button"
-                        onClick={() => agregarTagSugerido(tag)}
+                        onClick={() => agregarTagSugerido(suggestion)}
                         className="px-3 py-1 text-xs font-medium rounded-full bg-background hover:bg-primary hover:text-primary-foreground border border-border transition-colors"
                       >
-                        {tag}
+                        {suggestion}
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center py-1">
+                    {formData.subcategoria ? 'No hay sugerencias configuradas' : 'Selecciona una subcategoría'}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* 7. Tags opcionales */}

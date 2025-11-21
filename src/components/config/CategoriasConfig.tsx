@@ -24,6 +24,8 @@ export default function CategoriasConfig() {
   const [subId, setSubId] = useState('');
   const [subNombre, setSubNombre] = useState('');
   const [subDescripcion, setSubDescripcion] = useState('');
+  const [subSuggestionInput, setSubSuggestionInput] = useState('');
+  const [subSuggestions, setSubSuggestions] = useState<string[]>([]);
   const [editingSubcatId, setEditingSubcatId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,8 +65,10 @@ export default function CategoriasConfig() {
     setSubId('');
     setSubNombre('');
     setSubDescripcion('');
+    setSubSuggestionInput('');
+    setSubSuggestions([]);
     setEditingSubcatId(null);
-    
+
     setIsModalOpen(true);
     setShowEmojiPicker(false);
   };
@@ -146,24 +150,26 @@ export default function CategoriasConfig() {
     try {
       if (editingSubcatId) {
         // Update
-        await ConfigService.updateSubcategory(editingCategory.id, editingSubcatId, { 
+        await ConfigService.updateSubcategory(editingCategory.id, editingSubcatId, {
           nombre: subNombre,
-          descripcion: subDescripcion
+          descripcion: subDescripcion,
+          suggestions_ideas: subSuggestions.length > 0 ? subSuggestions : undefined
         });
-        
-        const updatedSubs = editingCategory.subcategorias?.map(sub => 
-          sub.id === editingSubcatId ? { ...sub, nombre: subNombre, descripcion: subDescripcion } : sub
+
+        const updatedSubs = editingCategory.subcategorias?.map(sub =>
+          sub.id === editingSubcatId ? { ...sub, nombre: subNombre, descripcion: subDescripcion, suggestions_ideas: subSuggestions } : sub
         );
         setEditingCategory({ ...editingCategory, subcategorias: updatedSubs });
         toast.success('Subcategoría actualizada');
       } else {
         // Create
-        const newSub = await ConfigService.createSubcategory(editingCategory.id, { 
+        const newSub = await ConfigService.createSubcategory(editingCategory.id, {
           id: subId,
           nombre: subNombre,
-          descripcion: subDescripcion
+          descripcion: subDescripcion,
+          suggestions_ideas: subSuggestions.length > 0 ? subSuggestions : undefined
         });
-        
+
         const updatedCategory = {
           ...editingCategory,
           subcategorias: [...(editingCategory.subcategorias || []), newSub]
@@ -171,13 +177,15 @@ export default function CategoriasConfig() {
         setEditingCategory(updatedCategory);
         toast.success('Subcategoría agregada');
       }
-      
+
       // Reset form
       setSubId('');
       setSubNombre('');
       setSubDescripcion('');
+      setSubSuggestionInput('');
+      setSubSuggestions([]);
       setEditingSubcatId(null);
-      
+
       loadCategories();
     } catch {
       toast.error('Error al guardar subcategoría');
@@ -189,6 +197,8 @@ export default function CategoriasConfig() {
     setSubId(sub.id);
     setSubNombre(sub.nombre);
     setSubDescripcion(sub.descripcion || '');
+    setSubSuggestions(sub.suggestions_ideas || []);
+    setSubSuggestionInput('');
   };
 
   const handleCancelEditSub = () => {
@@ -196,6 +206,28 @@ export default function CategoriasConfig() {
     setSubId('');
     setSubNombre('');
     setSubDescripcion('');
+    setSubSuggestionInput('');
+    setSubSuggestions([]);
+  };
+
+  // Handlers para sugerencias
+  const handleAddSuggestion = () => {
+    const trimmed = subSuggestionInput.trim();
+    if (trimmed && !subSuggestions.includes(trimmed)) {
+      setSubSuggestions([...subSuggestions, trimmed]);
+      setSubSuggestionInput('');
+    }
+  };
+
+  const handleRemoveSuggestion = (suggestion: string) => {
+    setSubSuggestions(subSuggestions.filter(s => s !== suggestion));
+  };
+
+  const handleSuggestionKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddSuggestion();
+    }
   };
 
   const handleDeleteSubcategory = async (subId: string) => {
@@ -421,6 +453,47 @@ export default function CategoriasConfig() {
                           placeholder="Descripción opcional..."
                           className="w-full px-3 py-2 rounded-md border border-border bg-background"
                         />
+                      </div>
+
+                      {/* Sugerencias */}
+                      <div className="col-span-1 md:col-span-2 space-y-2">
+                        <label className="text-xs font-medium text-muted-foreground">Sugerencias de descripción</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={subSuggestionInput}
+                            onChange={(e) => setSubSuggestionInput(e.target.value)}
+                            onKeyDown={handleSuggestionKeyDown}
+                            placeholder="Agregar sugerencia..."
+                            className="flex-1 px-3 py-2 rounded-md border border-border bg-background text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddSuggestion}
+                            className="px-3 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                        {subSuggestions.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {subSuggestions.map((suggestion, index) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-xs rounded-full"
+                              >
+                                {suggestion}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSuggestion(suggestion)}
+                                  className="hover:text-destructive"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex justify-end gap-2">

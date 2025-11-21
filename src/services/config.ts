@@ -6,12 +6,14 @@ export interface Subcategory {
   id: string;
   nombre: string;
   descripcion?: string;
+  suggestions_ideas?: string[];
 }
 
 export interface CreateSubcategoryDto {
   id: string;
   nombre: string;
   descripcion?: string;
+  suggestions_ideas?: string[];
 }
 
 export type UpdateSubcategoryDto = Partial<Omit<CreateSubcategoryDto, 'id'>>;
