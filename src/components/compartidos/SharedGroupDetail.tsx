@@ -17,6 +17,7 @@ import SharedExpensesTab from './SharedExpensesTab';
 import SharedMembersTab from './SharedMembersTab';
 import SharedStatsTab from './SharedStatsTab';
 import InviteLinkButton from './InviteLinkButton';
+import CreateSharedGroupModal from './CreateSharedGroupModal';
 
 type Tab = 'activity' | 'budgets' | 'expenses' | 'members' | 'stats';
 
@@ -35,8 +36,15 @@ export default function SharedGroupDetail() {
   const [activeTab, setActiveTab] = useState<Tab>('activity');
   const [showMenu, setShowMenu] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [openBudgetForm, setOpenBudgetForm] = useState(false);
   const [openExpenseForm, setOpenExpenseForm] = useState(false);
+
+  const handleGroupUpdated = (updatedGroup: SharedExpenseGroup) => {
+    setGroup(updatedGroup);
+    setShowEditModal(false);
+    toast.success('Grupo actualizado');
+  };
 
   const isCreator = group?.createdBy === usuario?.id;
 
@@ -210,7 +218,7 @@ export default function SharedGroupDetail() {
                       <button
                         onClick={() => {
                           setShowMenu(false);
-                          // TODO: Open edit modal
+                          setShowEditModal(true);
                         }}
                         className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors"
                       >
@@ -422,6 +430,16 @@ export default function SharedGroupDetail() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Edit Group Modal */}
+      {showEditModal && (
+        <CreateSharedGroupModal
+          initialData={group}
+          isEditing={true}
+          onClose={() => setShowEditModal(false)}
+          onSaved={handleGroupUpdated}
+        />
       )}
     </div>
   );

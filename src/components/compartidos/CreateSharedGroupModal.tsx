@@ -1,8 +1,8 @@
 /**
- * Modal para crear un nuevo grupo de gastos compartidos
+ * Modal para crear o editar un grupo de gastos compartidos
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SharedService } from '@services/shared';
 import { useConfig } from '@context/ConfigContext';
 import type { SharedExpenseGroup, CreateSharedGroupDto } from '@app-types/shared';
@@ -12,7 +12,9 @@ import EmojiPicker, { Theme } from 'emoji-picker-react';
 
 interface Props {
   onClose: () => void;
-  onCreated: (group: SharedExpenseGroup) => void;
+  onSaved: (group: SharedExpenseGroup) => void;
+  initialData?: SharedExpenseGroup;
+  isEditing?: boolean;
 }
 
 const PRESET_COLORS = [
@@ -30,7 +32,7 @@ const PRESET_COLORS = [
 
 const PRESET_ICONS = ['👥', '🎄', '✈️', '🏠', '🎉', '🍽️', '💒', '🎓', '⚽', '🎁'];
 
-export default function CreateSharedGroupModal({ onClose, onCreated }: Props) {
+export default function CreateSharedGroupModal({ onClose, onSaved, initialData, isEditing = false }: Props) {
   const { currencies } = useConfig();
 
   const [formData, setFormData] = useState<CreateSharedGroupDto>({
@@ -45,6 +47,19 @@ export default function CreateSharedGroupModal({ onClose, onCreated }: Props) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (initialData && isEditing) {
+      setFormData({
+        name: initialData.name,
+        description: initialData.description || '',
+        icon: initialData.icon || '👥',
+        color: initialData.color || '#6366f1',
+        targetAmount: initialData.targetAmount,
+        currency: initialData.currency,
+      });
+    }
+  }, [initialData, isEditing]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -55,14 +70,26 @@ export default function CreateSharedGroupModal({ onClose, onCreated }: Props) {
 
     setLoading(true);
     try {
-      const newGroup = await SharedService.createGroup({
-        ...formData,
-        targetAmount: formData.targetAmount || undefined,
-      });
-      onCreated(newGroup);
+      let savedGroup: SharedExpenseGroup;
+      
+      if (isEditing && initialData) {
+        savedGroup = await SharedService.updateGroup(initialData.id, {
+          ...formData,
+          targetAmount: formData.targetAmount || undefined,
+        });
+        toast.success('Grupo actualizado exitosamente');
+      } else {
+        savedGroup = await SharedService.createGroup({
+          ...formData,
+          targetAmount: formData.targetAmount || undefined,
+        });
+        toast.success('Grupo creado exitosamente');
+      }
+      
+      onSaved(savedGroup);
     } catch (error) {
-      console.error('Error creating group:', error);
-      toast.error('Error al crear el grupo');
+      console.error('Error saving group:', error);
+      toast.error(isEditing ? 'Error al actualizar el grupo' : 'Error al crear el grupo');
     } finally {
       setLoading(false);
     }
@@ -73,7 +100,7 @@ export default function CreateSharedGroupModal({ onClose, onCreated }: Props) {
       <div className="bg-card w-full max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl border border-border max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
         {/* Header */}
         <div className="sticky top-0 bg-card z-10 px-6 py-4 border-b border-border flex items-center justify-between">
-          <h2 className="text-xl font-bold">Nuevo Grupo</h2>
+          <h2 className="text-xl font-bold">{isEditing ? 'Editar Grupo' : 'Nuevo Grupo'}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-muted rounded-full transition-colors"
@@ -123,7 +150,7 @@ export default function CreateSharedGroupModal({ onClose, onCreated }: Props) {
                 placeholder="Nombre del grupo"
                 className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary font-medium"
                 maxLength={50}
-                autoFocus
+                autoFocus={!isEditing}
               />
             </div>
           </div>
@@ -213,6 +240,7 @@ export default function CreateSharedGroupModal({ onClose, onCreated }: Props) {
                 value={formData.currency}
                 onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value }))}
                 className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={isEditing} // Currency cannot be changed after creation to avoid issues
               >
                 {currencies.map((currency) => (
                   <option key={currency.id} value={currency.codigoISO}>
@@ -220,6 +248,11 @@ export default function CreateSharedGroupModal({ onClose, onCreated }: Props) {
                   </option>
                 ))}
               </select>
+              {isEditing && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  La moneda no se puede cambiar
+                </p>
+              )}
             </div>
           </div>
 
@@ -229,7 +262,7 @@ export default function CreateSharedGroupModal({ onClose, onCreated }: Props) {
             disabled={loading || !formData.name.trim()}
             className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
           >
-            {loading ? 'Creando...' : 'Crear Grupo'}
+            {loading ? (isEditing ? 'Guardando...' : 'Creando...') : (isEditing ? 'Guardar Cambios' : 'Crear Grupo')}
           </button>
         </form>
       </div>
