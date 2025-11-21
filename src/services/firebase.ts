@@ -49,7 +49,8 @@ import type {
 // Configuración de Firebase
 // ============================================================================
 
-const firebaseConfig = {
+// Validar que todas las variables de entorno estén presentes
+const requiredEnvVars = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -57,6 +58,37 @@ const firebaseConfig = {
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
+
+// Verificar variables faltantes
+const missingVars = Object.entries(requiredEnvVars)
+  .filter(([_, value]) => !value)
+  .map(([key]) => `VITE_FIREBASE_${key.replace(/([A-Z])/g, '_$1').toUpperCase()}`);
+
+if (missingVars.length > 0) {
+  console.error('❌ Variables de entorno de Firebase faltantes:', missingVars);
+  console.error('📝 Asegúrate de que las siguientes variables estén definidas:');
+  missingVars.forEach(varName => console.error(`   - ${varName}`));
+  throw new Error(
+    `Faltan variables de entorno de Firebase: ${missingVars.join(', ')}. ` +
+    'Verifica tu archivo .env o la configuración de Firebase Hosting.'
+  );
+}
+
+const firebaseConfig = {
+  apiKey: requiredEnvVars.apiKey,
+  authDomain: requiredEnvVars.authDomain,
+  projectId: requiredEnvVars.projectId,
+  storageBucket: requiredEnvVars.storageBucket,
+  messagingSenderId: requiredEnvVars.messagingSenderId,
+  appId: requiredEnvVars.appId,
+};
+
+// Log de configuración (sin exponer la API key completa)
+console.log('🔧 Inicializando Firebase con configuración:', {
+  projectId: firebaseConfig.projectId,
+  authDomain: firebaseConfig.authDomain,
+  apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 10)}...` : 'NO DEFINIDA',
+});
 
 // Inicializar Firebase
 let app: FirebaseApp;
@@ -69,8 +101,9 @@ try {
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
+  console.log('✅ Firebase inicializado correctamente');
 } catch (error) {
-  console.error('Error inicializando Firebase:', error);
+  console.error('❌ Error inicializando Firebase:', error);
   throw error;
 }
 
