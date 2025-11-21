@@ -8,7 +8,8 @@ import { SharedService } from '@services/shared';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import type { SharedExpenseGroup, SharedBudget, SharedExpense, GroupStats } from '@types/shared';
-import { ArrowLeft, MoreVertical, Plus, TrendingUp, TrendingDown, RefreshCw, Wallet, Receipt } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Plus, TrendingUp, TrendingDown, RefreshCw, Wallet, Receipt, FileJson, FileSpreadsheet } from 'lucide-react';
+
 import toast from 'react-hot-toast';
 import CustomLoader from '@components/common/CustomLoader';
 import SharedBudgetsTab from './SharedBudgetsTab';
@@ -133,6 +134,19 @@ export default function SharedGroupDetail() {
     }
   };
 
+  const handleExport = async (format: 'json' | 'excel') => {
+    if (!id) return;
+    try {
+      toast.loading(`Exportando ${format === 'json' ? 'JSON' : 'Excel'}...`, { id: 'export' });
+      await SharedService.exportGroup(id, format);
+      toast.success('Exportación completada', { id: 'export' });
+      setShowMenu(false);
+    } catch (error) {
+      console.error('Error exporting:', error);
+      toast.error('Error al exportar', { id: 'export' });
+    }
+  };
+
   if (loading || !group) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -189,9 +203,9 @@ export default function SharedGroupDetail() {
                           setShowMenu(false);
                           setShowInviteModal(true);
                         }}
-                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors"
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
                       >
-                        Invitar miembros
+                        <Plus className="h-4 w-4" /> Invitar miembros
                       </button>
                       <button
                         onClick={() => {
@@ -202,7 +216,24 @@ export default function SharedGroupDetail() {
                       >
                         Editar grupo
                       </button>
+
                       <hr className="my-1 border-border" />
+                      
+                      <button
+                        onClick={() => handleExport('json')}
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                      >
+                        <FileJson className="h-4 w-4" /> Exportar JSON
+                      </button>
+                      <button
+                        onClick={() => handleExport('excel')}
+                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted transition-colors flex items-center gap-2"
+                      >
+                        <FileSpreadsheet className="h-4 w-4" /> Exportar Excel
+                      </button>
+
+                      <hr className="my-1 border-border" />
+
                       <button
                         onClick={() => {
                           setShowMenu(false);

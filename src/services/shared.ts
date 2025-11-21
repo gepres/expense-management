@@ -280,4 +280,40 @@ export const SharedService = {
     if (!response.ok) throw new Error('Error fetching insights');
     return response.json();
   },
+
+  // ============================================================================
+  // EXPORT
+  // ============================================================================
+
+  async exportGroup(groupId: string, format: 'json' | 'excel'): Promise<void> {
+    const headers = await getHeaders();
+    const response = await fetch(`${API_URL}/shared-groups/${groupId}/export?format=${format}`, {
+      headers,
+    });
+
+    if (!response.ok) throw new Error('Error exporting group');
+
+    if (format === 'json') {
+      const data = await response.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `grupo_${groupId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } else {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `gastos_grupo_${groupId}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }
+  },
 };

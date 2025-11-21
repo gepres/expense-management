@@ -593,7 +593,7 @@ export default function FormularioGasto() {
                       key={shortcut.id}
                       type="button"
                       onClick={() => handleShortcutSelect(shortcut.id)}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors justify-center flex items-center gap-1.5 ${
                         combinacionSeleccionada === shortcut.id
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-background hover:bg-accent text-foreground border border-border'
