@@ -10,8 +10,10 @@ import { useGastos } from '@hooks/useGastos';
 import { type GastoFormData, type CategoriaGasto, type MetodoPago, type Moneda } from '@types';
 import { toast } from 'react-hot-toast';
 import { scanReceipt, validateImageFormat } from '@services/receipts';
+import { useVoiceInput } from '@hooks/useVoiceInput';
+import { VoiceService } from '@services/voice';
 import CustomLoader from '@components/common/CustomLoader';
-import { Camera, Upload, CircleDollarSign, Lightbulb, Check, Plus } from 'lucide-react';
+import { Camera, Upload, CircleDollarSign, Lightbulb, Check, Plus, Mic, MicOff } from 'lucide-react';
 
 export default function FormularioGasto() {
   const navigate = useNavigate();
@@ -51,6 +53,10 @@ export default function FormularioGasto() {
   // Estado para escaneo de recibos
   const [escaneando, setEscaneando] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Estado para entrada de voz
+  const { isListening, transcript, startListening, stopListening, resetTranscript, isSupported, error: voiceError } = useVoiceInput();
+  const [processingVoice, setProcessingVoice] = useState(false);
 
   // Obtener sugerencias desde ConfigContext
   const currentCategory = categories.find(cat => cat.id === formData.categoria);
@@ -237,6 +243,91 @@ export default function FormularioGasto() {
     }
   };
 
+  // Procesar entrada de voz cuando termine de hablar
+  useEffect(() => {
+    if (transcript && !isListening) {
+      handleVoiceInput(transcript);
+    }
+  }, [transcript, isListening]);
+
+  // Mostrar error de voz si existe
+  useEffect(() => {
+    if (voiceError) {
+      toast.error(voiceError);
+    }
+  }, [voiceError]);
+
+  // Handler para procesar entrada de voz
+  const handleVoiceInput = async (text: string) => {
+    setProcessingVoice(true);
+    try {
+      const expenseData = await VoiceService.processExpenseFromVoice(text);
+      
+      console.log('🎤 Datos recibidos de voz:', expenseData);
+      
+      // Autocompletar formulario si la confianza es alta
+      if (expenseData.confidence > 0.6) {
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0];
+        const formattedTime = today.toTimeString().slice(0, 5);
+
+        // Normalizar subcategoría (capitalizar primera letra)
+        let normalizedSubcategory = expenseData.subcategoria || '';
+        if (normalizedSubcategory) {
+          normalizedSubcategory = normalizedSubcategory.charAt(0).toUpperCase() + 
+                                  normalizedSubcategory.slice(1).toLowerCase();
+        }
+
+        // Validar y corregir fecha si es necesaria
+        let validDate = expenseData.fecha || formattedDate;
+        const dateObj = new Date(validDate);
+        const currentYear = today.getFullYear();
+        
+        // Si la fecha es del año pasado, usar fecha actual
+        if (dateObj.getFullYear() < currentYear) {
+          console.warn('⚠️ Fecha del año pasado detectada, usando fecha actual');
+          validDate = formattedDate;
+        }
+
+        const newFormData = {
+          ...formData,
+          monto: expenseData.monto.toString(),
+          moneda: expenseData.moneda,
+          categoria: expenseData.categoria as CategoriaGasto,
+          subcategoria: normalizedSubcategory,
+          descripcion: expenseData.descripcion,
+          metodoPago: (expenseData.metodoPago as MetodoPago) || formData.metodoPago,
+          fecha: validDate,
+          hora: formData.hora || formattedTime,
+        };
+
+        console.log('📝 Nuevo FormData después de voz:', newFormData);
+
+        setFormData(newFormData);
+        
+        const confidencePercent = Math.round(expenseData.confidence * 100);
+        toast.success(`Gasto detectado por voz (${confidencePercent}% confianza)`);
+      } else {
+        toast.error('No pude entender bien el gasto. Intenta de nuevo o completa manualmente.');
+      }
+    } catch (error: any) {
+      console.error('Error al procesar voz:', error);
+      toast.error(error.message || 'Error al procesar entrada de voz');
+    } finally {
+      setProcessingVoice(false);
+      resetTranscript();
+    }
+  };
+
+  // Handler para botón de voz
+  const handleVoiceButtonClick = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
   // Validar formulario
   const validarFormulario = (): boolean => {
     const nuevosErrores: Partial<Record<keyof GastoFormData, string>> = {};
@@ -326,10 +417,15 @@ export default function FormularioGasto() {
         gastoData.subcategoria = formData.subcategoria;
       }
 
+
       // Solo agregar tags si hay elementos
       if (tags.length > 0) {
         gastoData.tags = tags;
       }
+
+      // Log para debugging (especialmente útil con entrada de voz)
+      console.log('💾 Datos del gasto a guardar:', gastoData);
+      console.log('📋 FormData actual:', formData);
 
       if (esEdicion && id) {
         // Actualizar gasto existente
@@ -340,6 +436,7 @@ export default function FormularioGasto() {
         await crear(gastoData);
         toast.success('Gasto creado exitosamente');
       }
+
 
       navigate('/gastos');
     } catch (error) {
@@ -367,9 +464,68 @@ export default function FormularioGasto() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="bg-card border border-border rounded-lg shadow-sm p-4 md:p-6">
-        <h2 className="text-2xl font-bold text-foreground mb-4 md:mb-6">
-          {esEdicion ? 'Editar Gasto' : 'Nuevo Gasto'}
-        </h2>
+        <div className="flex items-center justify-between mb-4 md:mb-6">
+          <h2 className="text-2xl font-bold text-foreground">
+            {esEdicion ? 'Editar Gasto' : 'Nuevo Gasto'}
+          </h2>
+          
+          {/* Botón de Voz */}
+          {!esEdicion && isSupported && (
+            <button
+              type="button"
+              onClick={handleVoiceButtonClick}
+              disabled={processingVoice || cargando}
+              className={`p-3 rounded-full transition-all shadow-lg ${
+                isListening 
+                  ? 'bg-destructive text-destructive-foreground animate-pulse' 
+                  : 'bg-primary text-primary-foreground hover:scale-105'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              title={isListening ? 'Detener grabación' : 'Agregar gasto por voz'}
+            >
+              {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+            </button>
+          )}
+        </div>
+
+        {/* Modal de Escucha */}
+        {isListening && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div className="bg-card p-8 rounded-2xl text-center shadow-2xl border border-border max-w-sm mx-4">
+              <div className="relative mb-6">
+                <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse" />
+                <div className="relative bg-primary/10 p-6 rounded-full inline-block">
+                  <Mic className="h-16 w-16 text-primary animate-pulse" />
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-2">Escuchando...</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Describe tu gasto con naturalidad
+              </p>
+              <div className="bg-muted/50 rounded-lg p-3 mb-4">
+                <p className="text-xs text-muted-foreground mb-1">Ejemplos:</p>
+                <p className="text-xs text-foreground">"Gasté 50 soles en almuerzo"</p>
+                <p className="text-xs text-foreground">"Compré gasolina por 100 con yape"</p>
+              </div>
+              <button
+                onClick={stopListening}
+                className="w-full bg-destructive text-destructive-foreground px-6 py-3 rounded-lg font-semibold hover:bg-destructive/90 transition-colors"
+              >
+                Detener
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Procesamiento */}
+        {processingVoice && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
+            <div className="bg-card p-8 rounded-2xl text-center shadow-2xl border border-border">
+              <CustomLoader />
+              <p className="text-lg font-medium text-foreground mt-4">Procesando...</p>
+              <p className="text-sm text-muted-foreground mt-2">Analizando tu gasto con IA</p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* ========== VERSIÓN MOBILE/TABLET (md:hidden) ========== */}
