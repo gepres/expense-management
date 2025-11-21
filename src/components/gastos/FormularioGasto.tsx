@@ -646,6 +646,7 @@ export default function FormularioGasto() {
                   className="w-full bg-transparent text-6xl font-bold text-center focus:outline-none placeholder:text-muted-foreground/20 p-0 border-none"
                   autoFocus={!esEdicion}
                   min="0"
+                  step="0.01"
                 />
               </div>
               {errores.monto && (
