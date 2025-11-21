@@ -1,15 +1,17 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
-import { 
-  Settings, 
-  LogOut, 
-  Upload, 
-  Moon, 
-  Sun, 
-  X, 
+import {
+  Settings,
+  LogOut,
+  Upload,
+  Moon,
+  Sun,
+  X,
   User,
-  ChevronRight
+  ChevronRight,
+  Users,
+  Target
 } from 'lucide-react';
 
 interface MobileMenuProps {
@@ -77,6 +79,32 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
         {/* Menu Items */}
         <div className="space-y-2">
+          <button
+            onClick={() => handleNavigation('/compartidos')}
+            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-accent transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                <Users className="h-5 w-5" />
+              </div>
+              <span className="font-medium text-foreground">Gastos Compartidos</span>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
+
+          <button
+            onClick={() => handleNavigation('/presupuestos')}
+            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-accent transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+                <Target className="h-5 w-5" />
+              </div>
+              <span className="font-medium text-foreground">Presupuestos</span>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
+
           <button
             onClick={() => handleNavigation('/importar')}
             className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-accent transition-colors group"

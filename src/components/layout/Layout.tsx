@@ -7,17 +7,21 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
-import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home } from 'lucide-react';
+import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import BudgetMonitor from '../common/BudgetMonitor';
+import NotificationsPanel from '../compartidos/NotificationsPanel';
+import { useSharedExpenses } from '@context/SharedExpensesContext';
 
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { usuario, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { unreadCount } = useSharedExpenses();
   const [menuUsuarioAbierto, setMenuUsuarioAbierto] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const handleLogout = async (): Promise<void> => {
     try {
@@ -32,6 +36,7 @@ export default function Layout() {
   const desktopLinks = [
     { to: '/', label: 'Dashboard', icon: BarChart3 },
     { to: '/gastos', label: 'Gastos', icon: TrendingDown },
+    { to: '/compartidos', label: 'Compartidos', icon: Users },
     { to: '/presupuestos', label: 'Presupuestos', icon: Target },
     { to: '/importar', label: 'Importar', icon: Upload },
     { to: '/asistente', label: 'Asistente IA', icon: Bot },
@@ -40,7 +45,7 @@ export default function Layout() {
   const mobileLinks = [
     { to: '/', label: 'Inicio', icon: Home },
     { to: '/gastos', label: 'Gastos', icon: TrendingDown },
-    { to: '/presupuestos', label: 'Presupuestos', icon: Target },
+    { to: '/compartidos', label: 'Grupos', icon: Users },
     { to: '/asistente', label: 'IA', icon: Bot },
   ];
 
@@ -85,6 +90,20 @@ export default function Layout() {
 
             {/* Actions - Desktop */}
             <div className="flex items-center space-x-4">
+              {/* Notifications Bell */}
+              <button
+                onClick={() => setNotificationsOpen(true)}
+                className="p-2 rounded-md text-foreground hover:bg-accent transition-colors relative"
+                title="Notificaciones"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-md text-foreground hover:bg-accent transition-colors"
@@ -202,6 +221,9 @@ export default function Layout() {
 
       {/* Mobile Menu Sheet */}
       <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+
+      {/* Notifications Panel */}
+      <NotificationsPanel isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
     </div>
   );
 }

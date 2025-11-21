@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from '@context/AuthContext';
 import { ThemeProvider, useTheme } from '@context/ThemeContext';
 import { ConfigProvider } from '@context/ConfigContext';
 import { PreferencesProvider } from '@context/PreferencesContext';
+import { SharedExpensesProvider } from '@context/SharedExpensesContext';
 import ErrorAlert from '@components/common/ErrorAlert';
 import CustomLoader from '@components/common/CustomLoader';
 
@@ -23,6 +24,11 @@ const AsistenteIA = lazy(() => import('@components/asistente/AsistenteIA'));
 const Presupuestos = lazy(() => import('@components/presupuestos/ListaPresupuestos'));
 const Configuracion = lazy(() => import('@components/config/Configuracion'));
 const Layout = lazy(() => import('@components/layout/Layout'));
+
+// Gastos Compartidos
+const SharedGroupsList = lazy(() => import('@components/compartidos/SharedGroupsList'));
+const SharedGroupDetail = lazy(() => import('@components/compartidos/SharedGroupDetail'));
+const JoinGroupPage = lazy(() => import('@components/compartidos/JoinGroupPage'));
 
 // ============================================================================
 // Componente de carga
@@ -130,7 +136,14 @@ function AppRoutes() {
           <Route path="presupuestos" element={<Presupuestos />} />
           <Route path="asistente" element={<AsistenteIA />} />
           <Route path="configuracion" element={<Configuracion />} />
+
+          {/* Gastos Compartidos */}
+          <Route path="compartidos" element={<SharedGroupsList />} />
+          <Route path="compartidos/:id" element={<SharedGroupDetail />} />
         </Route>
+
+        {/* Ruta para unirse a grupo (semi-pública) */}
+        <Route path="/compartidos/unirse/:token" element={<JoinGroupPage />} />
 
         {/* Ruta 404 */}
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -199,8 +212,10 @@ function App() {
         <AuthProvider>
           <ConfigProvider>
             <PreferencesProvider>
-              <AppRoutes />
-              <ToasterWithTheme />
+              <SharedExpensesProvider>
+                <AppRoutes />
+                <ToasterWithTheme />
+              </SharedExpensesProvider>
             </PreferencesProvider>
           </ConfigProvider>
         </AuthProvider>
