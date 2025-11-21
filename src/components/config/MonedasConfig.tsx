@@ -167,7 +167,7 @@ export default function MonedasConfig() {
                 <div className="flex gap-4 items-center text-foreground">
                   <span className="font-bold w-16">{currency.codigoISO}</span>
                   <span className="text-muted-foreground w-8">{currency.simbolo}</span>
-                  <span>{currency.nombre}</span>
+                  <span className="flex-1 max-[600px]:w-14 max-[600px]:truncate">{currency.nombre}</span>
                 </div>
                 <div className="flex gap-2">
                   <button
