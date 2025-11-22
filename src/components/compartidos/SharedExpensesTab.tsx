@@ -33,7 +33,7 @@ export default function SharedExpensesTab({
   onFormClose,
 }: Props) {
   const { usuario } = useAuth();
-  const { categories, getSubcategories } = useConfig();
+  const { categories, getSubcategories, paymentMethods, getPaymentMethodLabel } = useConfig();
   const { addNotification } = useSharedExpenses();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -50,6 +50,7 @@ export default function SharedExpensesTab({
     description: '',
     category: '',
     subcategory: '',
+    paymentMethod: 'efectivo',
     date: new Date().toISOString().split('T')[0],
   });
   const [loading, setLoading] = useState(false);
@@ -60,6 +61,7 @@ export default function SharedExpensesTab({
       description: '',
       category: '',
       subcategory: '',
+      paymentMethod: 'efectivo',
       date: new Date().toISOString().split('T')[0],
     });
     setShowForm(false);
@@ -134,6 +136,7 @@ export default function SharedExpensesTab({
       description: expense.description,
       category: expense.category || '',
       subcategory: expense.subcategory || '',
+      paymentMethod: expense.paymentMethod || 'efectivo',
       date: expense.createdAt ? new Date(expense.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     });
     setEditingId(expense.id);
@@ -219,6 +222,18 @@ export default function SharedExpensesTab({
               <option value="">Subcategoría</option>
               {subcategories.map((sub) => (
                 <option key={sub} value={sub}>{sub}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex gap-2">
+            <select
+              value={formData.paymentMethod}
+              onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
+            >
+              {paymentMethods.map(method => (
+                <option key={method.id} value={method.id}>{method.nombre}</option>
               ))}
             </select>
           </div>
@@ -317,6 +332,7 @@ export default function SharedExpensesTab({
                   <p className="text-xs text-muted-foreground">
                     {displayName}
                     {expense.category && ` • ${expense.category}`}
+                    {expense.paymentMethod && ` • ${getPaymentMethodLabel(expense.paymentMethod)}`}
                     {' • '}
                     {new Date(expense.createdAt).toLocaleDateString('es-ES')}
                   </p>

@@ -30,6 +30,10 @@ const SharedGroupsList = lazy(() => import('@components/compartidos/SharedGroups
 const SharedGroupDetail = lazy(() => import('@components/compartidos/SharedGroupDetail'));
 const JoinGroupPage = lazy(() => import('@components/compartidos/JoinGroupPage'));
 
+// Shopping List
+const ShoppingListView = lazy(() => import('@/modules/shopping-list/ShoppingListView'));
+const ShoppingListDetail = lazy(() => import('@/modules/shopping-list/ShoppingListDetail'));
+
 // ============================================================================
 // Componente de carga
 // ============================================================================
@@ -140,6 +144,10 @@ function AppRoutes() {
           {/* Gastos Compartidos */}
           <Route path="compartidos" element={<SharedGroupsList />} />
           <Route path="compartidos/:id" element={<SharedGroupDetail />} />
+
+          {/* Shopping List */}
+          <Route path="compras" element={<ShoppingListView />} />
+          <Route path="compras/:id" element={<ShoppingListDetail />} />
         </Route>
 
         {/* Ruta para unirse a grupo (semi-pública) */}

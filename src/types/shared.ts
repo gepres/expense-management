@@ -63,6 +63,7 @@ export interface SharedBudget {
   userPhoto?: string;
   amount: number;
   description: string;
+  paymentMethod?: string;
   type: 'contribution' | 'budget';
   createdAt: Date;
   updatedAt: Date;
@@ -71,12 +72,14 @@ export interface SharedBudget {
 export interface CreateSharedBudgetDto {
   amount: number;
   description: string;
+  paymentMethod?: string;
   type: 'contribution' | 'budget';
 }
 
 export interface UpdateSharedBudgetDto {
   amount?: number;
   description?: string;
+  paymentMethod?: string;
 }
 
 // ============================================================================
@@ -93,6 +96,7 @@ export interface SharedExpense {
   description: string;
   category?: string;
   subcategory?: string;
+  paymentMethod?: string;
   receiptUrl?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -103,6 +107,7 @@ export interface CreateSharedExpenseDto {
   description: string;
   category?: string;
   subcategory?: string;
+  paymentMethod?: string;
   date?: string;
   receiptUrl?: string;
 }
@@ -112,6 +117,7 @@ export interface UpdateSharedExpenseDto {
   description?: string;
   category?: string;
   subcategory?: string;
+  paymentMethod?: string;
   receiptUrl?: string;
 }
 

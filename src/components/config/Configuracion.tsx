@@ -55,7 +55,7 @@ export default function Configuracion() {
                 onClick={() => setActiveTab(tab.id as Tab)}
                 className={`flex-1 min-w-fit md:min-w-[100px] rounded-lg py-2.5 text-sm font-medium leading-5 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 flex items-center justify-center gap-2 transition-all whitespace-nowrap px-4 ${
                   activeTab === tab.id
-                    ? 'bg-background text-foreground shadow'
+                    ? 'bg-background text-primary shadow ring-primary ring-opacity-60'
                     : 'text-muted-foreground hover:bg-background/[0.12] hover:text-foreground'
                 }`}
               >

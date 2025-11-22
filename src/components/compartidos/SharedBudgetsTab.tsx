@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { SharedService } from '@services/shared';
 import { useSharedExpenses, createBudgetNotification } from '@context/SharedExpensesContext';
 import { useAuth } from '@context/AuthContext';
+import { useConfig } from '@context/ConfigContext';
 import type { SharedBudget, CreateSharedBudgetDto } from '@app-types/shared';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -32,12 +33,14 @@ export default function SharedBudgetsTab({
   onFormClose,
 }: Props) {
   const { usuario } = useAuth();
+  const { paymentMethods, getPaymentMethodLabel } = useConfig();
   const { addNotification } = useSharedExpenses();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateSharedBudgetDto>({
     amount: 0,
     description: '',
+    paymentMethod: 'efectivo',
     type: 'contribution',
   });
   const [loading, setLoading] = useState(false);
@@ -51,7 +54,7 @@ export default function SharedBudgetsTab({
   }, [openForm, onFormClose]);
 
   const resetForm = () => {
-    setFormData({ amount: 0, description: '', type: 'contribution' });
+    setFormData({ amount: 0, description: '', paymentMethod: 'efectivo', type: 'contribution' });
     setShowForm(false);
     setEditingId(null);
   };
@@ -69,6 +72,7 @@ export default function SharedBudgetsTab({
         const updated = await SharedService.updateBudget(groupId, editingId, {
           amount: formData.amount,
           description: formData.description,
+          paymentMethod: formData.paymentMethod,
         });
         onBudgetsChange(budgets.map(b => b.id === editingId ? updated : b));
         toast.success('Aporte actualizado');
@@ -100,6 +104,7 @@ export default function SharedBudgetsTab({
     setFormData({
       amount: budget.amount,
       description: budget.description,
+      paymentMethod: budget.paymentMethod || 'efectivo',
       type: budget.type,
     });
     setEditingId(budget.id);
@@ -161,6 +166,18 @@ export default function SharedBudgetsTab({
             >
               <option value="contribution">Aporte</option>
               <option value="budget">Presupuesto</option>
+            </select>
+          </div>
+          
+          <div className="flex gap-2">
+            <select
+              value={formData.paymentMethod}
+              onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
+              className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm"
+            >
+              {paymentMethods.map(method => (
+                <option key={method.id} value={method.id}>{method.nombre}</option>
+              ))}
             </select>
           </div>
           <input
@@ -226,6 +243,7 @@ export default function SharedBudgetsTab({
                   <p className="font-medium text-sm truncate">{budget.description}</p>
                   <p className="text-xs text-muted-foreground">
                     {displayName} • {new Date(budget.createdAt).toLocaleDateString('es-ES')}
+                    {budget.paymentMethod && ` • ${getPaymentMethodLabel(budget.paymentMethod)}`}
                   </p>
                 </div>
 

@@ -2,6 +2,7 @@
  * Panel de notificaciones para gastos compartidos
  */
 
+import { useEffect, useRef } from 'react';
 import { useSharedExpenses } from '@context/SharedExpensesContext';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Check, Trash2, X } from 'lucide-react';
@@ -22,6 +23,18 @@ export default function NotificationsPanel({ isOpen, onClose }: Props) {
     markAllNotificationsRead,
     clearNotifications,
   } = useSharedExpenses();
+
+  const prevCountRef = useRef(notifications.length);
+
+  useEffect(() => {
+    if (notifications.length > prevCountRef.current) {
+      // Using a generic notification sound URL
+      const sound = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      sound.volume = 0.5;
+      sound.play().catch(e => console.log('Audio play failed', e));
+    }
+    prevCountRef.current = notifications.length;
+  }, [notifications]);
 
   if (!isOpen) return null;
 
