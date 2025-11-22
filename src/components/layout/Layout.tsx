@@ -7,7 +7,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
-import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell } from 'lucide-react';
+import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, ShoppingBag } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import BudgetMonitor from '../common/BudgetMonitor';
 import NotificationsPanel from '../compartidos/NotificationsPanel';
@@ -36,6 +36,7 @@ export default function Layout() {
   const desktopLinks = [
     { to: '/', label: 'Dashboard', icon: BarChart3 },
     { to: '/gastos', label: 'Gastos', icon: TrendingDown },
+    { to: '/compras', label: 'Compras', icon: ShoppingBag },
     { to: '/compartidos', label: 'Compartidos', icon: Users },
     { to: '/presupuestos', label: 'Presupuestos', icon: Target },
     { to: '/importar', label: 'Importar', icon: Upload },
@@ -45,7 +46,7 @@ export default function Layout() {
   const mobileLinks = [
     { to: '/', label: 'Inicio', icon: Home },
     { to: '/gastos', label: 'Gastos', icon: TrendingDown },
-    { to: '/compartidos', label: 'Grupos', icon: Users },
+    { to: '/compras', label: 'Compras', icon: ShoppingBag },
     { to: '/asistente', label: 'IA', icon: Bot },
   ];
 

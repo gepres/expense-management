@@ -17,48 +17,82 @@ export default function SmartNoteInput({ listId, onItemsAdded }: Props) {
 
     const lines = text.split('\n').filter(line => line.trim());
     let addedCount = 0;
+    const errors: string[] = [];
 
-    lines.forEach(line => {
-      // Regex strategies
-      // 1. "item - price x quantity" or "item - price"
-      // Matches: "oregano-2.20x2", "bolsas - 11.00", "atun - 4.50x2"
-      const matchPriceQty = line.match(/^(.*?)(?:[-–\s]+)(\d+(?:\.\d{1,2})?)(?:[xX*](\d+))?$/);
-      
-      // 2. "item, price x quantity"
-      // Matches: "atun, 4x2"
-      const matchComma = line.match(/^(.*?)(?:[,]+)(\d+(?:\.\d{1,2})?)(?:[xX*](\d+))?$/);
-
-      const match = matchPriceQty || matchComma;
-
-      if (match) {
-        const name = match[1].trim();
-        const price = parseFloat(match[2]);
-        const quantity = match[3] ? parseInt(match[3]) : 1;
+    lines.forEach((line, index) => {
+      try {
+        // Limpiar la línea de caracteres extraños
+        const cleanLine = line.trim().replace(/[–—]/g, '-');
         
-        // If quantity > 1, the price is usually unit price, so total amount = price * quantity
-        // OR the user might mean "total price x quantity"?
-        // Usually "2.20x2" means 2.20 each, 2 items.
-        // So amount = price * quantity.
-        
-        const amount = price * quantity;
+        // Regex mejorada que maneja:
+        // - Guiones con o sin espacios: "item - precio" o "item-precio"
+        // - Dos puntos pegados: "item -:precio"
+        // - Espacios antes de x: "precio x cantidad" o "preciox cantidad"
+        // - Comas: "item, precio"
+        // Captura: nombre (grupo 1), precio (grupo 2), cantidad opcional (grupo 3)
+        const match = cleanLine.match(
+          /^(.*?)[-–—:,\s]+(\d+(?:[.,]\d{1,2})?)\s*(?:[xX*×]\s*(\d+))?$/
+        );
 
-        ShoppingListService.addItem(listId, {
-          name,
-          amount,
-          quantity,
-          unitPrice: price,
-        });
-        addedCount++;
-      } else {
-        // Fallback: just add as name
-        ShoppingListService.addItem(listId, {
-          name: line.trim(),
-        });
-        addedCount++;
+        if (match) {
+          const name = match[1].trim();
+          // Normalizar precio: cambiar coma por punto si existe
+          const priceStr = match[2].replace(',', '.');
+          const price = parseFloat(priceStr);
+          const quantity = match[3] ? parseInt(match[3]) : 1;
+          
+          // Validaciones
+          if (!name) {
+            errors.push(`Línea ${index + 1}: nombre vacío`);
+            return;
+          }
+          
+          if (isNaN(price) || price <= 0) {
+            errors.push(`Línea ${index + 1}: precio inválido (${match[2]})`);
+            return;
+          }
+          
+          if (isNaN(quantity) || quantity <= 0) {
+            errors.push(`Línea ${index + 1}: cantidad inválida (${match[3]})`);
+            return;
+          }
+
+          const amount = price * quantity;
+
+          ShoppingListService.addItem(listId, {
+            name,
+            amount,
+            quantity,
+            unitPrice: price,
+          });
+          addedCount++;
+        } else {
+          // Fallback: verificar si tiene al menos un nombre válido
+          const fallbackName = cleanLine.trim();
+          if (fallbackName.length > 0) {
+            ShoppingListService.addItem(listId, {
+              name: fallbackName,
+            });
+            addedCount++;
+          }
+        }
+      } catch (error) {
+        errors.push(`Línea ${index + 1}: error al procesar`);
       }
     });
 
-    toast.success(`${addedCount} items agregados`);
+    // Mostrar resultados
+    if (addedCount > 0) {
+      toast.success(`${addedCount} item${addedCount !== 1 ? 's' : ''} agregado${addedCount !== 1 ? 's' : ''}`);
+    }
+    
+    if (errors.length > 0) {
+      toast.error(`${errors.length} error${errors.length !== 1 ? 'es' : ''} encontrado${errors.length !== 1 ? 's' : ''}`, {
+        duration: 4000,
+      });
+      console.error('Errores de parsing:', errors);
+    }
+
     setText('');
     setIsExpanded(false);
     onItemsAdded();
@@ -81,9 +115,10 @@ export default function SmartNoteInput({ listId, onItemsAdded }: Props) {
             onChange={(e) => setText(e.target.value)}
             placeholder={`Escribe tu lista aquí...
 Ejemplos:
-- bolsas - 11.00
-- oregano-2.20x2
-- atun, 4x2`}
+- Bolsas - 11.00
+- Orégano - 2.20
+- Atún - 3.90 x 2
+- Aceite, 6.80`}
             className="w-full h-32 p-3 rounded-lg bg-muted/50 border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
             autoFocus
           />
@@ -96,7 +131,7 @@ Ejemplos:
             </button>
             <button
               onClick={parseAndAdd}
-              className="px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium flex items-center gap-2"
+              className="px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-primary/90 transition-colors"
             >
               Procesar <ArrowRight className="h-4 w-4" />
             </button>

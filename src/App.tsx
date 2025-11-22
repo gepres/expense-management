@@ -171,20 +171,21 @@ function ToasterWithTheme() {
   const getToastColors = () => {
     if (toastInvertido) {
       // Inverted: light toasts in dark mode, dark toasts in light mode
+      // We use muted colors for the inverted effect while respecting the theme palette
       return temaEfectivo === 'dark' ? {
-        background: '#ffffff',
-        color: '#000000',
-        border: '1px solid #e5e7eb',
+        background: 'hsl(var(--muted))',
+        color: 'hsl(var(--muted-foreground))',
+        border: '1px solid hsl(var(--border))',
       } : {
-        background: '#1f2937',
-        color: '#ffffff',
-        border: '1px solid #374151',
+        background: 'hsl(var(--accent))',
+        color: 'hsl(var(--accent-foreground))',
+        border: '1px solid hsl(var(--border))',
       };
     } else {
       // Normal: follow theme
       return {
-        background: 'hsl(var(--background))',
-        color: 'hsl(var(--foreground))',
+        background: 'hsl(var(--card))',
+        color: 'hsl(var(--card-foreground))',
         border: '1px solid hsl(var(--border))',
       };
     }

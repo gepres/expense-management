@@ -171,6 +171,7 @@ export interface Gasto {
   metodoPago: MetodoPago;
   tags?: string[];
   recurrente?: boolean;
+  shoppingListId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -186,6 +187,7 @@ export interface GastoFirestore {
   metodoPago: MetodoPago;
   tags?: string[];
   recurrente?: boolean;
+  shoppingListId?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -201,6 +203,7 @@ export interface GastoFormData {
   metodoPago: MetodoPago;
   tags?: string[];
   recurrente?: boolean;
+  shoppingListId?: string;
 }
 
 export interface FiltrosGastos {

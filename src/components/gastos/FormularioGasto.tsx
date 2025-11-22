@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import { usePreferences } from '@context/PreferencesContext';
@@ -18,6 +18,7 @@ import { Camera, Upload, Lightbulb, Check, Plus, Mic, MicOff, ChevronDown, Chevr
 
 export default function FormularioGasto() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const { usuario } = useAuth();
   const { crear, actualizar, obtenerPorId } = useGastos();
@@ -68,7 +69,7 @@ export default function FormularioGasto() {
   const subcategorySuggestions = currentSubcategory?.suggestions_ideas || [];
   const subcategoryName = currentSubcategory?.nombre || formData.subcategoria;
 
-  // Cargar gasto si es edición
+  // Cargar gasto si es edición o si viene data por location.state
   useEffect(() => {
     if (id && esEdicion) {
       const cargarGasto = async () => {
@@ -95,6 +96,7 @@ export default function FormularioGasto() {
             metodoPago: gasto.metodoPago,
             tags: gasto.tags || [],
             recurrente: gasto.recurrente || false,
+            shoppingListId: gasto.shoppingListId,
           });
 
           setTagsInput(gasto.tags?.join(', ') || '');
@@ -108,9 +110,19 @@ export default function FormularioGasto() {
       };
 
       cargarGasto();
+    } else if (location.state?.initialData) {
+      // Pre-fill from location state (e.g. from Shopping List)
+      const initialData = location.state.initialData;
+      setFormData(prev => ({
+        ...prev,
+        ...initialData
+      }));
+      if (initialData.tags) {
+        setTagsInput(initialData.tags.join(', '));
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, location.state]);
 
   // Manejar cambios en inputs
   const handleChange = (
@@ -460,10 +472,14 @@ export default function FormularioGasto() {
         gastoData.subcategoria = formData.subcategoria;
       }
 
-
       // Solo agregar tags si hay elementos
       if (tags.length > 0) {
         gastoData.tags = tags;
+      }
+
+      // Agregar shoppingListId si existe
+      if (formData.shoppingListId) {
+        gastoData.shoppingListId = formData.shoppingListId;
       }
 
       // Log para debugging (especialmente útil con entrada de voz)
@@ -477,6 +493,26 @@ export default function FormularioGasto() {
       } else {
         // Crear nuevo gasto
         await crear(gastoData);
+        
+        // Si viene de una lista de compras, actualizar su estado localmente (simulación de backend)
+        if (formData.shoppingListId) {
+          try {
+             // Import dynamically to avoid circular dependencies if any, or just use localStorage directly
+             // Since ShoppingListService uses localStorage, we can update it here for the demo
+             const listKey = `shopping_lists`;
+             const storedLists = localStorage.getItem(listKey);
+             if (storedLists) {
+               const lists = JSON.parse(storedLists);
+               const updatedLists = lists.map((l: any) => 
+                 l.id === formData.shoppingListId ? { ...l, status: 'archived' } : l
+               );
+               localStorage.setItem(listKey, JSON.stringify(updatedLists));
+             }
+          } catch (err) {
+            console.error('Error updating local shopping list status', err);
+          }
+        }
+
         toast.success('Gasto creado exitosamente');
       }
 

@@ -62,17 +62,35 @@ export default function ShoppingListView() {
               <button
                 key={list.id}
                 onClick={() => navigate(`/compras/${list.id}`)}
-                className="w-full bg-card border border-border rounded-xl p-4 text-left hover:bg-accent/50 transition-colors group"
+                className={`w-full bg-card border border-border rounded-xl p-4 text-left hover:bg-accent/50 transition-colors group ${
+                  list.status === 'archived' ? 'opacity-85' : ''
+                }`}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                      list.status === 'archived' ? 'bg-muted text-muted-foreground' :
+                      list.status === 'completed' ? 'bg-green-500/10 text-green-600' :
+                      'bg-primary/10 text-primary'
+                    }`}>
                       <ShoppingCart className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold group-hover:text-primary transition-colors">
-                        {list.name}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold group-hover:text-primary transition-colors">
+                          {list.name}
+                        </h3>
+                        {list.status === 'completed' && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 font-medium">
+                            Completada
+                          </span>
+                        )}
+                        {list.status === 'archived' && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
+                            Archivada
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3" />
                         {format(new Date(list.createdAt), "d 'de' MMMM", { locale: es })}
@@ -89,7 +107,11 @@ export default function ShoppingListView() {
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-primary transition-all duration-500"
+                      className={`h-full transition-all duration-500 ${
+                        list.status === 'archived' ? 'bg-muted-foreground' :
+                        list.status === 'completed' ? 'bg-green-500' :
+                        'bg-primary'
+                      }`}
                       style={{ width: `${progress}%` }}
                     />
                   </div>
