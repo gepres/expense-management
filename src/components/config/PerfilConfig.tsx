@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { authService } from '@services/firebase';
-import { User, Mail, Camera, Save, Loader2 } from 'lucide-react';
+import { User, Mail, Camera, Save, Loader2, MessageCircle, CheckCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function PerfilConfig() {
@@ -35,6 +36,8 @@ export default function PerfilConfig() {
     }
   };
 
+  const isWhatsAppLinked = !!usuario?.whatsappPhone;
+
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8 text-center">
@@ -52,6 +55,28 @@ export default function PerfilConfig() {
         </div>
         <h2 className="mt-4 text-xl font-bold text-foreground">{usuario?.nombre}</h2>
         <p className="text-sm text-muted-foreground">{usuario?.email}</p>
+        
+        {/* WhatsApp Status Badge */}
+        <div className="mt-3 inline-flex items-center gap-2">
+          {isWhatsAppLinked ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-success/10 text-success text-xs font-medium">
+              <CheckCircle className="h-3.5 w-3.5" />
+              WhatsApp vinculado
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-xs font-medium">
+              <AlertCircle className="h-3.5 w-3.5" />
+              WhatsApp no vinculado
+            </div>
+          )}
+          <Link 
+            to="/configuracion?tab=whatsapp"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+          >
+            <MessageCircle className="h-3.5 w-3.5" />
+            Configurar
+          </Link>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

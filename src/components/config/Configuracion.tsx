@@ -7,11 +7,12 @@ import PerfilConfig from './PerfilConfig';
 import AparienciaConfig from './AparienciaConfig';
 import AtajosConfig from './AtajosConfig';
 import AvanzadaConfig from './AvanzadaConfig';
-import { Layers, CreditCard, Coins, User, Palette, Zap, Settings } from 'lucide-react';
+import WhatsAppConfig from './WhatsAppConfig';
+import { Layers, CreditCard, Coins, User, Palette, Zap, Settings, MessageCircle } from 'lucide-react';
 
-type Tab = 'perfil' | 'apariencia' | 'categorias' | 'metodos' | 'monedas' | 'atajos' | 'avanzada';
+type Tab = 'perfil' | 'apariencia' | 'categorias' | 'metodos' | 'monedas' | 'atajos' | 'whatsapp' | 'avanzada';
 
-const validTabs: Tab[] = ['perfil', 'apariencia', 'categorias', 'metodos', 'monedas', 'atajos', 'avanzada'];
+const validTabs: Tab[] = ['perfil', 'apariencia', 'categorias', 'metodos', 'monedas', 'atajos', 'whatsapp', 'avanzada'];
 
 export default function Configuracion() {
   const [searchParams] = useSearchParams();
@@ -32,6 +33,7 @@ export default function Configuracion() {
     { id: 'metodos', label: 'Métodos de Pago', icon: CreditCard },
     { id: 'monedas', label: 'Monedas', icon: Coins },
     { id: 'atajos', label: 'Atajos', icon: Zap },
+    { id: 'whatsapp', label: 'WhatsApp Bot', icon: MessageCircle },
     { id: 'avanzada', label: 'Avanzada', icon: Settings },
   ] as const;
 
@@ -72,6 +74,7 @@ export default function Configuracion() {
         {activeTab === 'metodos' && <MetodosPagoConfig />}
         {activeTab === 'monedas' && <MonedasConfig />}
         {activeTab === 'atajos' && <AtajosConfig />}
+        {activeTab === 'whatsapp' && <WhatsAppConfig />}
         {activeTab === 'avanzada' && <AvanzadaConfig />}
       </div>
     </div>

@@ -207,6 +207,8 @@ export const firestoreToUsuario = (
     email: data.email,
     nombre: data.nombre,
     photoURL: data.photoURL,
+    whatsappPhone: data.whatsappPhone,
+    whatsappLinkedAt: data.whatsappLinkedAt ? timestampToDate(data.whatsappLinkedAt) : undefined,
     createdAt: timestampToDate(data.createdAt),
     updatedAt: timestampToDate(data.updatedAt),
   };
@@ -447,6 +449,48 @@ export const authService = {
       if (datos.photoURL !== undefined) updateData.photoURL = datos.photoURL;
 
       await updateDoc(doc(db, 'users', user.uid), updateData);
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
+
+  /**
+   * Vincular número de WhatsApp
+   */
+  async vincularWhatsApp(phoneNumber: string): Promise<void> {
+    const user = auth.currentUser;
+    if (!user) throw new Error('No hay usuario autenticado');
+
+    // Validar formato de número (debe incluir código de país)
+    const phoneRegex = /^\+\d{1,3}\d{9,15}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      throw new Error('Formato de número inválido. Debe incluir código de país (ej: +51999999999)');
+    }
+
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        whatsappPhone: phoneNumber,
+        whatsappLinkedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
+
+  /**
+   * Desvincular número de WhatsApp
+   */
+  async desvincularWhatsApp(): Promise<void> {
+    const user = auth.currentUser;
+    if (!user) throw new Error('No hay usuario autenticado');
+
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        whatsappPhone: null,
+        whatsappLinkedAt: null,
+        updatedAt: serverTimestamp(),
+      });
     } catch (error) {
       throw new Error(obtenerMensajeError(error));
     }

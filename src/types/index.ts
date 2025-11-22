@@ -13,6 +13,8 @@ export interface Usuario {
   email: string;
   nombre: string;
   photoURL?: string;
+  whatsappPhone?: string;
+  whatsappLinkedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,6 +23,8 @@ export interface UsuarioFirestore {
   email: string;
   nombre: string;
   photoURL?: string;
+  whatsappPhone?: string;
+  whatsappLinkedAt?: Timestamp;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
