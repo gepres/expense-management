@@ -717,7 +717,6 @@ export default function FormularioGasto() {
               </div>
             </div>
 
-            {/* 3.1 Subcategoría (Horizontal Scroll Pills) - Solo si hay categoría seleccionada */}
             {formData.categoria && getSubcategories(formData.categoria).length > 0 && (
               <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
                 <label className="text-sm font-medium text-muted-foreground px-1">
@@ -727,16 +726,16 @@ export default function FormularioGasto() {
                   <div className="flex gap-2 w-max">
                     {getSubcategories(formData.categoria).map((sub) => (
                       <button
-                        key={sub}
+                        key={sub.id}
                         type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, subcategoria: sub }))}
+                        onClick={() => setFormData(prev => ({ ...prev, subcategoria: sub.id }))}
                         className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap border ${
-                          formData.subcategoria === sub
+                          formData.subcategoria === sub.id
                             ? 'bg-secondary text-secondary-foreground border-secondary shadow-sm'
                             : 'bg-card text-card-foreground border-border hover:bg-accent'
                         }`}
                       >
-                        {sub}
+                        {sub.nombre}
                       </button>
                     ))}
                   </div>
@@ -1073,8 +1072,8 @@ export default function FormularioGasto() {
                 >
                   <option value="">Sin subcategoría</option>
                   {getSubcategories(formData.categoria).map((sub) => (
-                    <option key={sub} value={sub}>
-                      {sub}
+                    <option key={sub.id} value={sub.id}>
+                      {sub.nombre}
                     </option>
                   ))}
                 </select>

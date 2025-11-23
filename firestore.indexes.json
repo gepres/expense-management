@@ -1,7 +1,7 @@
 {
   "indexes": [
     {
-      "collectionGroup": "gastos",
+      "collectionGroup": "expenses",
       "queryScope": "COLLECTION",
       "fields": [
         {

@@ -21,7 +21,8 @@ export default function ListaGastos() {
     paymentMethods,
     getCategoryLabel,
     getPaymentMethodLabel,
-    getSubcategories
+    getSubcategories,
+    getSubcategoryLabel
   } = useConfig();
 
   // Estados de filtros
@@ -129,7 +130,7 @@ export default function ListaGastos() {
       return Array.from(subcategoriasSet).sort();
     }
     // Si hay categoría seleccionada, mostrar sus subcategorías
-    return getSubcategories(categoriaFiltro);
+    return getSubcategories(categoriaFiltro).map(sub => sub.nombre);
   }, [categoriaFiltro, gastos, getSubcategories]);
 
   // Obtener icono de categoría
@@ -371,7 +372,7 @@ export default function ListaGastos() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {gasto.subcategoria || '-'}
+                      {getSubcategoryLabel(gasto.subcategoria || '', gasto.categoria)}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <div className="font-medium">{gasto.descripcion}</div>

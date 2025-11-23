@@ -310,7 +310,7 @@ export default function ShoppingListDetail() {
                   >
                     <option value="">Subcategoría</option>
                     {list.category && getSubcategories(categories.find(c => c.nombre === list.category)?.id || '').map(sub => (
-                      <option key={sub} value={sub}>{sub}</option>
+                      <option key={sub.id} value={sub.id}>{sub.nombre}</option>
                     ))}
                   </select>
                 </div>

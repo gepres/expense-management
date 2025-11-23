@@ -363,8 +363,8 @@ export default function AtajosConfig() {
                     >
                       <option value="">Sin definir</option>
                       {subcategorias.map((sub) => (
-                        <option key={sub} value={sub}>
-                          {sub}
+                        <option key={sub.id} value={sub.id}>
+                          {sub.nombre}
                         </option>
                       ))}
                     </select>

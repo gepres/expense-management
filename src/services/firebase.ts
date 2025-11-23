@@ -512,7 +512,7 @@ export const gastosService = {
       updatedAt: serverTimestamp() as Timestamp,
     };
 
-    const docRef = await addDoc(collection(db, 'gastos'), firestoreData);
+    const docRef = await addDoc(collection(db, 'expenses'), firestoreData);
     const docSnap = await getDoc(docRef);
 
     return firestoreToGasto(docRef.id, docSnap.data() as GastoFirestore);
@@ -522,7 +522,7 @@ export const gastosService = {
    * Obtener un gasto por ID
    */
   async obtenerPorId(id: string): Promise<Gasto | null> {
-    const docSnap = await getDoc(doc(db, 'gastos', id));
+    const docSnap = await getDoc(doc(db, 'expenses', id));
     if (!docSnap.exists()) return null;
 
     return firestoreToGasto(docSnap.id, docSnap.data() as GastoFirestore);
@@ -533,7 +533,7 @@ export const gastosService = {
    */
   async obtenerPorUsuario(userId: string, constraints: QueryConstraint[] = []): Promise<Gasto[]> {
     const gastosQuery = query(
-      collection(db, 'gastos'),
+      collection(db, 'expenses'),
       where('userId', '==', userId),
       orderBy('fecha', 'desc'),
       ...constraints
@@ -554,14 +554,14 @@ export const gastosService = {
       updatedAt: serverTimestamp(),
     };
 
-    await updateDoc(doc(db, 'gastos', id), firestoreData);
+    await updateDoc(doc(db, 'expenses', id), firestoreData);
   },
 
   /**
    * Eliminar un gasto
    */
   async eliminar(id: string): Promise<void> {
-    await deleteDoc(doc(db, 'gastos', id));
+    await deleteDoc(doc(db, 'expenses', id));
   },
 
   /**
@@ -573,7 +573,7 @@ export const gastosService = {
     fechaFin: Date
   ): Promise<Gasto[]> {
     const gastosQuery = query(
-      collection(db, 'gastos'),
+      collection(db, 'expenses'),
       where('userId', '==', userId),
       where('fecha', '>=', dateToTimestamp(fechaInicio)),
       where('fecha', '<=', dateToTimestamp(fechaFin)),

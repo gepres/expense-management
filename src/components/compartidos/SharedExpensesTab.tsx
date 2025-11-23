@@ -221,7 +221,7 @@ export default function SharedExpensesTab({
             >
               <option value="">Subcategoría</option>
               {subcategories.map((sub) => (
-                <option key={sub} value={sub}>{sub}</option>
+                <option key={sub.id} value={sub.nombre}>{sub.nombre}</option>
               ))}
             </select>
           </div>

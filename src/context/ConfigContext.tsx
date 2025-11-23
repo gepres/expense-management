@@ -33,10 +33,11 @@ interface ConfigContextType {
   getCategoryLabel: (id: string) => string;
   getCategoryColor: (id: string) => string;
   getCategoryIcon: (id: string) => string;
-  getSubcategories: (categoryId: string) => string[];
+  getSubcategories: (categoryId: string) => Array<{ id: string; nombre: string }>;
   getPaymentMethodLabel: (id: string) => string;
   getCurrencySymbol: (code: string) => string;
   getCurrencyLabel: (code: string) => string;
+  getSubcategoryLabel: (id: string, categoryId: string) => string;
 
   // Acciones
   reloadCategories: () => Promise<void>;
@@ -221,9 +222,14 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     return category?.icono || 'Package';
   }, [categories]);
 
-  const getSubcategories = useCallback((categoryId: string): string[] => {
+  const getSubcategories = useCallback((categoryId: string): Array<{ id: string; nombre: string }> => {
     const category = categories.find(c => c.id === categoryId);
-    return category?.subcategorias?.map(s => s.nombre) || [];
+    return category?.subcategorias?.map(s => ({ id: s.id, nombre: s.nombre })) || [];
+  }, [categories]);
+
+  const getSubcategoryLabel = useCallback((subcategoryId: string, categoryId: string): string => {
+    const category = categories.find(c => c.id === categoryId);
+    return category?.subcategorias?.find(s => s.id === subcategoryId)?.nombre || subcategoryId;
   }, [categories]);
 
   const getPaymentMethodLabel = useCallback((id: string): string => {
@@ -264,6 +270,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     reloadCurrencies,
     reloadShortcuts,
     reloadAll,
+    getSubcategoryLabel,
   };
 
   return (
