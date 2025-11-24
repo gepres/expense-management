@@ -2,13 +2,15 @@
  * Detalle de Grupo de Gastos Compartidos - Estilo iOS
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { collection, doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@services/firebase';
 import { SharedService } from '@services/shared';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
-import type { SharedExpenseGroup, SharedBudget, SharedExpense, GroupStats } from '@app-types/shared';
-import { ArrowLeft, MoreVertical, Plus, TrendingUp, TrendingDown, RefreshCw, Wallet, Receipt, FileJson, FileSpreadsheet } from 'lucide-react';
+import type { SharedExpenseGroup, SharedBudget, SharedExpense, GroupStats, SharedMember } from '@app-types/shared';
+import { ArrowLeft, MoreVertical, Plus, TrendingUp, TrendingDown, RefreshCw, Wallet, Receipt, FileJson, FileSpreadsheet, Wifi } from 'lucide-react';
 
 import toast from 'react-hot-toast';
 import CustomLoader from '@components/common/CustomLoader';
@@ -40,6 +42,14 @@ export default function SharedGroupDetail() {
   const [openBudgetForm, setOpenBudgetForm] = useState(false);
   const [openExpenseForm, setOpenExpenseForm] = useState(false);
 
+  // Refs para detectar cambios y mostrar notificaciones
+  const isInitialLoadExpenses = useRef(true);
+  const isInitialLoadBudgets = useRef(true);
+  const isInitialLoadMembers = useRef(true);
+  const previousExpensesCount = useRef(0);
+  const previousBudgetsCount = useRef(0);
+  const previousMembersCount = useRef(0);
+
   const handleGroupUpdated = (updatedGroup: SharedExpenseGroup) => {
     setGroup(updatedGroup);
     setShowEditModal(false);
@@ -54,11 +64,213 @@ export default function SharedGroupDetail() {
   const remaining = totalBudget - totalSpent;
   const percentUsed = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
 
+  // Cargar datos iniciales del grupo y budgets desde API
   useEffect(() => {
     if (id) {
       loadGroupData();
     }
   }, [id]);
+
+  // Real-time listener para EXPENSES desde Firestore
+  useEffect(() => {
+    if (!id) return;
+
+    console.log('🔥 Iniciando listener real-time para expenses');
+    const expensesRef = collection(db, 'shared_groups', id, 'expenses');
+
+    const unsubscribe = onSnapshot(
+      expensesRef,
+      (snapshot) => {
+        const expensesData: SharedExpense[] = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            groupId: id,
+            odId: data.odId || '',
+            userName: data.userName || data.name || data.displayName || '',
+            userPhoto: data.userPhoto || data.photoURL || '',
+            amount: data.amount || 0,
+            description: data.description || '',
+            category: data.category || '',
+            subcategory: data.subcategory || '',
+            paymentMethod: data.paymentMethod || '',
+            receiptUrl: data.receiptUrl || '',
+            createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt) || new Date(),
+            updatedAt: data.updatedAt?.toDate?.() || new Date(data.updatedAt) || new Date(),
+          };
+        });
+
+        // Ordenar por fecha descendente
+        expensesData.sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        // Mostrar notificación si hay nuevos gastos (no en carga inicial)
+        if (!isInitialLoadExpenses.current && expensesData.length > previousExpensesCount.current) {
+          const newExpense = expensesData[0];
+          // Solo mostrar si no fue creado por el usuario actual
+          if (newExpense.odId !== usuario?.id) {
+            const userName = newExpense.userName || 'Alguien';
+            const amount = newExpense.amount.toLocaleString();
+            toast.success(
+              `${userName} agregó un gasto de ${getCurrencySymbol(group?.currency || 'PEN')} ${amount}`,
+              {
+                icon: '🧾',
+                duration: 5000,
+              }
+            );
+          }
+        }
+
+        previousExpensesCount.current = expensesData.length;
+        isInitialLoadExpenses.current = false;
+
+        console.log('🔥 Expenses actualizados:', expensesData.length);
+        setExpenses(expensesData);
+      },
+      (error) => {
+        console.error('❌ Error en listener de expenses:', error);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      isInitialLoadExpenses.current = true;
+    };
+  }, [id, usuario?.id]);
+
+  // Real-time listener para BUDGETS desde Firestore
+  useEffect(() => {
+    if (!id) return;
+
+    console.log('🔥 Iniciando listener real-time para budgets');
+    const budgetsRef = collection(db, 'shared_groups', id, 'budgets');
+
+    const unsubscribe = onSnapshot(
+      budgetsRef,
+      (snapshot) => {
+        const budgetsData: SharedBudget[] = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            groupId: id,
+            odId: data.odId || '',
+            userName: data.userName || data.name || data.displayName || '',
+            userPhoto: data.userPhoto || data.photoURL || '',
+            amount: data.amount || 0,
+            description: data.description || '',
+            type: data.type || 'contribution',
+            createdAt: data.createdAt?.toDate?.() || new Date(data.createdAt) || new Date(),
+            updatedAt: data.updatedAt?.toDate?.() || new Date(data.updatedAt) || new Date(),
+          };
+        });
+
+        // Ordenar por fecha descendente
+        budgetsData.sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        // Mostrar notificación si hay nuevos aportes (no en carga inicial)
+        if (!isInitialLoadBudgets.current && budgetsData.length > previousBudgetsCount.current) {
+          const newBudget = budgetsData[0];
+          // Solo mostrar si no fue creado por el usuario actual
+          if (newBudget.odId !== usuario?.id) {
+            const userName = newBudget.userName || 'Alguien';
+            const amount = newBudget.amount.toLocaleString();
+            toast.success(
+              `${userName} agregó un aporte de ${getCurrencySymbol(group?.currency || 'PEN')} ${amount}`,
+              {
+                icon: '💰',
+                duration: 5000,
+              }
+            );
+          }
+        }
+
+        previousBudgetsCount.current = budgetsData.length;
+        isInitialLoadBudgets.current = false;
+
+        console.log('🔥 Budgets actualizados:', budgetsData.length);
+        setBudgets(budgetsData);
+      },
+      (error) => {
+        console.error('❌ Error en listener de budgets:', error);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      isInitialLoadBudgets.current = true;
+    };
+  }, [id, usuario?.id]);
+
+  // Real-time listener para MEMBERS desde Firestore (documento del grupo)
+  useEffect(() => {
+    if (!id) return;
+
+    console.log('🔥 Iniciando listener real-time para members del grupo');
+    const groupRef = doc(db, 'shared_groups', id);
+
+    const unsubscribe = onSnapshot(
+      groupRef,
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          console.warn('⚠️ El documento del grupo no existe');
+          return;
+        }
+
+        const data = snapshot.data();
+        const membersData = data.members || [];
+
+        // Convertir members a SharedMember[]
+        const formattedMembers: SharedMember[] = membersData.map((member: any) => ({
+          odId: member.odId || member.id || '',
+          email: member.email || '',
+          name: member.name || member.userName || member.displayName || 'Usuario',
+          photoURL: member.photoURL || member.photo || member.userPhoto || '',
+          role: member.role || 'member',
+          joinedAt: member.joinedAt?.toDate?.() || new Date(member.joinedAt) || new Date(),
+        }));
+
+        // Mostrar notificación si hay nuevos miembros (no en carga inicial)
+        if (!isInitialLoadMembers.current && formattedMembers.length > previousMembersCount.current) {
+          // Encontrar el nuevo miembro (el último en unirse)
+          const sortedMembers = [...formattedMembers].sort((a, b) =>
+            new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime()
+          );
+          const newMember = sortedMembers[0];
+
+          // Solo mostrar si no es el usuario actual
+          if (newMember.odId !== usuario?.id) {
+            const memberName = newMember.name || 'Alguien';
+            toast.success(
+              `${memberName} se unió al grupo`,
+              {
+                icon: '👋',
+                duration: 5000,
+              }
+            );
+          }
+        }
+
+        previousMembersCount.current = formattedMembers.length;
+        isInitialLoadMembers.current = false;
+
+        console.log('🔥 Members actualizados:', formattedMembers.length);
+
+        // Actualizar el grupo con los nuevos miembros
+        setGroup(prev => prev ? { ...prev, members: formattedMembers } : null);
+      },
+      (error) => {
+        console.error('❌ Error en listener de members:', error);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      isInitialLoadMembers.current = true;
+    };
+  }, [id, usuario?.id]);
 
   const loadGroupData = async (isRefresh = false) => {
     if (!id) return;
@@ -73,19 +285,13 @@ export default function SharedGroupDetail() {
       const groupData = await SharedService.getGroup(id);
       setGroup(groupData);
 
-      // Intentar cargar datos adicionales, pero no fallar si no existen
+      // Cargar solo stats desde API
+      // NOTA: budgets y expenses se cargan desde Firestore real-time
       try {
-        const [budgetsData, expensesData, statsData] = await Promise.all([
-          SharedService.getBudgets(id).catch(() => []),
-          SharedService.getExpenses(id).catch(() => []),
-          SharedService.getStats(id).catch(() => null),
-        ]);
-
-        setBudgets(budgetsData || []);
-        setExpenses(expensesData || []);
+        const statsData = await SharedService.getStats(id).catch(() => null);
         setStats(statsData);
       } catch (err) {
-        console.warn('Error loading additional data:', err);
+        console.warn('Error loading stats:', err);
       }
 
       if (isRefresh) {

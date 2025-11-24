@@ -345,7 +345,7 @@ export default function SharedExpensesTab({
 
                 {/* Actions */}
                 {isOwner && (
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 group-hover:opacity-85 transition-opacity">
                     <button
                       onClick={() => handleEdit(expense)}
                       className="p-1.5 hover:bg-muted rounded-lg transition-colors"
