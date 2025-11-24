@@ -233,6 +233,14 @@ export const firestoreToGasto = (
     metodoPago: data.metodoPago,
     tags: data.tags,
     recurrente: data.recurrente,
+    shoppingListId: data.shoppingListId,
+    // Campos de información tributaria
+    voucherType: data.voucherType,
+    voucherNumber: data.voucherNumber,
+    ruc: data.ruc,
+    igv: data.igv,
+    subtotal: data.subtotal,
+    reimbursementStatus: data.reimbursementStatus,
     createdAt: timestampToDate(data.createdAt),
     updatedAt: timestampToDate(data.updatedAt),
   };
@@ -261,6 +269,36 @@ export const gastoToFirestore = (gasto: Partial<Gasto>): Partial<GastoFirestore>
   // Solo agregar tags si existe y tiene elementos
   if (gasto.tags && gasto.tags.length > 0) {
     firestoreData.tags = gasto.tags;
+  }
+
+  // Solo agregar shoppingListId si existe
+  if (gasto.shoppingListId) {
+    firestoreData.shoppingListId = gasto.shoppingListId;
+  }
+
+  // Campos de información tributaria - solo agregar si existen
+  if (gasto.voucherType) {
+    firestoreData.voucherType = gasto.voucherType;
+  }
+
+  if (gasto.voucherNumber) {
+    firestoreData.voucherNumber = gasto.voucherNumber;
+  }
+
+  if (gasto.ruc) {
+    firestoreData.ruc = gasto.ruc;
+  }
+
+  if (gasto.igv !== undefined && gasto.igv !== null) {
+    firestoreData.igv = gasto.igv;
+  }
+
+  if (gasto.subtotal !== undefined && gasto.subtotal !== null) {
+    firestoreData.subtotal = gasto.subtotal;
+  }
+
+  if (gasto.reimbursementStatus) {
+    firestoreData.reimbursementStatus = gasto.reimbursementStatus;
   }
 
   if (gasto.fecha) {

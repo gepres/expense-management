@@ -172,6 +172,13 @@ export interface Gasto {
   tags?: string[];
   recurrente?: boolean;
   shoppingListId?: string;
+  // Campos de información tributaria
+  voucherType?: VoucherType;
+  voucherNumber?: string;
+  ruc?: string;
+  igv?: number;
+  subtotal?: number;
+  reimbursementStatus?: ReimbursementStatus;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -188,9 +195,23 @@ export interface GastoFirestore {
   tags?: string[];
   recurrente?: boolean;
   shoppingListId?: string;
+  // Campos de información tributaria
+  voucherType?: VoucherType;
+  voucherNumber?: string;
+  ruc?: string;
+  igv?: number;
+  subtotal?: number;
+  reimbursementStatus?: ReimbursementStatus;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+// Tipos para información tributaria
+export const VOUCHER_TYPES = ['boleta', 'factura', 'recibo', 'ticket', 'nota-debito', 'nota-credito'] as const;
+export type VoucherType = (typeof VOUCHER_TYPES)[number];
+
+export const REIMBURSEMENT_STATUSES = ['pending', 'approved', 'rejected', 'paid'] as const;
+export type ReimbursementStatus = (typeof REIMBURSEMENT_STATUSES)[number];
 
 export interface GastoFormData {
   fecha: string;
@@ -204,6 +225,13 @@ export interface GastoFormData {
   tags?: string[];
   recurrente?: boolean;
   shoppingListId?: string;
+  // Campos de información tributaria
+  voucherType: VoucherType;
+  voucherNumber?: string;
+  ruc?: string;
+  igv?: string;
+  subtotal?: string;
+  reimbursementStatus: ReimbursementStatus;
 }
 
 export interface FiltrosGastos {

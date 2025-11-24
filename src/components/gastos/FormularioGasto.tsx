@@ -14,7 +14,7 @@ import { scanReceipt, validateImageFormat } from '@services/receipts';
 import { useVoiceInput } from '@hooks/useVoiceInput';
 import { VoiceService } from '@services/voice';
 import CustomLoader from '@components/common/CustomLoader';
-import { Camera, Upload, Lightbulb, Check, Plus, Mic, MicOff, ChevronDown, ChevronUp, Calendar, Clock, CreditCard, Repeat, AlignLeft, CircleDollarSign, Zap } from 'lucide-react';
+import { Camera, Upload, Lightbulb, Check, Plus, Mic, MicOff, ChevronDown, ChevronUp, Calendar, Clock, CreditCard, Repeat, AlignLeft, CircleDollarSign, Zap, Receipt, Tag, Coins, FileText, Hash, RefreshCw, Building2, Calculator, Percent } from 'lucide-react';
 
 export default function FormularioGasto() {
   const navigate = useNavigate();
@@ -46,6 +46,13 @@ export default function FormularioGasto() {
     metodoPago: 'efectivo',
     tags: [],
     recurrente: false,
+    // Nuevos campos
+    voucherType: 'boleta',
+    voucherNumber: '',
+    ruc: '',
+    igv: '',
+    subtotal: '',
+    reimbursementStatus: 'pending',
   });
 
   const [errores, setErrores] = useState<Partial<Record<keyof GastoFormData, string>>>({});
@@ -84,7 +91,15 @@ export default function FormularioGasto() {
           }
 
           // Convertir gasto a formato del formulario
-          const fechaGasto = new Date(gasto.fecha);
+          const fechaGasto = gasto.fecha instanceof Date ? gasto.fecha : new Date(gasto.fecha);
+
+          // Validar que la fecha sea válida
+          if (isNaN(fechaGasto.getTime())) {
+            toast.error('Fecha del gasto inválida');
+            navigate('/gastos');
+            return;
+          }
+
           setFormData({
             fecha: fechaGasto.toISOString().split('T')[0],
             hora: fechaGasto.toTimeString().slice(0, 5),
@@ -97,6 +112,13 @@ export default function FormularioGasto() {
             tags: gasto.tags || [],
             recurrente: gasto.recurrente || false,
             shoppingListId: gasto.shoppingListId,
+            // Nuevos campos
+            voucherType: gasto.voucherType || 'boleta',
+            voucherNumber: gasto.voucherNumber || '',
+            ruc: gasto.ruc || '',
+            igv: gasto.igv?.toString() || '',
+            subtotal: gasto.subtotal?.toString() || '',
+            reimbursementStatus: gasto.reimbursementStatus || 'pending',
           });
 
           setTagsInput(gasto.tags?.join(', ') || '');
@@ -142,6 +164,40 @@ export default function FormularioGasto() {
         return { ...prev, [name]: value };
       });
     }
+
+    // Auto-calculo de IGV y Subtotal si cambia el monto y es factura
+    if (name === 'monto' && formData.voucherType === 'factura') {
+      const amount = parseFloat(value);
+      if (!isNaN(amount)) {
+        const subtotal = (amount / 1.18).toFixed(2);
+        const igv = (amount - parseFloat(subtotal)).toFixed(2);
+        setFormData(prev => ({ ...prev, subtotal, igv }));
+      } else {
+        setFormData(prev => ({ ...prev, subtotal: '', igv: '' }));
+      }
+    }
+  };
+
+  // Manejar cambio de tipo de comprobante
+  const handleVoucherTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    const type = value as any;
+    
+    setFormData(prev => {
+      const newData = { ...prev, voucherType: type };
+      
+      // Si cambia a factura y hay monto, recalcular
+      if (type === 'factura' && prev.monto) {
+        const amount = parseFloat(prev.monto);
+        if (!isNaN(amount)) {
+          const subtotal = (amount / 1.18).toFixed(2);
+          const igv = (amount - parseFloat(subtotal)).toFixed(2);
+          newData.subtotal = subtotal;
+          newData.igv = igv;
+        }
+      }
+      return newData;
+    });
 
     // Limpiar error del campo
     if (errores[name as keyof GastoFormData]) {
@@ -482,6 +538,31 @@ export default function FormularioGasto() {
         gastoData.shoppingListId = formData.shoppingListId;
       }
 
+      // Agregar campos de información tributaria si existen
+      if (formData.voucherType) {
+        gastoData.voucherType = formData.voucherType;
+      }
+
+      if (formData.voucherNumber && formData.voucherNumber.trim()) {
+        gastoData.voucherNumber = formData.voucherNumber.trim();
+      }
+
+      if (formData.ruc && formData.ruc.trim()) {
+        gastoData.ruc = formData.ruc.trim();
+      }
+
+      if (formData.igv && formData.igv.trim()) {
+        gastoData.igv = parseFloat(formData.igv);
+      }
+
+      if (formData.subtotal && formData.subtotal.trim()) {
+        gastoData.subtotal = parseFloat(formData.subtotal);
+      }
+
+      if (formData.reimbursementStatus) {
+        gastoData.reimbursementStatus = formData.reimbursementStatus;
+      }
+
       // Log para debugging (especialmente útil con entrada de voz)
       console.log('💾 Datos del gasto a guardar:', gastoData);
       console.log('📋 FormData actual:', formData);
@@ -543,7 +624,7 @@ export default function FormularioGasto() {
   return (
     <div className="max-w-2xl mx-auto">
       {/* class-border: bg-card border border-border */}
-      <div className="rounded-lg shadow-sm p-4 pt-0 lg:pt-4 md:p-6 lg:bg-card lg:border lg:border-border">
+      <div className="rounded-xl shadow-sm p-4 pt-0 lg:pt-4 md:p-6 lg:bg-card lg:border lg:border-border">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-foreground">
             {/* {esEdicion ? 'Editar Gasto' : 'Nuevo Gasto'} */}
@@ -878,6 +959,86 @@ export default function FormularioGasto() {
                       className="h-5 w-5 rounded border-primary text-primary focus:ring-primary"
                     />
                   </div>
+
+                  {/* Sección de Comprobante (Mobile) */}
+                  <div className="pt-4 border-t border-border mt-2">
+                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <Receipt className="h-4 w-4 text-primary" />
+                      Comprobante de Pago
+                    </h4>
+                    
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Tipo</label>
+                          <select
+                            name="voucherType"
+                            value={formData.voucherType}
+                            onChange={handleVoucherTypeChange}
+                            className="w-full bg-muted/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          >
+                            <option value="boleta">Boleta</option>
+                            <option value="factura">Factura</option>
+                            <option value="recibo">Recibo</option>
+                            <option value="ticket">Ticket</option>
+                            <option value="nota-debito">Nota Débito</option>
+                            <option value="nota-credito">Nota Crédito</option>
+                          </select>
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground">Número</label>
+                          <input
+                            type="text"
+                            name="voucherNumber"
+                            value={formData.voucherNumber}
+                            onChange={handleChange}
+                            placeholder="B001-123"
+                            className="w-full bg-muted/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          />
+                        </div>
+                      </div>
+
+                      {formData.voucherType === 'factura' && (
+                        <div className="space-y-3 animate-in slide-in-from-top-2">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground">RUC</label>
+                            <input
+                              type="text"
+                              name="ruc"
+                              value={formData.ruc}
+                              onChange={handleChange}
+                              placeholder="20123456789"
+                              className="w-full bg-muted/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-medium text-muted-foreground">Subtotal</label>
+                              <input
+                                type="number"
+                                name="subtotal"
+                                value={formData.subtotal}
+                                onChange={handleChange}
+                                className="w-full bg-muted/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-xs font-medium text-muted-foreground">IGV (18%)</label>
+                              <input
+                                type="number"
+                                name="igv"
+                                value={formData.igv}
+                                onChange={handleChange}
+                                className="w-full bg-muted/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -917,7 +1078,7 @@ export default function FormularioGasto() {
           <div className="hidden md:block space-y-4">
             {/* 1. Atajos Rápidos */}
             {!esEdicion && (
-              <div className="bg-muted/30 border border-border rounded-lg p-4">
+              <div className="bg-muted/30 border border-border rounded-xl p-4">
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-sm font-medium text-foreground">
                     Atajos Rápidos
@@ -957,7 +1118,7 @@ export default function FormularioGasto() {
 
             {/* 2. Escanear Boleta (Desktop) */}
             {!esEdicion && (
-              <div className="bg-accent/30 border border-border rounded-lg p-4">
+              <div className="bg-accent/30 border border-border rounded-xl p-4">
                 <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
                   <Camera className="h-4 w-4" />
                   <span>Escanear Recibo</span>
@@ -993,167 +1154,163 @@ export default function FormularioGasto() {
               </div>
             )}
 
-            {/* 3. Fecha y Hora */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="fecha" className="block text-sm font-medium text-foreground mb-1">
-                  Fecha <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="date"
-                  id="fecha"
-                  name="fecha"
-                  value={formData.fecha}
-                  onChange={handleChange}
-                  max={new Date().toISOString().split('T')[0]}
-                  className={`w-full px-4 py-2 rounded-md border ${
-                    errores.fecha ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                  } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
-                  disabled={cargando}
-                />
-                {errores.fecha && <p className="mt-1 text-sm text-destructive">{errores.fecha}</p>}
+            {/* 3. Campos Principales - Estilo iOS Settings */}
+            <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+              {/* Fecha y Hora */}
+              <div className="flex divide-x divide-border">
+                <div className="flex-1 p-3 flex items-center gap-3">
+                  <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600 dark:text-blue-400">
+                    <Calendar className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">
+                      Fecha <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="fecha"
+                      value={formData.fecha}
+                      onChange={handleChange}
+                      max={new Date().toISOString().split('T')[0]}
+                      className="bg-transparent text-sm w-full focus:outline-none font-medium"
+                      disabled={cargando}
+                    />
+                  </div>
+                </div>
+
+                <div className="w-1/3 p-3 flex items-center gap-3">
+                  <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600 dark:text-blue-400">
+                    <Clock className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">
+                      Hora <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="time"
+                      name="hora"
+                      value={formData.hora}
+                      onChange={handleChange}
+                      className="bg-transparent text-sm w-full focus:outline-none font-medium"
+                      disabled={cargando}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label htmlFor="hora" className="block text-sm font-medium text-foreground mb-1">
-                  Hora <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="time"
-                  id="hora"
-                  name="hora"
-                  value={formData.hora}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded-md border ${
-                    errores.hora ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                  } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
-                  disabled={cargando}
-                />
-                {errores.hora && <p className="mt-1 text-sm text-destructive">{errores.hora}</p>}
-              </div>
-            </div>
+              {/* Categoría y Subcategoría */}
+              <div className="flex divide-x divide-border">
+                <div className="flex-1 p-3 flex items-center gap-3">
+                  <div className="p-1.5 bg-orange-500/10 rounded-lg text-orange-600 dark:text-orange-400">
+                    <Tag className="h-4 w-4" />
+                  </div>
+                  <select
+                    name="categoria"
+                    value={formData.categoria}
+                    onChange={handleChange}
+                    className={`bg-transparent text-sm w-full focus:outline-none appearance-none font-medium ${
+                      formData.categoria ? 'text-foreground' : 'text-muted-foreground'
+                    }`}
+                    disabled={cargando}
+                  >
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            {/* 4. Categoría, Subcategoría y Moneda */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="categoria" className="block text-sm font-medium text-foreground mb-1">
-                  Categoría <span className="text-destructive">*</span>
-                </label>
+                <div className="flex-1 p-3">
+                  <select
+                    name="subcategoria"
+                    value={formData.subcategoria}
+                    onChange={handleChange}
+                    className={`bg-transparent text-sm w-full focus:outline-none appearance-none font-medium ${
+                      formData.subcategoria ? 'text-foreground' : 'text-muted-foreground'
+                    }`}
+                    disabled={cargando}
+                  >
+                    <option value="">Subcategoría</option>
+                    {getSubcategories(formData.categoria).map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Monto y Método de Pago */}
+              <div className="flex divide-x divide-border">
+                <div className="flex-1 p-3 flex items-center gap-3">
+                  <div className="p-1.5 bg-green-500/10 rounded-lg text-green-600 dark:text-green-400">
+                    <CircleDollarSign className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">
+                      Monto <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      name="monto"
+                      value={formData.monto}
+                      onChange={handleChange}
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      className="bg-transparent text-sm w-full focus:outline-none font-semibold"
+                      disabled={cargando}
+                      autoFocus={!esEdicion}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex-1 p-3 flex items-center gap-3">
+                  <div className="p-1.5 bg-green-500/10 rounded-lg text-green-600 dark:text-green-400">
+                    <CreditCard className="h-4 w-4" />
+                  </div>
+                  <select
+                    name="metodoPago"
+                    value={formData.metodoPago}
+                    onChange={handleChange}
+                    className="bg-transparent text-sm w-full focus:outline-none appearance-none font-medium"
+                    disabled={cargando}
+                  >
+                    {paymentMethods.map((method) => (
+                      <option key={method.id} value={method.id}>
+                        {method.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Moneda */}
+              <div className="p-3 flex items-center gap-3">
+                <div className="p-1.5 bg-purple-500/10 rounded-lg text-purple-600 dark:text-purple-400">
+                  <Coins className="h-4 w-4" />
+                </div>
+                <span className="text-sm font-medium flex-1">Moneda</span>
                 <select
-                  id="categoria"
-                  name="categoria"
-                  value={formData.categoria}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded-md border ${
-                    errores.categoria ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                  } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
-                  disabled={cargando}
-                >
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.nombre}
-                    </option>
-                  ))}
-                </select>
-                {errores.categoria && <p className="mt-1 text-sm text-destructive">{errores.categoria}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="subcategoria" className="block text-sm font-medium text-foreground mb-1">
-                  Subcategoría
-                </label>
-                <select
-                  id="subcategoria"
-                  name="subcategoria"
-                  value={formData.subcategoria}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 rounded-md border border-input focus:ring-primary bg-background text-foreground focus:outline-none focus:ring-2 transition-colors"
-                  disabled={cargando}
-                >
-                  <option value="">Sin subcategoría</option>
-                  {getSubcategories(formData.categoria).map((sub) => (
-                    <option key={sub.id} value={sub.id}>
-                      {sub.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="moneda" className="block text-sm font-medium text-foreground mb-1">
-                  Moneda <span className="text-destructive">*</span>
-                </label>
-                <select
-                  id="moneda"
                   name="moneda"
                   value={formData.moneda}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded-md border ${
-                    errores.moneda ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                  } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
+                  className="bg-transparent text-sm focus:outline-none appearance-none font-semibold text-right pr-2"
                   disabled={cargando}
                 >
-                  {currencies.map((currency) => (
-                    <option key={currency.id} value={currency.codigoISO}>
-                      {currency.simbolo} {currency.nombre}
+                  {currencies.map((curr) => (
+                    <option key={curr.id} value={curr.codigoISO}>
+                      {curr.simbolo} {curr.codigoISO}
                     </option>
                   ))}
                 </select>
-                {errores.moneda && <p className="mt-1 text-sm text-destructive">{errores.moneda}</p>}
-              </div>
-            </div>
-
-            {/* 5. Monto y Método de Pago */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="monto" className="block text-sm font-medium text-foreground mb-1">
-                  Monto <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="monto"
-                  name="monto"
-                  value={formData.monto}
-                  onChange={handleChange}
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  className={`w-full px-4 py-2 rounded-md border ${
-                    errores.monto ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                  } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
-                  disabled={cargando}
-                  autoFocus={!esEdicion}
-                />
-                {errores.monto && <p className="mt-1 text-sm text-destructive">{errores.monto}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="metodoPago" className="block text-sm font-medium text-foreground mb-1">
-                  Método de Pago <span className="text-destructive">*</span>
-                </label>
-                <select
-                  id="metodoPago"
-                  name="metodoPago"
-                  value={formData.metodoPago}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded-md border ${
-                    errores.metodoPago ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                  } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors`}
-                  disabled={cargando}
-                >
-                  {paymentMethods.map((method) => (
-                    <option key={method.id} value={method.id}>
-                      {method.nombre}
-                    </option>
-                  ))}
-                </select>
-                {errores.metodoPago && <p className="mt-1 text-sm text-destructive">{errores.metodoPago}</p>}
               </div>
             </div>
 
             {/* 6. Descripción con tags sugeridos debajo */}
             <div>
-              <label htmlFor="descripcion" className="block text-sm font-medium text-foreground mb-1">
+              <label htmlFor="descripcion" className="block text-xs font-medium text-muted-foreground mb-1.5">
                 Descripción
               </label>
               <textarea
@@ -1163,17 +1320,17 @@ export default function FormularioGasto() {
                 onChange={handleChange}
                 rows={3}
                 placeholder="Ej: Almuerzo en restaurante"
-                className={`w-full px-4 py-2 rounded-md border ${
-                  errores.descripcion ? 'border-destructive focus:ring-destructive' : 'border-input focus:ring-primary'
-                } bg-background text-foreground focus:outline-none focus:ring-2 transition-colors resize-none`}
+                className={`w-full px-3 py-2.5 rounded-lg border ${
+                  errores.descripcion ? 'border-destructive focus:ring-destructive' : 'border-border focus:ring-primary/50'
+                } bg-muted/50 text-foreground focus:outline-none focus:ring-2 transition-colors resize-none`}
                 disabled={cargando}
               />
-              {errores.descripcion && <p className="mt-1 text-sm text-destructive">{errores.descripcion}</p>}
+              {errores.descripcion && <p className="mt-1 text-xs text-destructive">{errores.descripcion}</p>}
 
               {/* Sugerencias de subcategoría */}
-              <div className="mt-3 bg-muted/30 border border-border rounded-lg p-3">
+              <div className="mt-3 bg-muted/30 border border-border rounded-xl p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <p className="text-xs font-medium text-foreground flex items-center gap-2">
                     <Lightbulb className="h-4 w-4" />
                     <span>Sugerencias para {subcategoryName || 'descripción'}</span>
                   </p>
@@ -1207,7 +1364,7 @@ export default function FormularioGasto() {
 
             {/* 7. Tags opcionales */}
             <div>
-              <label htmlFor="tags" className="block text-sm font-medium text-foreground mb-1">
+              <label htmlFor="tags" className="block text-xs font-medium text-muted-foreground mb-1.5">
                 Etiquetas (opcional)
               </label>
               <input
@@ -1217,16 +1374,11 @@ export default function FormularioGasto() {
                 value={tagsInput}
                 onChange={handleTagsChange}
                 placeholder="Ej: trabajo, urgente (separadas por comas)"
-                className="w-full px-4 py-2 rounded-md border border-input focus:ring-primary bg-background text-foreground focus:outline-none focus:ring-2 transition-colors"
+                className="w-full px-3 py-2.5 rounded-lg border border-border focus:ring-primary/50 bg-muted/50 text-foreground focus:outline-none focus:ring-2 transition-colors"
                 disabled={cargando}
               />
-              <p className="mt-1 text-sm text-muted-foreground">
-                Separa las etiquetas con comas
-              </p>
-            </div>
-
             {/* 8. Recurrente */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-4 mb-4">
               <input
                 type="checkbox"
                 id="recurrente"
@@ -1241,8 +1393,179 @@ export default function FormularioGasto() {
               </label>
             </div>
 
+            {/* Información Tributaria (Desktop) - Estilo iOS Settings */}
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <div className="p-3 bg-muted/30 border-b border-border">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Receipt className="h-4 w-4 text-primary" />
+                  Información Tributaria
+                </h3>
+              </div>
+
+              <div className="divide-y divide-border">
+                {/* Tipo de Comprobante y Número */}
+                <div className="flex divide-x divide-border">
+                  <div className="flex-1 p-3 flex items-center gap-3">
+                    <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] text-muted-foreground block mb-0.5">
+                        Tipo de Comprobante
+                      </label>
+                      <select
+                        name="voucherType"
+                        value={formData.voucherType}
+                        onChange={handleVoucherTypeChange}
+                        className="bg-transparent text-sm w-full focus:outline-none appearance-none font-medium"
+                        disabled={cargando}
+                      >
+                        <option value="boleta">Boleta</option>
+                        <option value="factura">Factura</option>
+                        <option value="recibo">Recibo</option>
+                        <option value="ticket">Ticket</option>
+                        <option value="nota-debito">Nota Débito</option>
+                        <option value="nota-credito">Nota Crédito</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 p-3 flex items-center gap-3">
+                    <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+                      <Hash className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] text-muted-foreground block mb-0.5">
+                        Número de Comprobante
+                      </label>
+                      <input
+                        type="text"
+                        name="voucherNumber"
+                        value={formData.voucherNumber}
+                        onChange={handleChange}
+                        placeholder="B001-12345"
+                        className="bg-transparent text-sm w-full focus:outline-none font-medium"
+                        disabled={cargando}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Estado de Reembolso */}
+                <div className="p-3 flex items-center gap-3">
+                  <div className="p-1.5 bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
+                    <RefreshCw className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm font-medium flex-1">Estado de Reembolso</span>
+                  <select
+                    name="reimbursementStatus"
+                    value={formData.reimbursementStatus}
+                    onChange={handleChange as any}
+                    className="bg-transparent text-sm focus:outline-none appearance-none font-semibold text-right pr-2"
+                    disabled={cargando}
+                  >
+                    <option value="pending">⏳ Pendiente</option>
+                    <option value="approved">✅ Aprobado</option>
+                    <option value="rejected">❌ Rechazado</option>
+                    <option value="paid">💰 Pagado</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Datos de Factura (Condicional) - Estilo iOS Settings */}
+            {formData.voucherType === 'factura' && (
+              <div className="bg-card border border-amber-200 dark:border-amber-900 rounded-xl overflow-hidden animate-in slide-in-from-top-2 duration-200 mt-4">
+                <div className="p-3 bg-amber-500/5 border-b border-amber-200 dark:border-amber-900">
+                  <h3 className="text-sm font-semibold flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                    <Building2 className="h-4 w-4" />
+                    Datos de Factura
+                  </h3>
+                </div>
+
+                <div className="divide-y divide-border">
+                  {/* RUC del Emisor */}
+                  <div className="p-3 flex items-center gap-3">
+                    <div className="p-1.5 bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
+                      <Building2 className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] text-muted-foreground block mb-0.5">
+                        RUC del Emisor <span className="text-destructive">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="ruc"
+                        value={formData.ruc}
+                        onChange={handleChange}
+                        placeholder="20123456789"
+                        maxLength={11}
+                        className="bg-transparent text-sm w-full focus:outline-none font-medium"
+                        disabled={cargando}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Subtotal e IGV */}
+                  <div className="flex divide-x divide-border">
+                    <div className="flex-1 p-3 flex items-center gap-3">
+                      <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600 dark:text-blue-400">
+                        <Calculator className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] text-muted-foreground block mb-0.5">
+                          Subtotal
+                        </label>
+                        <input
+                          type="number"
+                          name="subtotal"
+                          value={formData.subtotal}
+                          onChange={handleChange}
+                          step="0.01"
+                          className="bg-transparent text-sm w-full focus:outline-none font-semibold text-muted-foreground"
+                          disabled={cargando}
+                          readOnly
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 p-3 flex items-center gap-3">
+                      <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600 dark:text-blue-400">
+                        <Percent className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] text-muted-foreground block mb-0.5">
+                          IGV (18%)
+                        </label>
+                        <input
+                          type="number"
+                          name="igv"
+                          value={formData.igv}
+                          onChange={handleChange}
+                          step="0.01"
+                          className="bg-transparent text-sm w-full focus:outline-none font-semibold text-muted-foreground"
+                          disabled={cargando}
+                          readOnly
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tip de Auto-cálculo */}
+                  <div className="p-3 bg-blue-500/5">
+                    <p className="text-xs text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                      <Lightbulb className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span>
+                        El subtotal e IGV se calculan automáticamente basándose en el monto total (Monto / 1.18)
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 9. Botones al final (Desktop) */}
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-6">
               <button
                 type="submit"
                 disabled={cargando}
@@ -1266,8 +1589,9 @@ export default function FormularioGasto() {
               </button>
             </div>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
-  );
+  </div>
+);
 }
