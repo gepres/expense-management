@@ -639,14 +639,13 @@ export default function SharedGroupDetail() {
       )}
 
       {/* Edit Group Modal */}
-      {showEditModal && (
-        <CreateSharedGroupModal
-          initialData={group}
-          isEditing={true}
-          onClose={() => setShowEditModal(false)}
-          onSaved={handleGroupUpdated}
-        />
-      )}
+      <CreateSharedGroupModal
+        isOpen={showEditModal}
+        initialData={group}
+        isEditing={true}
+        onClose={() => setShowEditModal(false)}
+        onSaved={handleGroupUpdated}
+      />
     </div>
   );
 }

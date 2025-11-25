@@ -189,12 +189,11 @@ export default function SharedGroupsList() {
       </div>
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <CreateSharedGroupModal
-          onClose={() => setShowCreateModal(false)}
-          onSaved={handleGroupCreated}
-        />
-      )}
+      <CreateSharedGroupModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSaved={handleGroupCreated}
+      />
     </div>
   );
 }

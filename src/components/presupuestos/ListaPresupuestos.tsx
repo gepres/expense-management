@@ -18,8 +18,9 @@ import {
 import { formatearMoneda, parsearMesKey } from '@utils/formatters';
 import { calcularGastosPorCategoria } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
-import { Plus, Target, Wallet, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Tag, Coins, DollarSign } from 'lucide-react';
+import { Plus, Target, Wallet, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Tag, Coins, DollarSign, AlertTriangle } from 'lucide-react';
 import CustomLoader from '@components/common/CustomLoader';
+import Modal, { ModalButton, ModalFooterActions } from '@components/common/Modal';
 
 interface FormPresupuesto {
   categoria: CategoriaGastoOGeneral;
@@ -168,8 +169,8 @@ export default function ListaPresupuestos() {
   };
 
   // Guardar presupuesto
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
 
     if (!validarFormulario()) return;
     if (!usuario) {
@@ -691,15 +692,29 @@ export default function ListaPresupuestos() {
       )}
 
       {/* Modal de formulario - iOS Style */}
-      {mostrarModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 !mt-0">
-          <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-xl">
-            <h3 className="text-lg font-bold text-foreground mb-6">
-              {presupuestoEditando ? 'Editar Presupuesto' :
+      <Modal
+        isOpen={mostrarModal}
+        onClose={() => {
+          setMostrarModal(false);
+          setPresupuestoEditando(null);
+        }}
+        title={presupuestoEditando ? 'Editar Presupuesto' :
                formData.categoria === CATEGORIA_GENERAL ? 'Agregar Ingreso' : 'Nuevo Presupuesto'}
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-3">
+        size="md"
+        footer={
+          <ModalFooterActions
+            onCancel={() => {
+              setMostrarModal(false);
+              setPresupuestoEditando(null);
+            }}
+            onConfirm={handleSubmit}
+            cancelText="Cancelar"
+            confirmText={cargando ? 'Guardando...' : presupuestoEditando ? 'Actualizar' : 'Crear'}
+            disabled={cargando}
+          />
+        }
+      >
+        <form className="space-y-3" onSubmit={handleSubmit}>
               {/* Categoría */}
               <div className="bg-card border border-border rounded-xl overflow-hidden">
                 <div className="p-3 flex items-center gap-3">
@@ -816,63 +831,38 @@ export default function ListaPresupuestos() {
                 </div>
               </div>
 
-              {/* Botones de acción */}
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="submit"
-                  disabled={cargando}
-                  className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium text-sm disabled:opacity-50 transition-all active:scale-95"
-                >
-                  {cargando
-                    ? 'Guardando...'
-                    : presupuestoEditando
-                    ? 'Actualizar'
-                    : 'Crear'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMostrarModal(false);
-                    setPresupuestoEditando(null);
-                  }}
-                  disabled={cargando}
-                  className="px-5 py-2.5 bg-muted rounded-xl text-sm font-medium transition-all active:scale-95 disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* Modal de confirmación de eliminación */}
-      {presupuestoAEliminar && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-bold text-foreground mb-2">
-              ¿Eliminar presupuesto?
-            </h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              Esta acción no se puede deshacer. El presupuesto será eliminado permanentemente.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleEliminar(presupuestoAEliminar)}
-                className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold py-2 px-4 rounded-md transition-colors"
-              >
-                Eliminar
-              </button>
-              <button
-                onClick={() => setPresupuestoAEliminar(null)}
-                className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold py-2 px-4 rounded-md transition-colors"
-              >
-                Cancelar
-              </button>
+      <Modal
+        isOpen={!!presupuestoAEliminar}
+        onClose={() => setPresupuestoAEliminar(null)}
+        title="¿Eliminar presupuesto?"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setPresupuestoAEliminar(null)}
+            onConfirm={() => presupuestoAEliminar && handleEliminar(presupuestoAEliminar)}
+            cancelText="Cancelar"
+            confirmText="Eliminar"
+            confirmVariant="destructive"
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
             </div>
           </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Esta acción no se puede deshacer. El presupuesto será eliminado permanentemente.
+            </p>
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

@@ -180,12 +180,39 @@ export const obtenerMensajeError = (error: unknown): string => {
 /**
  * Convierte un Timestamp de Firestore a Date
  * Maneja valores undefined/null retornando la fecha actual
+ * También maneja strings y numbers para compatibilidad
  */
-export const timestampToDate = (timestamp: Timestamp | undefined | null): Date => {
+export const timestampToDate = (timestamp: any): Date => {
   if (!timestamp) {
     return new Date();
   }
-  return timestamp.toDate();
+
+  // Si ya es un Date, retornarlo
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+
+  // Si tiene método toDate (Timestamp de Firestore)
+  if (timestamp && typeof timestamp.toDate === 'function') {
+    return timestamp.toDate();
+  }
+
+  // Si es un string o number, intentar crear Date
+  if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+  }
+
+  // Si es un objeto con seconds (formato Timestamp serializado)
+  if (timestamp && typeof timestamp.seconds === 'number') {
+    return new Date(timestamp.seconds * 1000);
+  }
+
+  // Fallback a fecha actual
+  console.warn('Timestamp inválido, usando fecha actual:', timestamp);
+  return new Date();
 };
 
 /**

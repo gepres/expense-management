@@ -6,11 +6,13 @@ import { useState, useEffect } from 'react';
 import { SharedService } from '@services/shared';
 import { useConfig } from '@context/ConfigContext';
 import type { SharedExpenseGroup, CreateSharedGroupDto } from '@app-types/shared';
-import { X, Type, AlignLeft, Target, Coins, Smile, Palette } from 'lucide-react';
+import { Type, AlignLeft, Target, Coins, Smile, Palette } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
+import Modal, { ModalButton } from '@components/common/Modal';
 
 interface Props {
+  isOpen: boolean;
   onClose: () => void;
   onSaved: (group: SharedExpenseGroup) => void;
   initialData?: SharedExpenseGroup;
@@ -32,7 +34,7 @@ const PRESET_COLORS = [
 
 const PRESET_ICONS = ['👥', '🎄', '✈️', '🏠', '🎉', '🍽️', '💒', '🎓', '⚽', '🎁'];
 
-export default function CreateSharedGroupModal({ onClose, onSaved, initialData, isEditing = false }: Props) {
+export default function CreateSharedGroupModal({ isOpen, onClose, onSaved, initialData, isEditing = false }: Props) {
   const { currencies } = useConfig();
 
   const [formData, setFormData] = useState<CreateSharedGroupDto>({
@@ -96,21 +98,24 @@ export default function CreateSharedGroupModal({ onClose, onSaved, initialData, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-card w-full max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl border border-border max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
-        {/* Header */}
-        <div className="sticky top-0 bg-card z-10 px-6 py-4 border-b border-border flex items-center justify-between">
-          <h2 className="text-xl font-bold">{isEditing ? 'Editar Grupo' : 'Nuevo Grupo'}</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-muted rounded-full transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Form - iOS Style */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-3">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? 'Editar Grupo' : 'Nuevo Grupo'}
+      size="md"
+      footer={
+        <ModalButton
+          type="submit"
+          variant="primary"
+          onClick={handleSubmit}
+          disabled={loading || !formData.name.trim()}
+          className="w-full"
+        >
+          {loading ? (isEditing ? 'Guardando...' : 'Creando...') : (isEditing ? 'Guardar Cambios' : 'Crear Grupo')}
+        </ModalButton>
+      }
+    >
+      <form className="space-y-3">
           {/* Nombre del Grupo */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="p-3 flex items-center gap-3">
@@ -298,18 +303,7 @@ export default function CreateSharedGroupModal({ onClose, onSaved, initialData, 
             </div>
           </div>
 
-          {/* Submit Button */}
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={loading || !formData.name.trim()}
-              className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
-            >
-              {loading ? (isEditing ? 'Guardando...' : 'Creando...') : (isEditing ? 'Guardar Cambios' : 'Crear Grupo')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }
