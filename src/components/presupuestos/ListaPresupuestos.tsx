@@ -18,7 +18,7 @@ import {
 import { formatearMoneda, parsearMesKey } from '@utils/formatters';
 import { calcularGastosPorCategoria } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
-import { Plus, Target, Wallet, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package } from 'lucide-react';
+import { Plus, Target, Wallet, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Tag, Coins, DollarSign } from 'lucide-react';
 import CustomLoader from '@components/common/CustomLoader';
 
 interface FormPresupuesto {
@@ -690,123 +690,138 @@ export default function ListaPresupuestos() {
         </div>
       )}
 
-      {/* Modal de formulario */}
+      {/* Modal de formulario - iOS Style */}
       {mostrarModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-bold text-foreground mb-4">
-              {presupuestoEditando ? 'Editar Presupuesto' : 'Nuevo Presupuesto'}
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 !mt-0">
+          <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full shadow-xl">
+            <h3 className="text-lg font-bold text-foreground mb-6">
+              {presupuestoEditando ? 'Editar Presupuesto' :
+               formData.categoria === CATEGORIA_GENERAL ? 'Agregar Ingreso' : 'Nuevo Presupuesto'}
             </h3>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
               {/* Categoría */}
-              <div>
-                <label
-                  htmlFor="categoria"
-                  className="block text-sm font-medium text-foreground mb-1"
-                >
-                  Categoría <span className="text-destructive">*</span>
-                </label>
-                <select
-                  id="categoria"
-                  name="categoria"
-                  value={formData.categoria}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  disabled={cargando || !!presupuestoEditando}
-                >
-                  <option value={CATEGORIA_GENERAL}>
-                    Presupuesto General
-                  </option>
-                  <option disabled>──────────</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.nombre}
-                    </option>
-                  ))}
-                </select>
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="p-3 flex items-center gap-3">
+                  <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+                    <Tag className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">
+                      Categoría <span className="text-destructive">*</span>
+                    </label>
+                    <select
+                      id="categoria"
+                      name="categoria"
+                      value={formData.categoria}
+                      onChange={handleChange}
+                      className="bg-transparent text-sm w-full focus:outline-none font-medium appearance-none disabled:opacity-50"
+                      disabled={cargando || !!presupuestoEditando}
+                    >
+                      <option value={CATEGORIA_GENERAL}>
+                        Presupuesto General
+                      </option>
+                      <option disabled>──────────</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
               {/* Subcategoría - Solo para presupuesto general */}
               {formData.categoria === CATEGORIA_GENERAL && (
-                <div>
-                  <label
-                    htmlFor="subcategoria"
-                    className="block text-sm font-medium text-foreground mb-1"
-                  >
-                    Tipo de Ingreso
-                  </label>
-                  <select
-                    id="subcategoria"
-                    name="subcategoria"
-                    value={formData.subcategoria}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    disabled={cargando}
-                  >
-                    <option value="">Sin especificar</option>
-                    {SUBCATEGORIAS_PRESUPUESTO_GENERAL.map((sub) => (
-                      <option key={sub} value={sub}>
-                        {sub}
-                      </option>
-                    ))}
-                  </select>
+                <div className="bg-card border border-blue-200 dark:border-blue-900 rounded-xl overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                  <div className="p-3 flex items-center gap-3 bg-blue-500/5">
+                    <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600 dark:text-blue-400">
+                      <Wallet className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] text-muted-foreground block mb-0.5">
+                        Tipo de Ingreso
+                      </label>
+                      <select
+                        id="subcategoria"
+                        name="subcategoria"
+                        value={formData.subcategoria}
+                        onChange={handleChange}
+                        className="bg-transparent text-sm w-full focus:outline-none font-medium appearance-none disabled:opacity-50"
+                        disabled={cargando}
+                      >
+                        <option value="">Sin especificar</option>
+                        {SUBCATEGORIAS_PRESUPUESTO_GENERAL.map((sub) => (
+                          <option key={sub} value={sub}>
+                            {sub}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Moneda */}
-              <div>
-                <label
-                  htmlFor="moneda"
-                  className="block text-sm font-medium text-foreground mb-1"
-                >
-                  Moneda <span className="text-destructive">*</span>
-                </label>
-                <select
-                  id="moneda"
-                  name="moneda"
-                  value={formData.moneda}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  disabled={cargando || !!presupuestoEditando}
-                >
-                  {currencies.map((currency) => (
-                    <option key={currency.id} value={currency.codigoISO}>
-                      {currency.simbolo} {currency.nombre}
-                    </option>
-                  ))}
-                </select>
+              {/* Moneda y Límite */}
+              <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+                <div className="p-3 flex items-center gap-3">
+                  <div className="p-1.5 bg-orange-500/10 rounded-lg text-orange-600 dark:text-orange-400">
+                    <Coins className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">
+                      Moneda <span className="text-destructive">*</span>
+                    </label>
+                    <select
+                      id="moneda"
+                      name="moneda"
+                      value={formData.moneda}
+                      onChange={handleChange}
+                      className="bg-transparent text-sm w-full focus:outline-none font-medium appearance-none disabled:opacity-50"
+                      disabled={cargando || !!presupuestoEditando}
+                    >
+                      {currencies.map((currency) => (
+                        <option key={currency.id} value={currency.codigoISO}>
+                          {currency.simbolo} {currency.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="p-3 flex items-center gap-3">
+                  <div className="p-1.5 bg-green-500/10 rounded-lg text-green-600 dark:text-green-400">
+                    <DollarSign className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">
+                      {formData.categoria === CATEGORIA_GENERAL ? 'Monto' : 'Límite'} <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      id="limite"
+                      name="limite"
+                      value={formData.limite}
+                      onChange={handleChange}
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      className="bg-transparent text-sm w-full focus:outline-none font-medium disabled:opacity-50"
+                      disabled={cargando}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Límite */}
-              <div>
-                <label
-                  htmlFor="limite"
-                  className="block text-sm font-medium text-foreground mb-1"
-                >
-                  Límite <span className="text-destructive">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="limite"
-                  name="limite"
-                  value={formData.limite}
-                  onChange={handleChange}
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  className="w-full px-4 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  disabled={cargando}
-                  required
-                />
-              </div>
-
-              {/* Botones */}
-              <div className="flex gap-3 pt-4">
+              {/* Botones de acción */}
+              <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
                   disabled={cargando}
-                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium text-sm disabled:opacity-50 transition-all active:scale-95"
                 >
                   {cargando
                     ? 'Guardando...'
@@ -821,7 +836,7 @@ export default function ListaPresupuestos() {
                     setPresupuestoEditando(null);
                   }}
                   disabled={cargando}
-                  className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 bg-muted rounded-xl text-sm font-medium transition-all active:scale-95 disabled:opacity-50"
                 >
                   Cancelar
                 </button>

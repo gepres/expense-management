@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@context/AuthContext';
 import { authService } from '@services/firebase';
-import { MessageCircle, Link2, Unlink, Info, Check, X, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageCircle, Link2, Unlink, Info, Check, X, Loader2, ChevronDown, ChevronUp, ExternalLink, CheckCircle2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function WhatsAppConfig() {
@@ -12,6 +12,15 @@ export default function WhatsAppConfig() {
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
 
   const isLinked = !!usuario?.whatsappPhone;
+
+  // Obtener número de WhatsApp de Twilio desde variables de entorno
+  const twilioWhatsAppNumber = import.meta.env.VITE_TWILIO_WHATSAPP_NUMBER || '';
+
+  console.log('twilioWhatsAppNumber', twilioWhatsAppNumber);
+  // Extraer solo el número (remover 'whatsapp:' si existe)
+  const whatsappNumber = twilioWhatsAppNumber.replace('whatsapp:', '');
+  // Crear link de WhatsApp
+  const whatsappLink = whatsappNumber ? `https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}` : '';
 
   const handleLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,17 +86,39 @@ export default function WhatsAppConfig() {
             {isLinked ? <Check className="h-6 w-6" /> : <X className="h-6 w-6" />}
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-foreground mb-1">
-              {isLinked ? '✅ WhatsApp Vinculado' : '⚠️ WhatsApp No Vinculado'}
+            <h3 className="font-semibold text-foreground mb-1 flex items-center gap-2">
+              {isLinked ? (
+                <>
+                  <CheckCircle2 className="h-5 w-5 text-success" />
+                  WhatsApp Vinculado
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                  WhatsApp No Vinculado
+                </>
+              )}
             </h3>
             {isLinked ? (
               <>
                 <p className="text-sm text-muted-foreground mb-2">
                   Número: <span className="font-mono">{usuario?.whatsappPhone}</span>
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground mb-3">
                   Vinculado el: {usuario?.whatsappLinkedAt ? new Date(usuario.whatsappLinkedAt).toLocaleDateString() : 'N/A'}
                 </p>
+                {whatsappLink && (
+                  <a
+                    href={whatsappLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-success hover:bg-success/90 text-white rounded-lg font-medium text-sm transition-all active:scale-95"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Abrir WhatsApp
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
               </>
             ) : (
               <p className="text-sm text-muted-foreground">

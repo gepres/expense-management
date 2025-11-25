@@ -65,6 +65,12 @@ export interface SharedBudget {
   description: string;
   paymentMethod?: string;
   type: 'contribution' | 'budget';
+  // Tax information fields
+  date?: string; // YYYY-MM-DD
+  time?: string; // HH:mm
+  voucherType?: 'boleta' | 'factura' | 'recibo' | 'ticket';
+  voucherNumber?: string;
+  ruc?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,12 +80,24 @@ export interface CreateSharedBudgetDto {
   description: string;
   paymentMethod?: string;
   type: 'contribution' | 'budget';
+  // Tax information fields
+  date?: string;
+  time?: string;
+  voucherType?: 'boleta' | 'factura' | 'recibo' | 'ticket';
+  voucherNumber?: string;
+  ruc?: string;
 }
 
 export interface UpdateSharedBudgetDto {
   amount?: number;
   description?: string;
   paymentMethod?: string;
+  // Tax information fields
+  date?: string;
+  time?: string;
+  voucherType?: 'boleta' | 'factura' | 'recibo' | 'ticket';
+  voucherNumber?: string;
+  ruc?: string;
 }
 
 // ============================================================================
@@ -98,6 +116,12 @@ export interface SharedExpense {
   subcategory?: string;
   paymentMethod?: string;
   receiptUrl?: string;
+  // Tax information fields
+  date?: string; // YYYY-MM-DD
+  time?: string; // HH:mm
+  voucherType?: 'boleta' | 'factura' | 'recibo' | 'ticket';
+  voucherNumber?: string;
+  ruc?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -110,6 +134,11 @@ export interface CreateSharedExpenseDto {
   paymentMethod?: string;
   date?: string;
   receiptUrl?: string;
+  // Tax information fields
+  time?: string;
+  voucherType?: 'boleta' | 'factura' | 'recibo' | 'ticket';
+  voucherNumber?: string;
+  ruc?: string;
 }
 
 export interface UpdateSharedExpenseDto {
@@ -119,6 +148,12 @@ export interface UpdateSharedExpenseDto {
   subcategory?: string;
   paymentMethod?: string;
   receiptUrl?: string;
+  // Tax information fields
+  date?: string;
+  time?: string;
+  voucherType?: 'boleta' | 'factura' | 'recibo' | 'ticket';
+  voucherNumber?: string;
+  ruc?: string;
 }
 
 // ============================================================================

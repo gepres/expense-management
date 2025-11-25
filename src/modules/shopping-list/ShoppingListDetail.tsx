@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useConfig } from '@context/ConfigContext';
 import { ShoppingListService } from '../../services/shopping-list';
 import type { ShoppingList, ShoppingListItem } from '../../types/shopping-list';
-import { ArrowLeft, MoreVertical, Trash2, CheckSquare, Square, Plus, Calendar, Clock, Tag, CreditCard, ChevronDown, ChevronRight, Receipt, Edit2 } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Trash2, CheckSquare, Square, Plus, Calendar, Clock, Tag, CreditCard, ChevronDown, ChevronRight, Receipt, Edit2, FileText, Hash, Building2, AlignLeft } from 'lucide-react';
 import SmartNoteInput from './SmartNoteInput.tsx';
 import ShoppingListItemForm from './ShoppingListItemForm.tsx';
 import ConfirmationModal from '@components/common/ConfirmationModal';
@@ -365,6 +365,82 @@ export default function ShoppingListDetail() {
                   />
                 </div>
               </div>
+
+              {/* Descripción */}
+              <div className="p-3 flex items-start gap-3">
+                <div className="p-1.5 bg-gray-500/10 rounded-lg text-gray-600 dark:text-gray-400 mt-1">
+                  <AlignLeft className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] text-muted-foreground block mb-1">Descripción</label>
+                  <textarea
+                    value={list.description || ''}
+                    onChange={(e) => handleUpdateList({ description: e.target.value })}
+                    placeholder="Ej: Compras del mes, Insumos de oficina..."
+                    rows={2}
+                    className="bg-transparent text-sm w-full focus:outline-none resize-none"
+                    disabled={isArchived}
+                  />
+                </div>
+              </div>
+
+              {/* Tipo de Comprobante y Número */}
+              <div className="flex divide-x divide-border">
+                <div className="flex-1 p-3 flex items-center gap-3">
+                  <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <select
+                    value={list.voucherType || ''}
+                    onChange={(e) => handleUpdateList({ voucherType: e.target.value as any })}
+                    className={`bg-transparent text-sm w-full focus:outline-none appearance-none ${
+                      list.voucherType ? 'text-foreground font-medium' : 'text-muted-foreground'
+                    }`}
+                    disabled={isArchived}
+                  >
+                    <option value="">Tipo de Comprobante</option>
+                    <option value="boleta">Boleta</option>
+                    <option value="factura">Factura</option>
+                    <option value="recibo">Recibo</option>
+                    <option value="ticket">Ticket</option>
+                  </select>
+                </div>
+
+                <div className="flex-1 p-3 flex items-center gap-3">
+                  <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+                    <Hash className="h-4 w-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={list.voucherNumber || ''}
+                    onChange={(e) => handleUpdateList({ voucherNumber: e.target.value })}
+                    placeholder="Número"
+                    className="bg-transparent text-sm w-full focus:outline-none font-medium"
+                    disabled={isArchived}
+                  />
+                </div>
+              </div>
+
+              {/* RUC (solo si es factura) */}
+              {list.voucherType === 'factura' && (
+                <div className="p-3 flex items-center gap-3 bg-amber-500/5 animate-in slide-in-from-top-2 duration-200">
+                  <div className="p-1.5 bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
+                    <Building2 className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-muted-foreground block mb-0.5">RUC del Emisor</label>
+                    <input
+                      type="text"
+                      value={list.ruc || ''}
+                      onChange={(e) => handleUpdateList({ ruc: e.target.value })}
+                      placeholder="20123456789"
+                      maxLength={11}
+                      className="bg-transparent text-sm w-full focus:outline-none font-medium"
+                      disabled={isArchived}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

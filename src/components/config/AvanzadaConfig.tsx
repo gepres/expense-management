@@ -4,7 +4,7 @@
  */
 
 import { usePreferences } from '@context/PreferencesContext';
-import { Save, Mic, Receipt } from 'lucide-react';
+import { Save, Mic, Receipt, Lightbulb } from 'lucide-react';
 
 export default function AvanzadaConfig() {
   const { preferences, updatePreference } = usePreferences();
@@ -96,7 +96,10 @@ export default function AvanzadaConfig() {
         {/* Nota informativa */}
         <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
           <p className="text-xs text-blue-600 dark:text-blue-400">
-            <strong>💡 Recomendación:</strong> Mantén el autoguardado desactivado si prefieres revisar
+            <div className="flex items-center gap-2">
+              <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <strong> Recomendación:</strong> Mantén el autoguardado desactivado si prefieres revisar
+            </div>
             los datos antes de guardar. Actívalo si confías en la precisión del autocompletado y quieres
             ahorrar tiempo.
           </p>

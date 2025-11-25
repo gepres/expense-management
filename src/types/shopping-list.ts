@@ -28,9 +28,15 @@ export interface ShoppingList {
   subcategory?: string;
   currency: string;
   paymentMethod?: string;
-  
+
   totalEstimated?: number; // Sum of amounts
   totalChecked?: number; // Sum of checked items' amounts
+
+  // Nuevos campos de información tributaria
+  description?: string;
+  voucherType?: 'boleta' | 'factura' | 'recibo' | 'ticket';
+  voucherNumber?: string;
+  ruc?: string;
 }
 
 export interface CreateShoppingListDto {
@@ -50,4 +56,9 @@ export interface UpdateShoppingListDto {
   subcategory?: string;
   currency?: string;
   paymentMethod?: string;
+  // Nuevos campos de información tributaria
+  description?: string;
+  voucherType?: 'boleta' | 'factura' | 'recibo' | 'ticket';
+  voucherNumber?: string;
+  ruc?: string;
 }

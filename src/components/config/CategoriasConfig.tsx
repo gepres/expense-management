@@ -315,7 +315,7 @@ export default function CategoriasConfig() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 !mt-0">
           <div className="bg-card w-full max-w-2xl rounded-xl shadow-xl border border-border max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-border flex justify-between items-center sticky top-0 bg-card z-10">
               <h2 className="text-xl font-bold">

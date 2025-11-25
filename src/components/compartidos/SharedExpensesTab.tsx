@@ -8,7 +8,7 @@ import { useSharedExpenses, createExpenseNotification } from '@context/SharedExp
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import type { SharedExpense, CreateSharedExpenseDto } from '@app-types/shared';
-import { Plus, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar, Clock, Tag, CreditCard, AlignLeft, FileText, Hash, Building2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -52,6 +52,10 @@ export default function SharedExpensesTab({
     subcategory: '',
     paymentMethod: 'efectivo',
     date: new Date().toISOString().split('T')[0],
+    time: new Date().toTimeString().slice(0, 5),
+    voucherType: 'boleta',
+    voucherNumber: '',
+    ruc: '',
   });
   const [loading, setLoading] = useState(false);
 
@@ -63,6 +67,10 @@ export default function SharedExpensesTab({
       subcategory: '',
       paymentMethod: 'efectivo',
       date: new Date().toISOString().split('T')[0],
+      time: new Date().toTimeString().slice(0, 5),
+      voucherType: 'boleta',
+      voucherNumber: '',
+      ruc: '',
     });
     setShowForm(false);
     setEditingId(null);
@@ -137,7 +145,11 @@ export default function SharedExpensesTab({
       category: expense.category || '',
       subcategory: expense.subcategory || '',
       paymentMethod: expense.paymentMethod || 'efectivo',
-      date: expense.createdAt ? new Date(expense.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      date: expense.date || (expense.createdAt ? new Date(expense.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+      time: expense.time || new Date().toTimeString().slice(0, 5),
+      voucherType: expense.voucherType || 'boleta',
+      voucherNumber: expense.voucherNumber || '',
+      ruc: expense.ruc || '',
     });
     setEditingId(expense.id);
     setShowForm(true);
@@ -177,117 +189,237 @@ export default function SharedExpensesTab({
         )}
       </div>
 
-      {/* Form */}
+      {/* Form - iOS Style */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-muted/50 rounded-xl p-4 space-y-3">
-          {/* Monto y Fecha */}
-          <div className="flex gap-2">
-            <input
-              type="number"
-              value={formData.amount || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-              placeholder="Monto"
-              min="0"
-              step="0.01"
-              className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm"
-              autoFocus
-            />
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-              max={new Date().toISOString().split('T')[0]}
-              className="px-3 py-2 rounded-lg border border-border bg-background text-sm"
-            />
+        <form onSubmit={handleSubmit} className="space-y-3">
+          {/* Fecha y Hora */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+            <div className="flex divide-x divide-border">
+              <div className="flex-1 p-3 flex items-center gap-3">
+                <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600 dark:text-blue-400">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">Fecha</label>
+                  <input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                    max={new Date().toISOString().split('T')[0]}
+                    className="bg-transparent text-sm w-full focus:outline-none font-medium"
+                  />
+                </div>
+              </div>
+              <div className="flex-1 p-3 flex items-center gap-3">
+                <div className="p-1.5 bg-purple-500/10 rounded-lg text-purple-600 dark:text-purple-400">
+                  <Clock className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">Hora</label>
+                  <input
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+                    className="bg-transparent text-sm w-full focus:outline-none font-medium"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Categoría y Subcategoría */}
-          <div className="flex gap-2">
-            <select
-              value={formData.category}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm"
-            >
-              <option value="">Categoría</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
-              ))}
-            </select>
-            <select
-              value={formData.subcategory}
-              onChange={(e) => setFormData(prev => ({ ...prev, subcategory: e.target.value }))}
-              className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm"
-              disabled={!formData.category}
-            >
-              <option value="">Subcategoría</option>
-              {subcategories.map((sub) => (
-                <option key={sub.id} value={sub.nombre}>{sub.nombre}</option>
-              ))}
-            </select>
-          </div>
+          {/* Monto, Categoría, Subcategoría y Método de Pago */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+            <div className="p-3 flex items-center gap-3">
+              <div className="p-1.5 bg-green-500/10 rounded-lg text-green-600 dark:text-green-400">
+                <span className="text-base font-bold">$</span>
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] text-muted-foreground block mb-0.5">Monto</label>
+                <input
+                  type="number"
+                  value={formData.amount || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  className="bg-transparent text-sm w-full focus:outline-none font-medium"
+                  autoFocus
+                />
+              </div>
+            </div>
 
-          <div className="flex gap-2">
-            <select
-              value={formData.paymentMethod}
-              onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
-            >
-              {paymentMethods.map(method => (
-                <option key={method.id} value={method.id}>{method.nombre}</option>
-              ))}
-            </select>
-          </div>
+            <div className="p-3 flex items-center gap-3">
+              <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+                <Tag className="h-4 w-4" />
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] text-muted-foreground block mb-0.5">Categoría</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  className="bg-transparent text-sm w-full focus:outline-none font-medium appearance-none"
+                >
+                  <option value="">Seleccionar</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-          {/* Descripción */}
-          <input
-            type="text"
-            value={formData.description}
-            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            placeholder="Descripción (ej: Decoración navideña)"
-            className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm"
-            maxLength={100}
-          />
+            <div className="p-3 flex items-center gap-3">
+              <div className="p-1.5 bg-pink-500/10 rounded-lg text-pink-600 dark:text-pink-400">
+                <Tag className="h-4 w-4" />
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] text-muted-foreground block mb-0.5">Subcategoría</label>
+                <select
+                  value={formData.subcategory}
+                  onChange={(e) => setFormData(prev => ({ ...prev, subcategory: e.target.value }))}
+                  disabled={!formData.category}
+                  className="bg-transparent text-sm w-full focus:outline-none font-medium appearance-none disabled:opacity-50"
+                >
+                  <option value="">Seleccionar</option>
+                  {subcategories.map((sub) => (
+                    <option key={sub.id} value={sub.nombre}>{sub.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="p-3 flex items-center gap-3">
+              <div className="p-1.5 bg-orange-500/10 rounded-lg text-orange-600 dark:text-orange-400">
+                <CreditCard className="h-4 w-4" />
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] text-muted-foreground block mb-0.5">Método de Pago</label>
+                <select
+                  value={formData.paymentMethod}
+                  onChange={(e) => setFormData(prev => ({ ...prev, paymentMethod: e.target.value }))}
+                  className="bg-transparent text-sm w-full focus:outline-none font-medium appearance-none"
+                >
+                  {paymentMethods.map(method => (
+                    <option key={method.id} value={method.id}>{method.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="p-3 flex items-start gap-3">
+              <div className="p-1.5 bg-gray-500/10 rounded-lg text-gray-600 dark:text-gray-400 mt-1">
+                <AlignLeft className="h-4 w-4" />
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] text-muted-foreground block mb-1">Descripción</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Ej: Decoración navideña"
+                  rows={2}
+                  maxLength={100}
+                  className="bg-transparent text-sm w-full focus:outline-none resize-none"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Sugerencias */}
-          {formData.subcategory && (
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-2">
+          {formData.subcategory && suggestions.length > 0 && (
+            <div className="bg-card border border-border rounded-xl p-3">
+              <label className="block text-[10px] text-muted-foreground uppercase tracking-wide mb-2">
                 Sugerencias para {formData.subcategory}
               </label>
-              {suggestions.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {suggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => addSuggestion(suggestion)}
-                      className="px-2.5 py-1.5 rounded-full text-xs font-medium bg-background hover:bg-primary hover:text-primary-foreground border border-border transition-colors"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  No hay sugerencias configuradas
-                </p>
-              )}
+              <div className="flex flex-wrap gap-1.5">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => addSuggestion(suggestion)}
+                    className="px-2.5 py-1.5 rounded-full text-xs font-medium bg-muted hover:bg-primary hover:text-primary-foreground border border-border transition-colors"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Botones */}
-          <div className="flex gap-2">
+          {/* Información Tributaria */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+            <div className="flex divide-x divide-border">
+              <div className="flex-1 p-3 flex items-center gap-3">
+                <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+                  <FileText className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">Tipo de Comprobante</label>
+                  <select
+                    value={formData.voucherType}
+                    onChange={(e) => setFormData(prev => ({ ...prev, voucherType: e.target.value as any }))}
+                    className="bg-transparent text-sm w-full focus:outline-none font-medium appearance-none"
+                  >
+                    <option value="boleta">Boleta</option>
+                    <option value="factura">Factura</option>
+                    <option value="recibo">Recibo</option>
+                    <option value="ticket">Ticket</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex-1 p-3 flex items-center gap-3">
+                <div className="p-1.5 bg-cyan-500/10 rounded-lg text-cyan-600 dark:text-cyan-400">
+                  <Hash className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">Número</label>
+                  <input
+                    type="text"
+                    value={formData.voucherNumber}
+                    onChange={(e) => setFormData(prev => ({ ...prev, voucherNumber: e.target.value }))}
+                    placeholder="B001-00012345"
+                    maxLength={20}
+                    className="bg-transparent text-sm w-full focus:outline-none font-medium"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Campo RUC condicional (solo si es factura) */}
+          {formData.voucherType === 'factura' && (
+            <div className="bg-card border border-amber-200 dark:border-amber-900 rounded-xl overflow-hidden animate-in slide-in-from-top-2 duration-200">
+              <div className="p-3 flex items-center gap-3 bg-amber-500/5">
+                <div className="p-1.5 bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
+                  <Building2 className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">RUC del Emisor</label>
+                  <input
+                    type="text"
+                    value={formData.ruc}
+                    onChange={(e) => setFormData(prev => ({ ...prev, ruc: e.target.value }))}
+                    placeholder="20123456789"
+                    maxLength={11}
+                    className="bg-transparent text-sm w-full focus:outline-none font-medium"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Botones de acción */}
+          <div className="flex gap-2 pt-1">
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm disabled:opacity-50"
+              className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium text-sm disabled:opacity-50 transition-all active:scale-95"
             >
               {loading ? 'Guardando...' : editingId ? 'Actualizar' : 'Agregar'}
             </button>
             <button
               type="button"
               onClick={resetForm}
-              className="px-4 py-2 bg-muted rounded-lg text-sm"
+              className="px-5 py-2.5 bg-muted rounded-xl text-sm font-medium transition-all active:scale-95"
             >
               Cancelar
             </button>
