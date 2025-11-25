@@ -260,6 +260,28 @@
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Modal Mobile Animation - Smooth slide up */
+@keyframes modalMobileEnter {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-mobile-enter {
+  animation: modalMobileEnter 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@media (min-width: 640px) {
+  .modal-mobile-enter {
+    animation: none;
+  }
+}
+
 /* Hide scrollbar for Chrome, Safari and Opera */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;

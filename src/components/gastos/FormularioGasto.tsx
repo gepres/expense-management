@@ -874,7 +874,7 @@ export default function FormularioGasto() {
               </button>
 
               {showDetails && (
-                <div className="p-4 pt-0 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                <div className="p-4 pt-0 space-y-4 mt-3 animate-in slide-in-from-top-2 duration-200">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
