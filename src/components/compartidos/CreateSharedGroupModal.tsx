@@ -62,8 +62,7 @@ export default function CreateSharedGroupModal({ isOpen, onClose, onSaved, initi
     }
   }, [initialData, isEditing]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
 
     if (!formData.name.trim()) {
       toast.error('El nombre es requerido');

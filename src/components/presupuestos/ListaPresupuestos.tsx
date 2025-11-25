@@ -20,7 +20,7 @@ import { calcularGastosPorCategoria } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
 import { Plus, Target, Wallet, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Tag, Coins, DollarSign, AlertTriangle } from 'lucide-react';
 import CustomLoader from '@components/common/CustomLoader';
-import Modal, { ModalButton, ModalFooterActions } from '@components/common/Modal';
+import Modal, { ModalFooterActions } from '@components/common/Modal';
 
 interface FormPresupuesto {
   categoria: CategoriaGastoOGeneral;
