@@ -10,7 +10,7 @@ import { SharedService } from '@services/shared';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import type { SharedExpenseGroup, SharedBudget, SharedExpense, GroupStats, SharedMember } from '@app-types/shared';
-import { ArrowLeft, MoreVertical, Plus, TrendingUp, TrendingDown, RefreshCw, Wallet, Receipt, FileJson, FileSpreadsheet, Wifi } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Plus, TrendingUp, TrendingDown, RefreshCw, Wallet, Receipt, FileJson, FileSpreadsheet } from 'lucide-react';
 
 import toast from 'react-hot-toast';
 import CustomLoader from '@components/common/CustomLoader';
