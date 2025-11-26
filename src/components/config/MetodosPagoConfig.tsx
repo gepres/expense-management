@@ -4,7 +4,7 @@ import { useConfig } from '@context/ConfigContext';
 import { Plus, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
-import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
+import Modal, { ModalFooterActions } from '@components/common/Modal';
 
 export default function MetodosPagoConfig() {
   const { reloadPaymentMethods } = useConfig();
@@ -69,8 +69,8 @@ export default function MetodosPagoConfig() {
     setMethodId(value);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!methodName.trim()) return;
     if (!editingMethod && !methodId.trim()) {
       toast.error('El ID es obligatorio para nuevos métodos');

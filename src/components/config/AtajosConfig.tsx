@@ -4,7 +4,7 @@ import { useConfig } from '@context/ConfigContext';
 import { Plus, Edit2, Trash2, Zap, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
-import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
+import Modal, { ModalFooterActions } from '@components/common/Modal';
 
 export default function AtajosConfig() {
   const {
@@ -125,8 +125,8 @@ export default function AtajosConfig() {
     return true;
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async (e?: React.FormEvent) => {
+    e?.preventDefault();
 
     if (!validateForm()) return;
 

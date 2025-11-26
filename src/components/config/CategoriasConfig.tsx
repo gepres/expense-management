@@ -95,8 +95,8 @@ export default function CategoriasConfig() {
     setSubId(value);
   };
 
-  const handleSaveCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveCategory = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!catNombre.trim()) return;
     if (!editingCategory && !catId.trim()) {
       toast.error('El ID es obligatorio para nuevas categorías');
