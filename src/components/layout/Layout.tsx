@@ -7,7 +7,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
-import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, ShoppingBag } from 'lucide-react';
+import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, ShoppingBag, BanknoteArrowDown } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import BudgetMonitor from '../common/BudgetMonitor';
 import NotificationsPanel from '../compartidos/NotificationsPanel';
@@ -46,7 +46,7 @@ export default function Layout() {
   const mobileLinks = [
     { to: '/', label: 'Inicio', icon: Home },
     { to: '/gastos', label: 'Gastos', icon: TrendingDown },
-    { to: '/compras', label: 'Compras', icon: ShoppingBag },
+    { to: '/gastos/nuevo', label: 'Nuevo Gasto', icon: BanknoteArrowDown },
     { to: '/asistente', label: 'IA', icon: Bot },
   ];
 

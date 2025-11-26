@@ -1044,7 +1044,7 @@ export default function FormularioGasto() {
             </div>
 
             {/* 6. Botones de Acción (Fixed Bottom) */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-md border-t border-border z-50 pb-safe">
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-card/80 backdrop-blur-md border-t border-border z-50 pb-safe">
               <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
                 <button
                   type="button"

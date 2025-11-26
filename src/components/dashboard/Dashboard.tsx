@@ -28,7 +28,6 @@ import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, Shop
 import AIInsights from './AIInsights';
 import InstallPWA from '../common/InstallPWA';
 import CustomLoader from '../common/CustomLoader';
-import ModalExample from '../common/ModalExample';
 
 // Función helper para obtener el icono de la categoría
 const getCategoryIcon = (categoria: string, className?: string) => {
@@ -168,8 +167,6 @@ export default function Dashboard() {
         {/* PWA Install Banner */}
         <InstallPWA />
       </div>
-
-      <ModalExample />
 
       {/* Tarjetas de estadísticas principales */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
