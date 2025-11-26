@@ -5,9 +5,10 @@
 import { useState } from 'react';
 import { SharedService } from '@services/shared';
 import type { SharedExpenseGroup, GroupStats } from '@app-types/shared';
-import { Crown, UserMinus, TrendingUp, TrendingDown, UserPlus } from 'lucide-react';
+import { Crown, UserMinus, TrendingUp, TrendingDown, UserPlus, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import InviteLinkButton from './InviteLinkButton';
+import Modal, { ModalFooterActions } from '@components/common/Modal';
 
 interface Props {
   group: SharedExpenseGroup;
@@ -25,13 +26,15 @@ export default function SharedMembersTab({
   currencySymbol,
 }: Props) {
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<{id: string, name: string} | null>(null);
 
-  const handleRemoveMember = async (odId: string, name: string) => {
-    if (!confirm(`¿Eliminar a ${name} del grupo?`)) return;
+  const handleRemoveMember = async () => {
+    if (!memberToRemove) return;
 
     try {
-      await SharedService.removeMember(group.id, odId);
-      toast.success(`${name} ha sido eliminado del grupo`);
+      await SharedService.removeMember(group.id, memberToRemove.id);
+      toast.success(`${memberToRemove.name} ha sido eliminado del grupo`);
+      setMemberToRemove(null);
       onMemberRemoved();
     } catch (error) {
       toast.error('Error al eliminar miembro');
@@ -130,7 +133,7 @@ export default function SharedMembersTab({
               {/* Remove Button (only for creator, can't remove self) */}
               {isCreator && !isCreatorMember && (
                 <button
-                  onClick={() => handleRemoveMember(member.odId, displayName)}
+                  onClick={() => setMemberToRemove({id: member.odId, name: displayName})}
                   className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                   title="Eliminar del grupo"
                 >
@@ -183,6 +186,39 @@ export default function SharedMembersTab({
           </div>
         </div>
       )}
+
+      {/* Modal de confirmación para eliminar miembro */}
+      <Modal
+        isOpen={!!memberToRemove}
+        onClose={() => setMemberToRemove(null)}
+        title="¿Eliminar miembro?"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setMemberToRemove(null)}
+            onConfirm={handleRemoveMember}
+            cancelText="Cancelar"
+            confirmText="Eliminar"
+            confirmVariant="destructive"
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              ¿Estás seguro de eliminar a <strong>{memberToRemove?.name}</strong> del grupo?
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Esta acción no se puede deshacer.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

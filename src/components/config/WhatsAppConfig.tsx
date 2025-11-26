@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '@context/AuthContext';
-import { authService } from '@services/firebase';
 import { MessageCircle, Link2, Unlink, Info, Check, X, Loader2, ChevronDown, ChevronUp, ExternalLink, CheckCircle2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Modal, { ModalFooterActions } from '@components/common/Modal';
+import { auth } from '@services/firebase';
 
 export default function WhatsAppConfig() {
   const { usuario, actualizarUsuario } = useAuth();
@@ -32,10 +33,32 @@ export default function WhatsAppConfig() {
 
     setLoading(true);
     try {
-      await authService.vincularWhatsApp(phoneNumber);
+      // Obtener el token de Firebase
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
+      const token = await user.getIdToken();
+
+      // Llamar al backend
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+      const response = await fetch(`${API_BASE_URL}/whatsapp/link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ phoneNumber })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Error al vincular WhatsApp');
+      }
+
       toast.success('¡WhatsApp vinculado exitosamente!');
       setPhoneNumber('');
-      // Actualizar el contexto en lugar de recargar la página
+      // Actualizar el contexto
       await actualizarUsuario();
     } catch (error: any) {
       console.error(error);
@@ -48,10 +71,30 @@ export default function WhatsAppConfig() {
   const handleUnlink = async () => {
     setLoading(true);
     try {
-      await authService.desvincularWhatsApp();
+      // Obtener el token de Firebase
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
+      const token = await user.getIdToken();
+
+      // Llamar al backend
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+      const response = await fetch(`${API_BASE_URL}/whatsapp/unlink`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Error al desvincular WhatsApp');
+      }
+
       toast.success('WhatsApp desvinculado');
       setShowUnlinkConfirm(false);
-      // Actualizar el contexto en lugar de recargar la página
+      // Actualizar el contexto
       await actualizarUsuario();
     } catch (error: any) {
       console.error(error);
@@ -129,16 +172,18 @@ export default function WhatsAppConfig() {
         </div>
       </div>
 
-      {/* Formulario de Vinculación */}
+      {/* Formulario de Vinculación - iOS Style */}
       {!isLinked && (
-        <div className="p-6 rounded-xl bg-card border border-border mb-6">
-          <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Link2 className="h-5 w-5" />
-            Vincular WhatsApp
-          </h3>
-          <form onSubmit={handleLink} className="space-y-4">
+        <div className="bg-card rounded-2xl border border-border shadow-sm mb-6">
+          <div className="p-4 border-b border-border/50">
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              <Link2 className="h-5 w-5" />
+              Vincular WhatsApp
+            </h3>
+          </div>
+          <form onSubmit={handleLink} className="p-4 space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
                 Número de WhatsApp
               </label>
               <input
@@ -146,7 +191,7 @@ export default function WhatsAppConfig() {
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="+51999999999"
-                className="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono"
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base font-mono border-b border-border/50 pb-2"
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Incluye el código de país (ej: +51 para Perú)
@@ -174,7 +219,7 @@ export default function WhatsAppConfig() {
       )}
 
       {/* Botón de Desvincular */}
-      {isLinked && !showUnlinkConfirm && (
+      {isLinked && (
         <div className="mb-6">
           <button
             onClick={() => setShowUnlinkConfirm(true)}
@@ -186,40 +231,35 @@ export default function WhatsAppConfig() {
         </div>
       )}
 
-      {/* Confirmación de Desvinculación */}
-      {showUnlinkConfirm && (
-        <div className="p-6 rounded-xl bg-destructive/5 border-2 border-destructive/20 mb-6">
-          <h3 className="font-semibold text-destructive mb-2">
-            ¿Estás seguro?
-          </h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Al desvincular tu número, ya no podrás usar el bot de WhatsApp hasta que lo vincules nuevamente.
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={handleUnlink}
-              disabled={loading}
-              className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Unlink className="h-4 w-4" />
-                  Sí, desvincular
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => setShowUnlinkConfirm(false)}
-              disabled={loading}
-              className="flex-1 bg-muted hover:bg-muted/80 text-foreground py-2 rounded-lg font-medium transition-all"
-            >
-              Cancelar
-            </button>
+      {/* Modal de Confirmación de Desvinculación */}
+      <Modal
+        isOpen={showUnlinkConfirm}
+        onClose={() => setShowUnlinkConfirm(false)}
+        title="¿Desvincular WhatsApp?"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setShowUnlinkConfirm(false)}
+            onConfirm={handleUnlink}
+            confirmText={loading ? 'Desvinculando...' : 'Sí, desvincular'}
+            confirmVariant="destructive"
+            disabled={loading}
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Al desvincular tu número, ya no podrás usar el bot de WhatsApp hasta que lo vincules nuevamente.
+            </p>
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Instrucciones de Uso */}
       <div className="p-6 rounded-xl bg-muted/50 border border-border">

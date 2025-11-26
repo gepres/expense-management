@@ -8,8 +8,9 @@ import { useSharedExpenses, createExpenseNotification } from '@context/SharedExp
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import type { SharedExpense, CreateSharedExpenseDto } from '@app-types/shared';
-import { Plus, Edit2, Trash2, Calendar, Clock, Tag, CreditCard, AlignLeft, FileText, Hash, Building2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar, Clock, Tag, CreditCard, AlignLeft, FileText, Hash, Building2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Modal, { ModalFooterActions } from '@components/common/Modal';
 
 interface Props {
   groupId: string;
@@ -37,6 +38,7 @@ export default function SharedExpensesTab({
   const { addNotification } = useSharedExpenses();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
 
   // Abrir formulario desde botón flotante
   useEffect(() => {
@@ -155,13 +157,14 @@ export default function SharedExpensesTab({
     setShowForm(true);
   };
 
-  const handleDelete = async (expenseId: string) => {
-    if (!confirm('¿Eliminar este gasto?')) return;
+  const handleDelete = async () => {
+    if (!expenseToDelete) return;
 
     try {
-      await SharedService.deleteExpense(groupId, expenseId);
-      onExpensesChange(expenses.filter(exp => exp.id !== expenseId));
+      await SharedService.deleteExpense(groupId, expenseToDelete);
+      onExpensesChange(expenses.filter(exp => exp.id !== expenseToDelete));
       toast.success('Gasto eliminado');
+      setExpenseToDelete(null);
     } catch (error) {
       toast.error('Error al eliminar');
     }
@@ -485,7 +488,7 @@ export default function SharedExpensesTab({
                       <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
                     </button>
                     <button
-                      onClick={() => handleDelete(expense.id)}
+                      onClick={() => setExpenseToDelete(expense.id)}
                       className="p-1.5 hover:bg-destructive/10 rounded-lg transition-colors"
                     >
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
@@ -497,6 +500,36 @@ export default function SharedExpensesTab({
           })}
         </div>
       )}
+
+      {/* Modal de confirmación de eliminación */}
+      <Modal
+        isOpen={!!expenseToDelete}
+        onClose={() => setExpenseToDelete(null)}
+        title="¿Eliminar gasto?"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setExpenseToDelete(null)}
+            onConfirm={handleDelete}
+            cancelText="Cancelar"
+            confirmText="Eliminar"
+            confirmVariant="destructive"
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Esta acción no se puede deshacer. El gasto será eliminado permanentemente.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

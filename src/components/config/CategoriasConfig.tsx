@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { ConfigService, type Category, type Subcategory } from '../../services/config';
 import { useConfig } from '@context/ConfigContext';
-import { Plus, Edit2, Trash2, Save, X, ChevronRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, ChevronRight, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
+import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
 
 export default function CategoriasConfig() {
   const { reloadCategories } = useConfig();
@@ -27,6 +28,10 @@ export default function CategoriasConfig() {
   const [subSuggestionInput, setSubSuggestionInput] = useState('');
   const [subSuggestions, setSubSuggestions] = useState<string[]>([]);
   const [editingSubcatId, setEditingSubcatId] = useState<string | null>(null);
+
+  // Delete confirmation states
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [subcategoryToDelete, setSubcategoryToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadCategories();
@@ -124,12 +129,13 @@ export default function CategoriasConfig() {
     }
   };
 
-  const handleDeleteCategory = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta categoría? Se eliminarán también sus subcategorías.')) return;
+  const handleDeleteCategory = async () => {
+    if (!categoryToDelete) return;
 
     try {
-      await ConfigService.deleteCategory(id);
+      await ConfigService.deleteCategory(categoryToDelete);
       toast.success('Categoría eliminada');
+      setCategoryToDelete(null);
       loadCategories();
     } catch {
       toast.error('Error al eliminar categoría');
@@ -230,15 +236,16 @@ export default function CategoriasConfig() {
     }
   };
 
-  const handleDeleteSubcategory = async (subId: string) => {
-    if (!editingCategory || !confirm('¿Eliminar subcategoría?')) return;
+  const handleDeleteSubcategory = async () => {
+    if (!editingCategory || !subcategoryToDelete) return;
 
     try {
-      await ConfigService.deleteSubcategory(editingCategory.id, subId);
-      
-      const updatedSubs = editingCategory.subcategorias?.filter(sub => sub.id !== subId);
+      await ConfigService.deleteSubcategory(editingCategory.id, subcategoryToDelete);
+
+      const updatedSubs = editingCategory.subcategorias?.filter(sub => sub.id !== subcategoryToDelete);
       setEditingCategory({ ...editingCategory, subcategorias: updatedSubs });
       toast.success('Subcategoría eliminada');
+      setSubcategoryToDelete(null);
       loadCategories();
     } catch {
       toast.error('Error al eliminar subcategoría');
@@ -288,7 +295,7 @@ export default function CategoriasConfig() {
                   <Edit2 className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => handleDeleteCategory(category.id)}
+                  onClick={() => setCategoryToDelete(category.id)}
                   className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -314,102 +321,115 @@ export default function CategoriasConfig() {
       </div>
 
       {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 !mt-0">
-          <div className="bg-card w-full max-w-2xl rounded-xl shadow-xl border border-border max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-border flex justify-between items-center sticky top-0 bg-card z-10">
-              <h2 className="text-xl font-bold">
-                {editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
-              </h2>
-              <button onClick={closeModal} className="text-muted-foreground hover:text-foreground">
-                <X className="h-6 w-6" />
-              </button>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={editingCategory ? 'Editar Categoría' : 'Nueva Categoría'}
+        size="lg"
+        footer={
+          <ModalButton
+            type="submit"
+            variant="primary"
+            onClick={handleSaveCategory}
+            className="w-full"
+          >
+            Guardar Cambios
+          </ModalButton>
+        }
+      >
+        <div className="space-y-6">
+          {/* Category Form - iOS Style */}
+          <div className="bg-card rounded-2xl border border-border shadow-sm divide-y divide-border/50">
+            {/* ID */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                ID (Identificador único)
+              </label>
+              <input
+                type="text"
+                value={catId}
+                onChange={handleIdChange}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base disabled:opacity-50"
+                placeholder="Ej: alimentacion"
+                required
+                disabled={!!editingCategory}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Solo minúsculas, números y guiones bajos.</p>
             </div>
 
-            <div className="p-6 space-y-8">
-              {/* Category Form */}
-              <form id="cat-form" onSubmit={handleSaveCategory} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">ID (Identificador único)</label>
-                    <input
-                      type="text"
-                      value={catId}
-                      onChange={handleIdChange}
-                      className="w-full px-3 py-2 rounded-md border border-border bg-background disabled:opacity-50"
-                      placeholder="Ej: alimentacion"
-                      required
-                      disabled={!!editingCategory}
-                    />
-                    <p className="text-xs text-muted-foreground">Solo minúsculas, números y guiones bajos.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Nombre</label>
-                    <input
-                      type="text"
-                      value={catNombre}
-                      onChange={(e) => setCatNombre(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                      placeholder="Ej: Alimentación"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Icono</label>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                        className="w-full px-3 py-2 text-left rounded-md border border-border bg-background flex items-center gap-2"
-                      >
-                        <span className="text-xl">{catIcono || '😊'}</span>
-                        <span className="text-muted-foreground text-sm">Seleccionar icono</span>
-                      </button>
-                      {showEmojiPicker && (
-                        <div className="absolute z-20 top-full left-0 mt-2">
-                          <div className="fixed inset-0 z-10" onClick={() => setShowEmojiPicker(false)} />
-                          <div className="relative z-20">
-                            <EmojiPicker
-                              theme={Theme.AUTO}
-                              onEmojiClick={(emojiData) => {
-                                setCatIcono(emojiData.emoji);
-                                setShowEmojiPicker(false);
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Color</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={catColor}
-                        onChange={(e) => setCatColor(e.target.value)}
-                        className="h-10 w-10 rounded cursor-pointer border-0"
-                      />
-                      <input
-                        type="text"
-                        value={catColor}
-                        onChange={(e) => setCatColor(e.target.value)}
-                        className="flex-1 px-3 py-2 rounded-md border border-border bg-background uppercase"
-                        placeholder="#000000"
+            {/* Nombre */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Nombre</label>
+              <input
+                type="text"
+                value={catNombre}
+                onChange={(e) => setCatNombre(e.target.value)}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base"
+                placeholder="Ej: Alimentación"
+                required
+              />
+            </div>
+
+            {/* Icono */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Icono</label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className="bg-transparent border-0 focus:outline-none text-left flex items-center gap-2"
+                >
+                  <span className="text-3xl">{catIcono || '😊'}</span>
+                  <span className="text-muted-foreground text-sm">Seleccionar</span>
+                </button>
+                {showEmojiPicker && (
+                  <div className="absolute z-20 top-full left-0 mt-2">
+                    <div className="fixed inset-0 z-10" onClick={() => setShowEmojiPicker(false)} />
+                    <div className="relative z-20">
+                      <EmojiPicker
+                        theme={Theme.AUTO}
+                        onEmojiClick={(emojiData) => {
+                          setCatIcono(emojiData.emoji);
+                          setShowEmojiPicker(false);
+                        }}
                       />
                     </div>
                   </div>
-                  <div className="col-span-1 md:col-span-2 space-y-2">
-                    <label className="text-sm font-medium">Descripción</label>
-                    <textarea
-                      value={catDescripcion}
-                      onChange={(e) => setCatDescripcion(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-border bg-background min-h-[80px]"
-                      placeholder="Descripción opcional de la categoría..."
-                    />
-                  </div>
-                </div>
-              </form>
+                )}
+              </div>
+            </div>
+
+            {/* Color */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Color</label>
+              <div className="flex gap-3 items-center">
+                <input
+                  type="color"
+                  value={catColor}
+                  onChange={(e) => setCatColor(e.target.value)}
+                  className="h-10 w-10 rounded cursor-pointer border-0"
+                />
+                <input
+                  type="text"
+                  value={catColor}
+                  onChange={(e) => setCatColor(e.target.value)}
+                  className="flex-1 bg-transparent border-0 focus:outline-none focus:ring-0 text-base uppercase"
+                  placeholder="#000000"
+                />
+              </div>
+            </div>
+
+            {/* Descripción */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Descripción</label>
+              <textarea
+                value={catDescripcion}
+                onChange={(e) => setCatDescripcion(e.target.value)}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base resize-none min-h-[60px]"
+                placeholder="Descripción opcional de la categoría..."
+              />
+            </div>
+          </div>
 
               {/* Subcategories Section (Only in Edit Mode) */}
               {editingCategory && (
@@ -546,7 +566,7 @@ export default function CategoriasConfig() {
                             <Edit2 className="h-3.5 w-3.5" />
                           </button>
                           <button
-                            onClick={() => handleDeleteSubcategory(sub.id)}
+                            onClick={() => setSubcategoryToDelete(sub.id)}
                             className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-background rounded"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -562,26 +582,64 @@ export default function CategoriasConfig() {
                   </div>
                 </div>
               )}
-            </div>
+        </div>
+      </Modal>
 
-            <div className="p-6 border-t border-border flex justify-end gap-4 bg-muted/20 rounded-b-xl">
-              <button
-                onClick={closeModal}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                form="cat-form"
-                className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium"
-              >
-                Guardar Cambios
-              </button>
+      {/* Delete Category Confirmation Modal */}
+      <Modal
+        isOpen={!!categoryToDelete}
+        onClose={() => setCategoryToDelete(null)}
+        title="¿Eliminar categoría?"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setCategoryToDelete(null)}
+            onConfirm={handleDeleteCategory}
+            confirmVariant="destructive"
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
             </div>
           </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Esta acción no se puede deshacer. La categoría y todas sus subcategorías serán eliminadas permanentemente.
+            </p>
+          </div>
         </div>
-      )}
+      </Modal>
+
+      {/* Delete Subcategory Confirmation Modal */}
+      <Modal
+        isOpen={!!subcategoryToDelete}
+        onClose={() => setSubcategoryToDelete(null)}
+        title="¿Eliminar subcategoría?"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setSubcategoryToDelete(null)}
+            onConfirm={handleDeleteSubcategory}
+            confirmVariant="destructive"
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Esta acción no se puede deshacer. La subcategoría será eliminada permanentemente.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

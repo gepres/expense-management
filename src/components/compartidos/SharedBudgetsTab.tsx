@@ -8,8 +8,9 @@ import { useSharedExpenses, createBudgetNotification } from '@context/SharedExpe
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import type { SharedBudget, CreateSharedBudgetDto } from '@app-types/shared';
-import { Plus, Edit2, Trash2, Calendar, Clock, FileText, Hash, Building2, CreditCard, AlignLeft } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar, Clock, FileText, Hash, Building2, CreditCard, AlignLeft, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Modal, { ModalFooterActions } from '@components/common/Modal';
 
 interface Props {
   groupId: string;
@@ -37,6 +38,7 @@ export default function SharedBudgetsTab({
   const { addNotification } = useSharedExpenses();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [budgetToDelete, setBudgetToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateSharedBudgetDto>({
     amount: 0,
     description: '',
@@ -131,13 +133,14 @@ export default function SharedBudgetsTab({
     setShowForm(true);
   };
 
-  const handleDelete = async (budgetId: string) => {
-    if (!confirm('¿Eliminar este aporte?')) return;
+  const handleDelete = async () => {
+    if (!budgetToDelete) return;
 
     try {
-      await SharedService.deleteBudget(groupId, budgetId);
-      onBudgetsChange(budgets.filter(b => b.id !== budgetId));
+      await SharedService.deleteBudget(groupId, budgetToDelete);
+      onBudgetsChange(budgets.filter(b => b.id !== budgetToDelete));
       toast.success('Aporte eliminado');
+      setBudgetToDelete(null);
     } catch (error) {
       toast.error('Error al eliminar');
     }
@@ -414,7 +417,7 @@ export default function SharedBudgetsTab({
                       <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
                     </button>
                     <button
-                      onClick={() => handleDelete(budget.id)}
+                      onClick={() => setBudgetToDelete(budget.id)}
                       className="p-1.5 hover:bg-destructive/10 hover:opacity-80 rounded-lg transition-colors"
                     >
                       <Trash2 className="h-3.5 w-3.5 text-destructive" />
@@ -426,6 +429,36 @@ export default function SharedBudgetsTab({
           })}
         </div>
       )}
+
+      {/* Modal de confirmación de eliminación */}
+      <Modal
+        isOpen={!!budgetToDelete}
+        onClose={() => setBudgetToDelete(null)}
+        title="¿Eliminar aporte?"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setBudgetToDelete(null)}
+            onConfirm={handleDelete}
+            cancelText="Cancelar"
+            confirmText="Eliminar"
+            confirmVariant="destructive"
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Esta acción no se puede deshacer. El aporte será eliminado permanentemente.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

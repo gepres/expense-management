@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { ConfigService, type Shortcut } from '../../services/config';
 import { useConfig } from '@context/ConfigContext';
-import { Plus, Edit2, Trash2, X, Zap } from 'lucide-react';
+import { Plus, Edit2, Trash2, Zap, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
+import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
 
 export default function AtajosConfig() {
   const {
@@ -21,6 +22,7 @@ export default function AtajosConfig() {
   const [editingShortcut, setEditingShortcut] = useState<Shortcut | null>(null);
   const [saving, setSaving] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [shortcutToDelete, setShortcutToDelete] = useState<string | null>(null);
 
   // Form states
   const [name, setName] = useState('');
@@ -168,12 +170,13 @@ export default function AtajosConfig() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este atajo?')) return;
+  const handleDelete = async () => {
+    if (!shortcutToDelete) return;
 
     try {
-      await ConfigService.deleteShortcut(id);
+      await ConfigService.deleteShortcut(shortcutToDelete);
       toast.success('Atajo eliminado');
+      setShortcutToDelete(null);
       await reloadShortcuts();
     } catch {
       toast.error('Error al eliminar atajo');
@@ -233,7 +236,7 @@ export default function AtajosConfig() {
                     <Edit2 className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => handleDelete(shortcut.id)}
+                    onClick={() => setShortcutToDelete(shortcut.id)}
                     className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -268,216 +271,229 @@ export default function AtajosConfig() {
       )}
 
       {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 !mt-0">
-          <div className="bg-card w-full max-w-lg rounded-xl shadow-xl border border-border max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-border flex justify-between items-center sticky top-0 bg-card z-10">
-              <h2 className="text-xl font-bold">
-                {editingShortcut ? 'Editar Atajo' : 'Nuevo Atajo'}
-              </h2>
-              <button onClick={closeModal} className="text-muted-foreground hover:text-foreground">
-                <X className="h-6 w-6" />
-              </button>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={editingShortcut ? 'Editar Atajo' : 'Nuevo Atajo'}
+        size="lg"
+        footer={
+          <ModalFooterActions
+            onCancel={closeModal}
+            onConfirm={handleSave}
+            confirmText={saving ? 'Guardando...' : 'Guardar'}
+            disabled={saving}
+          />
+        }
+      >
+        <form onSubmit={handleSave} className="space-y-6">
+          {/* Nombre del botón e Icono - iOS Style Card */}
+          <div className="bg-card rounded-2xl border border-border shadow-sm p-4 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                  Nombre del Botón <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={handleNameChange}
+                  className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base p-0"
+                  placeholder="Ej: Pollería"
+                  required
+                  maxLength={15}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {name.length}/15 caracteres
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Icono</label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="w-full bg-transparent border-0 focus:outline-none text-left flex items-center gap-2 h-[42px]"
+                  >
+                    <span className="text-3xl">{icon || '😊'}</span>
+                  </button>
+                  {showEmojiPicker && (
+                    <div className="absolute z-20 top-full right-0 mt-2">
+                      <div className="fixed inset-0 z-10" onClick={() => setShowEmojiPicker(false)} />
+                      <div className="relative z-20">
+                        <EmojiPicker
+                          theme={Theme.AUTO}
+                          onEmojiClick={(emojiData) => {
+                            setIcon(emojiData.emoji);
+                            setShowEmojiPicker(false);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Instrucción */}
+          <p className="text-sm text-muted-foreground px-1">
+            Completa al menos 2 de los siguientes campos:
+          </p>
+
+          {/* Campos opcionales - iOS Style Card */}
+          <div className="bg-card rounded-2xl border border-border shadow-sm divide-y divide-border/50">
+            {/* Categoría */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Categoría</label>
+              <select
+                value={category}
+                onChange={handleCategoryChange}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base"
+              >
+                <option value="">Sin definir</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.nombre}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <form onSubmit={handleSave} className="p-6 space-y-4">
-              {/* Nombre del botón e Icono */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-2 space-y-2">
-                  <label className="text-sm font-medium">
-                    Nombre del Botón <span className="text-destructive">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={handleNameChange}
-                    className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                    placeholder="Ej: Pollería"
-                    required
-                    maxLength={15}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {name.length}/15 caracteres
-                  </p>
-                </div>
+            {/* Subcategoría */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Subcategoría</label>
+              <select
+                value={subcategory}
+                onChange={(e) => setSubcategory(e.target.value)}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base"
+                disabled={!category}
+              >
+                <option value="">Sin definir</option>
+                {subcategorias.map((sub) => (
+                  <option key={sub.id} value={sub.id}>
+                    {sub.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Icono</label>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      className="w-full px-3 py-2 text-left rounded-md border border-border bg-background flex items-center gap-2 h-[42px]"
-                    >
-                      <span className="text-xl">{icon || '😊'}</span>
-                    </button>
-                    {showEmojiPicker && (
-                      <div className="absolute z-20 top-full right-0 mt-2">
-                        <div className="fixed inset-0 z-10" onClick={() => setShowEmojiPicker(false)} />
-                        <div className="relative z-20">
-                          <EmojiPicker
-                            theme={Theme.AUTO}
-                            onEmojiClick={(emojiData) => {
-                              setIcon(emojiData.emoji);
-                              setShowEmojiPicker(false);
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+            {/* Monto */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Monto</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base"
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+              />
+            </div>
 
-              <div className="border-t border-border pt-4">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Completa al menos 2 de los siguientes campos:
-                </p>
+            {/* Moneda */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Moneda</label>
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base"
+              >
+                <option value="">Sin definir</option>
+                {currencies.map((curr) => (
+                  <option key={curr.id} value={curr.codigoISO}>
+                    {curr.simbolo} {curr.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Categoría */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Categoría</label>
-                    <select
-                      value={category}
-                      onChange={handleCategoryChange}
-                      className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                    >
-                      <option value="">Sin definir</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+            {/* Método de Pago */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Método de Pago</label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base"
+              >
+                <option value="">Sin definir</option>
+                {paymentMethods.map((method) => (
+                  <option key={method.id} value={method.id}>
+                    {method.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-                  {/* Subcategoría */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Subcategoría</label>
-                    <select
-                      value={subcategory}
-                      onChange={(e) => setSubcategory(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                      disabled={!category}
-                    >
-                      <option value="">Sin definir</option>
-                      {subcategorias.map((sub) => (
-                        <option key={sub.id} value={sub.id}>
-                          {sub.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+            {/* Descripción */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Descripción</label>
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base"
+                placeholder="Descripción predeterminada..."
+              />
+            </div>
 
-                  {/* Monto */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Monto</label>
-                    <input
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                    />
-                  </div>
+            {/* Tags */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Etiquetas</label>
+              <input
+                type="text"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base"
+                placeholder="trabajo, urgente (separadas por comas)"
+              />
+            </div>
 
-                  {/* Moneda */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Moneda</label>
-                    <select
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                    >
-                      <option value="">Sin definir</option>
-                      {currencies.map((curr) => (
-                        <option key={curr.id} value={curr.codigoISO}>
-                          {curr.simbolo} {curr.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+            {/* Recurrente */}
+            <div className="p-4 flex items-center gap-3">
+              <label htmlFor="isRecurring" className="flex-1 text-sm font-medium cursor-pointer">
+                Gasto recurrente
+              </label>
+              <input
+                type="checkbox"
+                id="isRecurring"
+                checked={isRecurring}
+                onChange={(e) => setIsRecurring(e.target.checked)}
+                className="h-5 w-5 rounded border-input text-primary focus:ring-primary"
+              />
+            </div>
+          </div>
+        </form>
+      </Modal>
 
-                  {/* Método de Pago */}
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-medium">Método de Pago</label>
-                    <select
-                      value={paymentMethod}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                    >
-                      <option value="">Sin definir</option>
-                      {paymentMethods.map((method) => (
-                        <option key={method.id} value={method.id}>
-                          {method.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Descripción */}
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-medium">Descripción</label>
-                    <input
-                      type="text"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                      placeholder="Descripción predeterminada..."
-                    />
-                  </div>
-
-                  {/* Tags */}
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-medium">Etiquetas</label>
-                    <input
-                      type="text"
-                      value={tagsInput}
-                      onChange={(e) => setTagsInput(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                      placeholder="trabajo, urgente (separadas por comas)"
-                    />
-                  </div>
-
-                  {/* Recurrente */}
-                  <div className="md:col-span-2 flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="isRecurring"
-                      checked={isRecurring}
-                      onChange={(e) => setIsRecurring(e.target.checked)}
-                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                    />
-                    <label htmlFor="isRecurring" className="text-sm font-medium cursor-pointer">
-                      Gasto recurrente
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 flex justify-end gap-4">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium disabled:opacity-50"
-                >
-                  {saving ? 'Guardando...' : 'Guardar'}
-                </button>
-              </div>
-            </form>
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!shortcutToDelete}
+        onClose={() => setShortcutToDelete(null)}
+        title="¿Eliminar atajo?"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setShortcutToDelete(null)}
+            onConfirm={handleDelete}
+            confirmVariant="destructive"
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Esta acción no se puede deshacer. El atajo será eliminado permanentemente.
+            </p>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

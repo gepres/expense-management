@@ -1,24 +1,29 @@
 import { useState, useEffect } from 'react';
 import { ConfigService, type Currency } from '../../services/config';
 import { useConfig } from '@context/ConfigContext';
-import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Modal, { ModalFooterActions } from '@components/common/Modal';
 
 export default function MonedasConfig() {
   const { reloadCurrencies } = useConfig();
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Form states
   const [newCode, setNewCode] = useState('');
   const [newSymbol, setNewSymbol] = useState('');
   const [newName, setNewName] = useState('');
-  
+
   // Edit states
   const [editCode, setEditCode] = useState('');
   const [editSymbol, setEditSymbol] = useState('');
   const [editName, setEditName] = useState('');
+
+  // Delete confirmation state
+  const [currencyToDelete, setCurrencyToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadCurrencies();
@@ -37,9 +42,26 @@ export default function MonedasConfig() {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCode.trim() || !newSymbol.trim() || !newName.trim()) return;
+  const openModal = () => {
+    setNewCode('');
+    setNewSymbol('');
+    setNewName('');
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setNewCode('');
+    setNewSymbol('');
+    setNewName('');
+  };
+
+  const handleCreate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newCode.trim() || !newSymbol.trim() || !newName.trim()) {
+      toast.error('Todos los campos son obligatorios');
+      return;
+    }
 
     try {
       await ConfigService.createCurrency({
@@ -48,9 +70,7 @@ export default function MonedasConfig() {
         nombre: newName
       });
       toast.success('Moneda creada');
-      setNewCode('');
-      setNewSymbol('');
-      setNewName('');
+      closeModal();
       loadCurrencies();
     } catch {
       toast.error('Error al crear moneda');
@@ -74,12 +94,13 @@ export default function MonedasConfig() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar esta moneda?')) return;
+  const handleDelete = async () => {
+    if (!currencyToDelete) return;
 
     try {
-      await ConfigService.deleteCurrency(id);
+      await ConfigService.deleteCurrency(currencyToDelete);
       toast.success('Moneda eliminada');
+      setCurrencyToDelete(null);
       loadCurrencies();
     } catch {
       toast.error('Error al eliminar moneda');
@@ -90,86 +111,78 @@ export default function MonedasConfig() {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <input
-          type="text"
-          value={newCode}
-          onChange={(e) => setNewCode(e.target.value)}
-          placeholder="Código (ej: USD)"
-          className="px-4 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-        <input
-          type="text"
-          value={newSymbol}
-          onChange={(e) => setNewSymbol(e.target.value)}
-          placeholder="Símbolo (ej: $)"
-          className="px-4 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-        <input
-          type="text"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          placeholder="Nombre"
-          className="px-4 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+      {/* Botón para abrir modal */}
+      <div className="flex justify-end">
         <button
-          type="submit"
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center justify-center gap-2"
+          onClick={openModal}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
-          Agregar
+          Nueva Moneda
         </button>
-      </form>
+      </div>
 
-      <div className="grid gap-4">
+      {/* Lista de monedas - iOS Style Cards */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-muted-foreground px-1">Monedas Configuradas</h3>
         {currencies.map((currency) => (
           <div
             key={currency.id}
-            className="flex items-center justify-between p-4 rounded-lg border border-border bg-card"
+            className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden"
           >
             {editingId === currency.id ? (
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
-                <input
-                  type="text"
-                  value={editCode}
-                  onChange={(e) => setEditCode(e.target.value)}
-                  className="px-2 py-1 rounded border border-border bg-background"
-                />
-                <input
-                  type="text"
-                  value={editSymbol}
-                  onChange={(e) => setEditSymbol(e.target.value)}
-                  className="px-2 py-1 rounded border border-border bg-background"
-                />
-                <input
-                  type="text"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  className="px-2 py-1 rounded border border-border bg-background"
-                />
-                <div className="flex gap-2 justify-end">
+              <div className="p-4 space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Código ISO</label>
+                  <input
+                    type="text"
+                    value={editCode}
+                    onChange={(e) => setEditCode(e.target.value)}
+                    className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base border-b border-border/50 pb-2"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Símbolo</label>
+                  <input
+                    type="text"
+                    value={editSymbol}
+                    onChange={(e) => setEditSymbol(e.target.value)}
+                    className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base border-b border-border/50 pb-2"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Nombre</label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base border-b border-border/50 pb-2"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
                   <button
                     onClick={() => handleUpdate(currency.id)}
-                    className="p-2 text-green-500 hover:bg-green-500/10 rounded"
+                    className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center justify-center gap-2 font-medium"
                   >
                     <Save className="h-4 w-4" />
+                    Guardar
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
-                    className="p-2 text-red-500 hover:bg-red-500/10 rounded"
+                    className="px-4 py-2 text-muted-foreground hover:text-foreground rounded-lg"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
               </div>
             ) : (
-              <>
-                <div className="flex gap-4 items-center text-foreground">
-                  <span className="font-bold w-16">{currency.codigoISO}</span>
-                  <span className="text-muted-foreground w-8">{currency.simbolo}</span>
-                  <span className="flex-1 max-[600px]:w-14 max-[600px]:truncate">{currency.nombre}</span>
+              <div className="flex items-center justify-between p-4">
+                <div className="flex gap-4 items-center flex-1">
+                  <span className="font-bold text-base w-16">{currency.codigoISO}</span>
+                  <span className="text-2xl w-10">{currency.simbolo}</span>
+                  <span className="flex-1 text-sm text-muted-foreground truncate">{currency.nombre}</span>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <button
                     onClick={() => {
                       setEditingId(currency.id);
@@ -177,22 +190,118 @@ export default function MonedasConfig() {
                       setEditSymbol(currency.simbolo);
                       setEditName(currency.nombre);
                     }}
-                    className="p-2 text-muted-foreground hover:text-primary hover:bg-accent rounded"
+                    className="p-2 text-muted-foreground hover:text-primary hover:bg-accent rounded-lg"
                   >
                     <Edit2 className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => handleDelete(currency.id)}
-                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded"
+                    onClick={() => setCurrencyToDelete(currency.id)}
+                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-              </>
+              </div>
             )}
           </div>
         ))}
       </div>
+
+      {/* Modal de Creación/Edición */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title="Nueva Moneda"
+        size="md"
+        footer={
+          <ModalFooterActions
+            onCancel={closeModal}
+            onConfirm={handleCreate}
+            confirmText="Crear Moneda"
+          />
+        }
+      >
+        <form onSubmit={handleCreate} className="space-y-6">
+          {/* iOS Style Card */}
+          <div className="bg-card rounded-2xl border border-border shadow-sm divide-y divide-border/50">
+            {/* Código ISO */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                Código ISO <span className="text-destructive">*</span>
+              </label>
+              <input
+                type="text"
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base"
+                placeholder="Ej: USD"
+                required
+                maxLength={3}
+              />
+              <p className="text-xs text-muted-foreground mt-1">3 caracteres, mayúsculas</p>
+            </div>
+
+            {/* Símbolo */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                Símbolo <span className="text-destructive">*</span>
+              </label>
+              <input
+                type="text"
+                value={newSymbol}
+                onChange={(e) => setNewSymbol(e.target.value)}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base"
+                placeholder="Ej: $"
+                required
+                maxLength={3}
+              />
+            </div>
+
+            {/* Nombre */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                Nombre <span className="text-destructive">*</span>
+              </label>
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base"
+                placeholder="Ej: Dólar Estadounidense"
+                required
+              />
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!currencyToDelete}
+        onClose={() => setCurrencyToDelete(null)}
+        title="¿Eliminar moneda?"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setCurrencyToDelete(null)}
+            onConfirm={handleDelete}
+            confirmVariant="destructive"
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Esta acción no se puede deshacer. La moneda será eliminada permanentemente.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

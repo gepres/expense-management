@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { ConfigService, type PaymentMethod } from '../../services/config';
 import { useConfig } from '@context/ConfigContext';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
+import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
 
 export default function MetodosPagoConfig() {
   const { reloadPaymentMethods } = useConfig();
@@ -18,6 +19,9 @@ export default function MetodosPagoConfig() {
   const [methodName, setMethodName] = useState('');
   const [methodIcon, setMethodIcon] = useState('');
   const [methodDesc, setMethodDesc] = useState('');
+
+  // Delete confirmation state
+  const [methodToDelete, setMethodToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadMethods();
@@ -97,12 +101,13 @@ export default function MetodosPagoConfig() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este método de pago?')) return;
+  const handleDelete = async () => {
+    if (!methodToDelete) return;
 
     try {
-      await ConfigService.deletePaymentMethod(id);
+      await ConfigService.deletePaymentMethod(methodToDelete);
       toast.success('Método de pago eliminado');
+      setMethodToDelete(null);
       loadMethods();
     } catch {
       toast.error('Error al eliminar método de pago');
@@ -149,7 +154,7 @@ export default function MetodosPagoConfig() {
                   <Edit2 className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => handleDelete(method.id)}
+                  onClick={() => setMethodToDelete(method.id)}
                   className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -166,102 +171,122 @@ export default function MetodosPagoConfig() {
       </div>
 
       {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 !mt-0">
-          <div className="bg-card w-full max-w-md rounded-xl shadow-xl border border-border">
-            <div className="p-6 border-b border-border flex justify-between items-center">
-              <h2 className="text-xl font-bold">
-                {editingMethod ? 'Editar Método de Pago' : 'Nuevo Método de Pago'}
-              </h2>
-              <button onClick={closeModal} className="text-muted-foreground hover:text-foreground">
-                <X className="h-6 w-6" />
-              </button>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={editingMethod ? 'Editar Método de Pago' : 'Nuevo Método de Pago'}
+        size="md"
+        footer={
+          <ModalFooterActions
+            onCancel={closeModal}
+            onConfirm={handleSave}
+            confirmText="Guardar Cambios"
+          />
+        }
+      >
+        <form onSubmit={handleSave} className="space-y-6">
+          {/* iOS Style Card */}
+          <div className="bg-card rounded-2xl border border-border shadow-sm divide-y divide-border/50">
+            {/* ID */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                ID (Identificador único)
+              </label>
+              <input
+                type="text"
+                value={methodId}
+                onChange={handleIdChange}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base disabled:opacity-50"
+                placeholder="Ej: efectivo"
+                required
+                disabled={!!editingMethod}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Solo minúsculas, números y guiones bajos.</p>
             </div>
 
-            <form onSubmit={handleSave} className="p-6 space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">ID (Identificador único)</label>
-                <input
-                  type="text"
-                  value={methodId}
-                  onChange={handleIdChange}
-                  className="w-full px-3 py-2 rounded-md border border-border bg-background disabled:opacity-50"
-                  placeholder="Ej: efectivo"
-                  required
-                  disabled={!!editingMethod}
-                />
-                <p className="text-xs text-muted-foreground">Solo minúsculas, números y guiones bajos.</p>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nombre</label>
-                <input
-                  type="text"
-                  value={methodName}
-                  onChange={(e) => setMethodName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                  placeholder="Ej: Efectivo"
-                  required
-                />
-              </div>
+            {/* Nombre */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Nombre</label>
+              <input
+                type="text"
+                value={methodName}
+                onChange={(e) => setMethodName(e.target.value)}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base"
+                placeholder="Ej: Efectivo"
+                required
+              />
+            </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Icono</label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className="w-full px-3 py-2 text-left rounded-md border border-border bg-background flex items-center gap-2"
-                  >
-                    <span className="text-xl">{methodIcon || '💳'}</span>
-                    <span className="text-muted-foreground text-sm">Seleccionar icono</span>
-                  </button>
-                  {showEmojiPicker && (
-                    <div className="absolute z-20 top-full left-0 mt-2">
-                      <div className="fixed inset-0 z-10" onClick={() => setShowEmojiPicker(false)} />
-                      <div className="relative z-20">
-                        <EmojiPicker
-                          theme={Theme.AUTO}
-                          onEmojiClick={(emojiData) => {
-                            setMethodIcon(emojiData.emoji);
-                            setShowEmojiPicker(false);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Descripción</label>
-                <textarea
-                  value={methodDesc}
-                  onChange={(e) => setMethodDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-border bg-background min-h-[80px]"
-                  placeholder="Descripción opcional..."
-                />
-              </div>
-
-              <div className="pt-4 flex justify-end gap-4">
+            {/* Icono */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Icono</label>
+              <div className="relative">
                 <button
                   type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className="bg-transparent border-0 focus:outline-none text-left flex items-center gap-2"
                 >
-                  Cancelar
+                  <span className="text-3xl">{methodIcon || '💳'}</span>
+                  <span className="text-muted-foreground text-sm">Seleccionar</span>
                 </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 font-medium"
-                >
-                  Guardar Cambios
-                </button>
+                {showEmojiPicker && (
+                  <div className="absolute z-20 top-full left-0 mt-2">
+                    <div className="fixed inset-0 z-10" onClick={() => setShowEmojiPicker(false)} />
+                    <div className="relative z-20">
+                      <EmojiPicker
+                        theme={Theme.AUTO}
+                        onEmojiClick={(emojiData) => {
+                          setMethodIcon(emojiData.emoji);
+                          setShowEmojiPicker(false);
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            </form>
+            </div>
+
+            {/* Descripción */}
+            <div className="p-4">
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Descripción</label>
+              <textarea
+                value={methodDesc}
+                onChange={(e) => setMethodDesc(e.target.value)}
+                className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base resize-none min-h-[60px]"
+                placeholder="Descripción opcional..."
+              />
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!methodToDelete}
+        onClose={() => setMethodToDelete(null)}
+        title="¿Eliminar método de pago?"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setMethodToDelete(null)}
+            onConfirm={handleDelete}
+            confirmVariant="destructive"
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Esta acción no se puede deshacer. El método de pago será eliminado permanentemente.
+            </p>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

@@ -10,10 +10,11 @@ import { SharedService } from '@services/shared';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import type { SharedExpenseGroup, SharedBudget, SharedExpense, GroupStats, SharedMember } from '@app-types/shared';
-import { ArrowLeft, MoreVertical, Plus, TrendingUp, TrendingDown, RefreshCw, Wallet, Receipt, FileJson, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Plus, TrendingUp, TrendingDown, RefreshCw, Wallet, Receipt, FileJson, FileSpreadsheet, AlertTriangle } from 'lucide-react';
 
 import toast from 'react-hot-toast';
 import CustomLoader from '@components/common/CustomLoader';
+import Modal, { ModalFooterActions } from '@components/common/Modal';
 import SharedBudgetsTab from './SharedBudgetsTab';
 import SharedExpensesTab from './SharedExpensesTab';
 import SharedMembersTab from './SharedMembersTab';
@@ -41,6 +42,8 @@ export default function SharedGroupDetail() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [openBudgetForm, setOpenBudgetForm] = useState(false);
   const [openExpenseForm, setOpenExpenseForm] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Refs para detectar cambios y mostrar notificaciones
   const isInitialLoadExpenses = useRef(true);
@@ -325,11 +328,12 @@ export default function SharedGroupDetail() {
   };
 
   const handleLeaveGroup = async () => {
-    if (!id || !confirm('¿Estás seguro de salir del grupo?')) return;
+    if (!id) return;
 
     try {
       await SharedService.leaveGroup(id);
       toast.success('Has salido del grupo');
+      setShowLeaveConfirm(false);
       navigate('/compartidos');
     } catch (error) {
       toast.error('Error al salir del grupo');
@@ -337,11 +341,12 @@ export default function SharedGroupDetail() {
   };
 
   const handleDeleteGroup = async () => {
-    if (!id || !confirm('¿Estás seguro de eliminar este grupo? Esta acción no se puede deshacer.')) return;
+    if (!id) return;
 
     try {
       await SharedService.deleteGroup(id);
       toast.success('Grupo eliminado');
+      setShowDeleteConfirm(false);
       navigate('/compartidos');
     } catch (error) {
       toast.error('Error al eliminar el grupo');
@@ -451,7 +456,7 @@ export default function SharedGroupDetail() {
                       <button
                         onClick={() => {
                           setShowMenu(false);
-                          handleDeleteGroup();
+                          setShowDeleteConfirm(true);
                         }}
                         className="w-full px-4 py-2.5 text-left text-sm text-destructive hover:bg-destructive/10 transition-colors"
                       >
@@ -463,7 +468,7 @@ export default function SharedGroupDetail() {
                     <button
                       onClick={() => {
                         setShowMenu(false);
-                        handleLeaveGroup();
+                        setShowLeaveConfirm(true);
                       }}
                       className="w-full px-4 py-2.5 text-left text-sm text-destructive hover:bg-destructive/10 transition-colors"
                     >
@@ -646,6 +651,66 @@ export default function SharedGroupDetail() {
         onClose={() => setShowEditModal(false)}
         onSaved={handleGroupUpdated}
       />
+
+      {/* Modal de confirmación para salir del grupo */}
+      <Modal
+        isOpen={showLeaveConfirm}
+        onClose={() => setShowLeaveConfirm(false)}
+        title="¿Salir del grupo?"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setShowLeaveConfirm(false)}
+            onConfirm={handleLeaveGroup}
+            cancelText="Cancelar"
+            confirmText="Salir"
+            confirmVariant="destructive"
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Ya no podrás ver ni participar en este grupo después de salir.
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de confirmación para eliminar grupo */}
+      <Modal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title="¿Eliminar grupo?"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setShowDeleteConfirm(false)}
+            onConfirm={handleDeleteGroup}
+            cancelText="Cancelar"
+            confirmText="Eliminar"
+            confirmVariant="destructive"
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Esta acción no se puede deshacer. El grupo y todos sus datos serán eliminados permanentemente.
+            </p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
