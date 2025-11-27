@@ -175,7 +175,6 @@ export default function CategoriasConfig() {
           descripcion: subDescripcion,
           suggestions_ideas: subSuggestions.length > 0 ? subSuggestions : undefined
         });
-
         const updatedCategory = {
           ...editingCategory,
           subcategorias: [...(editingCategory.subcategorias || []), newSub]

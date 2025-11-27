@@ -65,9 +65,11 @@ export default function MonedasConfig() {
 
     try {
       await ConfigService.createCurrency({
+        id: newCode,
         codigoISO: newCode,
         simbolo: newSymbol,
-        nombre: newName
+        nombre: newName,
+        icono: ''
       });
       toast.success('Moneda creada');
       closeModal();
@@ -180,7 +182,7 @@ export default function MonedasConfig() {
                 <div className="flex gap-4 items-center flex-1">
                   <span className="font-bold text-base w-16">{currency.codigoISO}</span>
                   <span className="text-2xl w-10">{currency.simbolo}</span>
-                  <span className="flex-1 text-sm text-muted-foreground truncate">{currency.nombre}</span>
+                  <span className="flex-1 text-sm text-muted-foreground truncate w-[75px]">{currency.nombre}</span>
                 </div>
                 <div className="flex gap-1">
                   <button

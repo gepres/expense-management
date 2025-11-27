@@ -2,7 +2,7 @@ import { getAuth } from 'firebase/auth';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
-export interface Subcategory {
+export interface  Subcategory {
   id: string;
   nombre: string;
   descripcion?: string;
@@ -62,6 +62,7 @@ export interface Currency {
 }
 
 export interface CreateCurrencyDto {
+  id:string;
   codigoISO: string;
   simbolo: string;
   nombre: string;
@@ -157,7 +158,8 @@ export const ConfigService = {
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Error creating subcategory');
-    return response.json();
+    const subcategory = await response.json();
+    return subcategory.subcategorias.at(-1);
   },
 
   async updateSubcategory(categoryId: string, subcategoryId: string, data: UpdateSubcategoryDto): Promise<Subcategory> {

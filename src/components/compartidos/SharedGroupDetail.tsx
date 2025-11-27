@@ -56,7 +56,7 @@ export default function SharedGroupDetail() {
   const handleGroupUpdated = (updatedGroup: SharedExpenseGroup) => {
     setGroup(updatedGroup);
     setShowEditModal(false);
-    toast.success('Grupo actualizado');
+    // toast.success('Grupo actualizado');
   };
 
   const isCreator = group?.createdBy === usuario?.id;

@@ -63,7 +63,7 @@ export default function SharedGroupsList() {
   const handleGroupCreated = (newGroup: SharedExpenseGroup) => {
     setGroups(prev => [newGroup, ...prev]);
     setShowCreateModal(false);
-    toast.success('Grupo creado exitosamente');
+    // toast.success('Grupo creado exitosamente');
   };
 
   if (loading) {

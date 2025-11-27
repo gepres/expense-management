@@ -390,11 +390,12 @@ export default function ShoppingListDetail() {
                   <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
                     <FileText className="h-4 w-4" />
                   </div>
+                   {/* list.voucherType ? 'text-foreground font-medium' : 'text-muted-foreground' */}
                   <select
-                    value={list.voucherType || ''}
+                    value={list.voucherType || 'boleta'}
                     onChange={(e) => handleUpdateList({ voucherType: e.target.value as any })}
                     className={`bg-transparent text-sm w-full focus:outline-none appearance-none ${
-                      list.voucherType ? 'text-foreground font-medium' : 'text-muted-foreground'
+                     'text-foreground font-medium'
                     }`}
                     disabled={isArchived}
                   >
