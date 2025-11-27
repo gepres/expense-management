@@ -102,8 +102,8 @@ export default function SharedExpensesTab({
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!formData.amount || !formData.description.trim()) {
       toast.error('Completa todos los campos');
       return;
