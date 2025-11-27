@@ -7,7 +7,7 @@ import { auth } from '@services/firebase';
 
 export default function WhatsAppConfig() {
   const { usuario, actualizarUsuario } = useAuth();
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('+51');
   const [loading, setLoading] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
