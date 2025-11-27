@@ -4,6 +4,7 @@ import { useConfig } from '@context/ConfigContext';
 import { Plus, Edit2, Trash2, Save, X, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal, { ModalFooterActions } from '@components/common/Modal';
+import LoadingScreen from '@components/common/LoadingScreen';
 
 export default function MonedasConfig() {
   const { reloadCurrencies } = useConfig();
@@ -109,7 +110,7 @@ export default function MonedasConfig() {
     }
   };
 
-  if (loading) return <div>Cargando...</div>;
+  if (loading) return <LoadingScreen message="Cargando monedas..." />;
 
   return (
     <div className="space-y-6">

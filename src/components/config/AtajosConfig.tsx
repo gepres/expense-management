@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, Zap, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import Modal, { ModalFooterActions } from '@components/common/Modal';
+import LoadingScreen from '../common/LoadingScreen';
 
 export default function AtajosConfig() {
   const {
@@ -15,7 +16,8 @@ export default function AtajosConfig() {
     getCategoryLabel,
     getPaymentMethodLabel,
     getSubcategories,
-    reloadShortcuts
+    reloadShortcuts,
+    loadingShortcuts,
   } = useConfig();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -185,6 +187,8 @@ export default function AtajosConfig() {
 
   // Get subcategories for selected category
   const subcategorias = category ? getSubcategories(category) : [];
+  
+  if (loadingShortcuts) return <LoadingScreen message="Cargando atajos..." />;
 
   return (
     <div className="space-y-6">

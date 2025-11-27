@@ -45,6 +45,7 @@ interface ConfigContextType {
   reloadCurrencies: () => Promise<void>;
   reloadShortcuts: () => Promise<void>;
   reloadAll: () => Promise<void>;
+  loadingShortcuts: boolean;
 }
 
 // ============================================================================
@@ -100,6 +101,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(DEFAULT_PAYMENT_METHODS);
   const [currencies, setCurrencies] = useState<Currency[]>(DEFAULT_CURRENCIES);
   const [shortcuts, setShortcuts] = useState<Shortcut[]>([]);
+  const [loadingShortcuts, setLoadingShortcuts] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -158,12 +160,15 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
   const reloadShortcuts = useCallback(async () => {
     if (!usuario) return;
 
+    setLoadingShortcuts(true);
     try {
       const data = await ConfigService.getShortcuts();
       setShortcuts(data || []);
     } catch (err) {
       console.error('[ConfigContext] Error loading shortcuts:', err);
       setShortcuts([]);
+    } finally {
+      setLoadingShortcuts(false);
     }
   }, [usuario]);
 
@@ -271,6 +276,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
     reloadShortcuts,
     reloadAll,
     getSubcategoryLabel,
+    loadingShortcuts,
   };
 
   return (

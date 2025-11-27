@@ -10,7 +10,7 @@ import { useConfig } from '@context/ConfigContext';
 import type { SharedExpense, CreateSharedExpenseDto } from '@app-types/shared';
 import { Plus, Edit2, Trash2, Calendar, Clock, Tag, CreditCard, AlignLeft, FileText, Hash, Building2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import Modal, { ModalFooterActions } from '@components/common/Modal';
+import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
 
 interface Props {
   groupId: string;
@@ -192,8 +192,29 @@ export default function SharedExpensesTab({
         )}
       </div>
 
-      {/* Form - iOS Style */}
-      {showForm && (
+      {/* Form Modal - iOS Style */}
+      <Modal
+        isOpen={showForm}
+        onClose={resetForm}
+        title={editingId ? 'Editar Gasto' : 'Nuevo Gasto'}
+        subtitle="Registra un gasto del grupo"
+        size="lg"
+        footer={
+          <div className="flex gap-3">
+            <ModalButton variant="secondary" onClick={resetForm}>
+              Cancelar
+            </ModalButton>
+            <ModalButton
+              type="submit"
+              variant="primary"
+              onClick={handleSubmit}
+              disabled={loading}
+            >
+              {loading ? 'Guardando...' : editingId ? 'Actualizar' : 'Agregar'}
+            </ModalButton>
+          </div>
+        }
+      >
         <form onSubmit={handleSubmit} className="space-y-3">
           {/* Fecha y Hora */}
           <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
@@ -410,25 +431,8 @@ export default function SharedExpensesTab({
             </div>
           )}
 
-          {/* Botones de acción */}
-          <div className="flex gap-2 pt-1">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium text-sm disabled:opacity-50 transition-all active:scale-95"
-            >
-              {loading ? 'Guardando...' : editingId ? 'Actualizar' : 'Agregar'}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="px-5 py-2.5 bg-muted rounded-xl text-sm font-medium transition-all active:scale-95"
-            >
-              Cancelar
-            </button>
-          </div>
         </form>
-      )}
+      </Modal>
 
       {/* List */}
       {expenses.length === 0 ? (
@@ -466,10 +470,12 @@ export default function SharedExpensesTab({
                   <p className="font-medium text-sm truncate">{expense.description}</p>
                   <p className="text-xs text-muted-foreground">
                     {displayName}
-                    {expense.category && ` • ${expense.category}`}
-                    {expense.paymentMethod && ` • ${getPaymentMethodLabel(expense.paymentMethod)}`}
+                    {/* {expense.category && ` • ${expense.category}`} */}
                     {' • '}
                     {new Date(expense.createdAt).toLocaleDateString('es-ES')}
+                    {' • '}
+                    {expense.time}
+                    {expense.paymentMethod && ` • ${getPaymentMethodLabel(expense.paymentMethod)}`}
                   </p>
                 </div>
 

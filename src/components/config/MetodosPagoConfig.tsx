@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import Modal, { ModalFooterActions } from '@components/common/Modal';
+import LoadingScreen from '@components/common/LoadingScreen';
 
 export default function MetodosPagoConfig() {
   const { reloadPaymentMethods } = useConfig();
@@ -114,7 +115,7 @@ export default function MetodosPagoConfig() {
     }
   };
 
-  if (loading) return <div>Cargando...</div>;
+  if (loading) return <LoadingScreen message="Cargando métodos de pago..." />;
 
   return (
     <div className="space-y-6">

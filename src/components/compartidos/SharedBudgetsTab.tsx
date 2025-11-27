@@ -10,7 +10,7 @@ import { useConfig } from '@context/ConfigContext';
 import type { SharedBudget, CreateSharedBudgetDto } from '@app-types/shared';
 import { Plus, Edit2, Trash2, Calendar, Clock, FileText, Hash, Building2, CreditCard, AlignLeft, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import Modal, { ModalFooterActions } from '@components/common/Modal';
+import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
 
 interface Props {
   groupId: string;
@@ -76,8 +76,8 @@ export default function SharedBudgetsTab({
     setEditingId(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!formData.amount || !formData.description.trim()) {
       toast.error('Completa todos los campos');
       return;
@@ -118,6 +118,7 @@ export default function SharedBudgetsTab({
   };
 
   const handleEdit = (budget: SharedBudget) => {
+    console.log('budget', budget);
     setFormData({
       amount: budget.amount,
       description: budget.description,
@@ -168,8 +169,30 @@ export default function SharedBudgetsTab({
         )}
       </div>
 
-      {/* Form - iOS Style */}
-      {showForm && (
+      {/* Form Modal - iOS Style */}
+      <Modal
+        isOpen={showForm}
+        onClose={resetForm}
+        title={editingId ? 'Editar Aporte' : 'Nuevo Aporte'}
+        subtitle="Registra un aporte al grupo"
+        size="lg"
+        footer={
+          <div className="flex gap-3">
+            <ModalButton variant="secondary" onClick={resetForm}>
+              Cancelar
+            </ModalButton>
+            <ModalButton
+              type="submit"
+              variant="primary"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="bg-green-500 hover:bg-green-600"
+            >
+              {loading ? 'Guardando...' : editingId ? 'Actualizar' : 'Agregar'}
+            </ModalButton>
+          </div>
+        }
+      >
         <form onSubmit={handleSubmit} className="space-y-3">
           {/* Fecha y Hora */}
           <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
@@ -342,25 +365,8 @@ export default function SharedBudgetsTab({
             </div>
           )}
 
-          {/* Botones de acción */}
-          <div className="flex gap-2 pt-1">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 py-2.5 bg-green-500 text-white rounded-xl font-medium text-sm disabled:opacity-50 transition-all active:scale-95"
-            >
-              {loading ? 'Guardando...' : editingId ? 'Actualizar' : 'Agregar'}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="px-5 py-2.5 bg-muted rounded-xl text-sm font-medium transition-all active:scale-95"
-            >
-              Cancelar
-            </button>
-          </div>
         </form>
-      )}
+      </Modal>
 
       {/* List */}
       {budgets.length === 0 ? (
@@ -397,7 +403,7 @@ export default function SharedBudgetsTab({
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{budget.description}</p>
                   <p className="text-xs text-muted-foreground">
-                    {displayName} • {new Date(budget.createdAt).toLocaleDateString('es-ES')}
+                    {displayName} •  {new Date(budget.createdAt).toLocaleDateString('es-ES')} • {budget.time}
                     {budget.paymentMethod && ` • ${getPaymentMethodLabel(budget.paymentMethod)}`}
                   </p>
                 </div>

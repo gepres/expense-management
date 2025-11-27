@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, Save, X, ChevronRight, AlertTriangle } from 'lucid
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
+import LoadingScreen from '@components/common/LoadingScreen';
 
 export default function CategoriasConfig() {
   const { reloadCategories } = useConfig();
@@ -251,7 +252,7 @@ export default function CategoriasConfig() {
     }
   };
 
-  if (loading) return <div>Cargando...</div>;
+  if (loading) return <LoadingScreen message="Cargando categorías..." />;
 
   return (
     <div className="space-y-6">
