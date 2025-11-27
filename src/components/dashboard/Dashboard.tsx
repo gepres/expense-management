@@ -28,6 +28,8 @@ import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, Shop
 import AIInsights from './AIInsights';
 import InstallPWA from '../common/InstallPWA';
 import CustomLoader from '../common/CustomLoader';
+import { ContainerLoading } from '../common/LoadingSpinner';
+// import LoadingSpinner from '../common/LoadingSpinner';
 
 // Función helper para obtener el icono de la categoría
 const getCategoryIcon = (categoria: string, className?: string) => {
@@ -167,6 +169,15 @@ export default function Dashboard() {
         {/* PWA Install Banner */}
         <InstallPWA />
       </div>
+
+       {/* <button
+          type="submit"
+          disabled={false}
+          className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+                <ContainerLoading textLoading="Guardando gasto" />
+        </button> */}
+
 
       {/* Tarjetas de estadísticas principales */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

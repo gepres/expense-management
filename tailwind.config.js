@@ -55,6 +55,69 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      keyframes: {
+        'ios-bounce': {
+          '0%, 80%, 100%': {
+            transform: 'scale(0.6) translateY(0)',
+            opacity: '0.5'
+          },
+          '40%': {
+            transform: 'scale(1) translateY(-8px)',
+            opacity: '1'
+          },
+        },
+        'ios-bounce-v2': {
+          '0%, 80%, 100%': {
+            transform: 'scale(0)',
+            opacity: '0.5'
+          },
+          '40%': {
+            transform: 'scale(1)',
+            opacity: '1'
+          },
+        },
+        'ios-bounce-v3': {
+          '0%, 80%, 100%': {
+            transform: 'scale(0.6)',
+            opacity: '0.5'
+          },
+          '40%': {
+            transform: 'scale(1)',
+            opacity: '1'
+          },
+        },
+        'pulse-ring': {
+          '0%': {
+            transform: 'scale(1)',
+            opacity: '1',
+          },
+          '50%': {
+            transform: 'scale(1.1)',
+            opacity: '0.7',
+          },
+          '100%': {
+            transform: 'scale(1)',
+            opacity: '1',
+          },
+        },
+        'scale-in': {
+          from: {
+            transform: 'scale(0)',
+            opacity: '0',
+          },
+          to: {
+            transform: 'scale(1)',
+            opacity: '1',
+          },
+        },
+      },
+      animation: {
+        'ios-bounce': 'ios-bounce 1.4s ease-in-out infinite',
+        'pulse-ring': 'pulse-ring 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'scale-in': 'scale-in 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        'ios-bounce-v2': 'ios-bounce-v2 1.2s ease-in-out infinite',
+        'ios-bounce-v3': 'ios-bounce-v3 1.4s infinite ease-in-out',
+      },
     },
   },
   plugins: [],

@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loading Overlay Demo - iOS Style</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #3b82f6;
+      --success: #10b981;
+      --background: #f9fafb;
+      --foreground: #111827;
+      --card: #ffffff;
+      --muted: #f3f4f6;
+      --border: #e5e7eb;
+    }
+
+    .dark {
+      --background: #111827;
+      --foreground: #f9fafb;
+      --card: #1f2937;
+      --muted: #374151;
+      --border: #4b5563;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: var(--background);
+      color: var(--foreground);
+      padding: 20px;
+      transition: all 0.3s;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #6b7280;
+    }
+
+    .demo-section {
+      background: var(--card);
+      padding: 30px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .demo-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      padding: 14px 24px;
+      border-radius: 12px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-success {
+      background: var(--success);
+    }
+
+    .btn-secondary {
+      background: var(--muted);
+      color: var(--foreground);
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      z-index: 10000;
+    }
+
+    /* Loading Overlay Styles */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .loading-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .dark .loading-card {
+      background: rgba(31, 41, 55, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .spinner-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 24px;
+      height: 60px;
+      align-items: center;
+    }
+
+    /* Dots Spinner */
+    .spinner-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .spinner-dots span {
+      width: 12px;
+      height: 12px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+
+    .spinner-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .spinner-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+    /* Simple Spinner */
+    .spinner-simple {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--primary);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Material Spinner */
+    .spinner-material {
+      width: 48px;
+      height: 48px;
+      border: 4px solid transparent;
+      border-top-color: var(--primary);
+      border-left-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Success State */
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(16, 185, 129, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: zoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .success-icon-inner {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--success);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .checkmark {
+      width: 40px;
+      height: 40px;
+      stroke: white;
+      stroke-width: 3;
+      fill: none;
+      animation: checkmark 0.3s ease-in 0.1s forwards;
+      stroke-dasharray: 50;
+      stroke-dashoffset: 50;
+    }
+
+    .loading-text {
+      text-align: center;
+    }
+
+    .loading-message {
+      font-size: 1.125rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      animation: slideUp 0.3s ease-out 0.1s both;
+    }
+
+    .loading-submessage {
+      font-size: 0.875rem;
+      color: #6b7280;
+      animation: slideUp 0.3s ease-out 0.15s both;
+    }
+
+    .tap-hint {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 0.75rem;
+      color: #6b7280;
+      animation: pulse 2s infinite;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes zoomIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes bounce {
+      0%, 80%, 100% {
+        transform: scale(0);
+        opacity: 0.5;
+      }
+      40% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @keyframes checkmark {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* Hide class */
+    .hidden {
+      display: none;
+    }
+
+    /* Info Box */
+    .info-box {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .info-box h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .info-box ul {
+      margin-left: 20px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      .demo-section {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">🌓 Tema</button>
+
+  <div class="container">
+    <div class="header">
+      <h1>📱 Loading Overlay - iOS Style</h1>
+      <p class="subtitle">Overlay de carga con glassmorphism y animaciones suaves</p>
+    </div>
+
+    <!-- Demo Section 1: Variantes -->
+    <div class="demo-section">
+      <h2 class="demo-title">1. Variantes de Spinner</h2>
+      <p style="color: #6b7280; margin-bottom: 15px;">
+        Prueba los diferentes estilos de animación
+      </p>
+      <div class="button-grid">
+        <button class="btn" onclick="showLoading('dots', 'Dots Bounce', 'Estilo iOS clásico')">
+          🔵 Dots Bounce
+        </button>
+        <button class="btn" onclick="showLoading('simple', 'Simple Spinner', 'Minimalista y rápido')">
+          🔄 Simple Spinner
+        </button>
+        <button class="btn" onclick="showLoading('material', 'Material Spinner', 'Estilo Material Design')">
+          ⚡ Material Spinner
+        </button>
+      </div>
+    </div>
+
+    <!-- Demo Section 2: Estados -->
+    <div class="demo-section">
+      <h2 class="demo-title">2. Estados y Duraciones</h2>
+      <p style="color: #6b7280; margin-bottom: 15px;">
+        Diferentes duraciones y estados de finalización
+      </p>
+      <div class="button-grid">
+        <button class="btn" onclick="simulateSave()">
+          💾 Guardar (2s → Éxito)
+        </button>
+        <button class="btn btn-success" onclick="simulateUpload()">
+          ⬆️ Subir (3s → Éxito)
+        </button>
+        <button class="btn btn-secondary" onclick="showLongLoading()">
+          ⏱️ Proceso Largo (5s)
+        </button>
+      </div>
+    </div>
+
+    <!-- Demo Section 3: Interactividad -->
+    <div class="demo-section">
+      <h2 class="demo-title">3. Opciones de Cierre</h2>
+      <p style="color: #6b7280; margin-bottom: 15px;">
+        Controla cómo se puede cerrar el overlay
+      </p>
+      <div class="button-grid">
+        <button class="btn" onclick="showCloseable()">
+          👆 Cerrar al tocar fuera
+        </button>
+        <button class="btn btn-success" onclick="showAutoClose()">
+          ⏲️ Auto-cierre (3s)
+        </button>
+      </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="info-box">
+      <h3>✨ Características</h3>
+      <ul>
+        <li><strong>Blur Effect:</strong> backdrop-filter con soporte iOS Safari</li>
+        <li><strong>Glassmorphism:</strong> Card semi-transparente con blur</li>
+        <li><strong>Bloqueo de Scroll:</strong> Previene scroll del body (incluye fix para iOS)</li>
+        <li><strong>3 Variantes:</strong> Dots (iOS), Simple, Material</li>
+        <li><strong>Estado de Éxito:</strong> Checkmark animado verde</li>
+        <li><strong>Responsive:</strong> Se adapta a móvil y desktop</li>
+        <li><strong>Animaciones Suaves:</strong> Cubic-bezier naturales</li>
+      </ul>
+    </div>
+
+    <div class="info-box" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); margin-top: 20px;">
+      <h3>💡 Recomendaciones de Uso</h3>
+      <ul>
+        <li>Usa <strong>Dots Bounce</strong> para la mayoría de operaciones (estilo iOS)</li>
+        <li>Usa <strong>Simple</strong> para operaciones rápidas (< 2s)</li>
+        <li>Usa <strong>Material</strong> para operaciones largas (> 5s)</li>
+        <li>Muestra estado de éxito para confirmar acciones importantes</li>
+        <li>En móvil, evita permitir cierre durante operaciones críticas</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Loading Overlay Template -->
+  <div id="loadingOverlay" class="loading-overlay hidden" onclick="handleBackdropClick(event)">
+    <div class="loading-card" onclick="event.stopPropagation()">
+      <div class="spinner-container" id="spinnerContainer">
+        <!-- Spinner will be inserted here -->
+      </div>
+      <div class="loading-text">
+        <div class="loading-message" id="loadingMessage">Cargando...</div>
+        <div class="loading-submessage" id="loadingSubmessage"></div>
+      </div>
+      <div class="tap-hint hidden" id="tapHint">Toca fuera para cerrar</div>
+    </div>
+  </div>
+
+  <script>
+    let canClose = false;
+    let currentTimeout = null;
+
+    function toggleTheme() {
+      document.body.classList.toggle('dark');
+    }
+
+    function showLoading(variant = 'dots', message = 'Cargando...', submessage = '') {
+      const overlay = document.getElementById('loadingOverlay');
+      const spinnerContainer = document.getElementById('spinnerContainer');
+      const messageEl = document.getElementById('loadingMessage');
+      const submessageEl = document.getElementById('loadingSubmessage');
+      const tapHint = document.getElementById('tapHint');
+
+      // Clear previous spinner
+      spinnerContainer.innerHTML = '';
+
+      // Create spinner based on variant
+      if (variant === 'dots') {
+        const dots = document.createElement('div');
+        dots.className = 'spinner-dots';
+        for (let i = 0; i < 3; i++) {
+          const dot = document.createElement('span');
+          dots.appendChild(dot);
+        }
+        spinnerContainer.appendChild(dots);
+      } else if (variant === 'simple') {
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner-simple';
+        spinnerContainer.appendChild(spinner);
+      } else if (variant === 'material') {
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner-material';
+        spinnerContainer.appendChild(spinner);
+      }
+
+      messageEl.textContent = message;
+      submessageEl.textContent = submessage;
+      tapHint.classList.add('hidden');
+      canClose = false;
+
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+
+      overlay.classList.remove('hidden');
+
+      // Auto-hide after 3 seconds
+      if (currentTimeout) clearTimeout(currentTimeout);
+      currentTimeout = setTimeout(() => hideLoading(), 3000);
+    }
+
+    function showSuccess(message = '¡Éxito!', submessage = '') {
+      const spinnerContainer = document.getElementById('spinnerContainer');
+      const messageEl = document.getElementById('loadingMessage');
+      const submessageEl = document.getElementById('loadingSubmessage');
+
+      // Clear spinner
+      spinnerContainer.innerHTML = '';
+
+      // Create success icon
+      const successIcon = document.createElement('div');
+      successIcon.className = 'success-icon';
+      successIcon.innerHTML = `
+        <div class="success-icon-inner">
+          <svg class="checkmark" viewBox="0 0 52 52">
+            <path d="M14 27l7.5 7.5L38 18" />
+          </svg>
+        </div>
+      `;
+      spinnerContainer.appendChild(successIcon);
+
+      messageEl.textContent = message;
+      submessageEl.textContent = submessage;
+    }
+
+    function hideLoading() {
+      const overlay = document.getElementById('loadingOverlay');
+      overlay.classList.add('hidden');
+
+      // Restore body scroll
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+
+      if (currentTimeout) {
+        clearTimeout(currentTimeout);
+        currentTimeout = null;
+      }
+    }
+
+    function handleBackdropClick(event) {
+      if (canClose && event.target.id === 'loadingOverlay') {
+        hideLoading();
+      }
+    }
+
+    // Demo Functions
+    function simulateSave() {
+      showLoading('dots', 'Guardando gasto...', 'Sincronizando con el servidor');
+      setTimeout(() => {
+        showSuccess('¡Guardado!', 'El gasto se guardó correctamente');
+        setTimeout(hideLoading, 2000);
+      }, 2000);
+    }
+
+    function simulateUpload() {
+      showLoading('material', 'Subiendo archivo...', 'Por favor espera');
+      setTimeout(() => {
+        showSuccess('¡Archivo subido!', 'Se procesó correctamente');
+        setTimeout(hideLoading, 2000);
+      }, 3000);
+    }
+
+    function showLongLoading() {
+      showLoading('simple', 'Procesando...', 'Esta operación puede tardar unos segundos');
+      setTimeout(hideLoading, 5000);
+    }
+
+    function showCloseable() {
+      showLoading('dots', 'Toca fuera para cerrar', 'Puedes cancelar esta operación');
+      canClose = true;
+      document.getElementById('tapHint').classList.remove('hidden');
+    }
+
+    function showAutoClose() {
+      showLoading('dots', 'Auto-cierre en 3s', 'Se cerrará automáticamente');
+    }
+
+    // Auto-detect system theme
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.body.classList.add('dark');
+    }
+  </script>
+</body>
+</html>
