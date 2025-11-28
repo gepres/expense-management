@@ -7,7 +7,7 @@ import { SharedService } from '@services/shared';
 import type { SharedExpenseGroup, GroupStats } from '@app-types/shared';
 import { Crown, UserMinus, TrendingUp, TrendingDown, UserPlus, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import InviteLinkButton from './InviteLinkButton';
+import InviteMemberModal from './InviteMemberModal';
 import Modal, { ModalFooterActions } from '@components/common/Modal';
 
 interface Props {
@@ -172,20 +172,12 @@ export default function SharedMembersTab({
       )}
 
       {/* Invite Modal */}
-      {showInviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 !mt-0"  >
-          <div className="bg-card w-full max-w-sm rounded-2xl p-6 shadow-xl border border-border">
-            <h3 className="text-lg font-bold mb-4">Invitar miembros</h3>
-            <InviteLinkButton groupId={group.id} invitationLink={group.invitationLink} />
-            <button
-              onClick={() => setShowInviteModal(false)}
-              className="w-full mt-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
+      <InviteMemberModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        groupId={group.id}
+        invitationLink={group.invitationLink}
+      />
 
       {/* Modal de confirmación para eliminar miembro */}
       <Modal

@@ -159,12 +159,13 @@ import Modal, { ModalFooterActions } from '@components/common/Modal';
 import { useModal } from '@hooks/useModal';
 import { AlignLeft, Calendar } from 'lucide-react';
 import { useState } from 'react';
+import { obtenerFechaLocalISO } from '@utils/formatters';
 
 function CreateForm() {
   const modal = useModal();
   const [formData, setFormData] = useState({
     title: '',
-    date: new Date().toISOString().split('T')[0],
+    date: obtenerFechaLocalISO(),
   });
 
   const handleSubmit = () => {

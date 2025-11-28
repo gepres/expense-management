@@ -21,6 +21,7 @@ import { toast } from 'react-hot-toast';
 import { Plus, Target, Wallet, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Tag, Coins, DollarSign, AlertTriangle } from 'lucide-react';
 import CustomLoader from '@components/common/CustomLoader';
 import Modal, { ModalFooterActions } from '@components/common/Modal';
+import { ContainerLoadingButton } from '../common/Button';
 
 interface FormPresupuesto {
   categoria: CategoriaGastoOGeneral;
@@ -44,6 +45,7 @@ export default function ListaPresupuestos() {
   const [presupuestoEditando, setPresupuestoEditando] = useState<Presupuesto | null>(null);
   const [presupuestoAEliminar, setPresupuestoAEliminar] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
 
   const [formData, setFormData] = useState<FormPresupuesto>({
     categoria: 'alimentacion',
@@ -230,11 +232,14 @@ export default function ListaPresupuestos() {
 
   // Eliminar presupuesto
   const handleEliminar = async (id: string) => {
+    setEliminando(true);
     try {
       await eliminar(id);
       setPresupuestoAEliminar(null);
     } catch (error) {
       console.error('Error al eliminar presupuesto:', error);
+    } finally {
+      setEliminando(false);
     }
   };
 
@@ -707,14 +712,15 @@ export default function ListaPresupuestos() {
               setMostrarModal(false);
               setPresupuestoEditando(null);
             }}
-            onConfirm={handleSubmit}
+            onConfirm={() => handleSubmit()}
             cancelText="Cancelar"
-            confirmText={cargando ? 'Guardando...' : presupuestoEditando ? 'Actualizar' : 'Crear'}
+            // confirmText={cargando ? 'Guardando...' : presupuestoEditando ? 'Actualizar' : 'Crear'}
+            confirmText={<ContainerLoadingButton isLoading={cargando} loadingText={presupuestoEditando ? 'Actualizando...' : 'Guardando...'} text={presupuestoEditando ? 'Actualizar' : 'Crear'} />}
             disabled={cargando}
           />
         }
       >
-        <form className="space-y-3" onSubmit={handleSubmit}>
+        <form className="space-y-3" onSubmit={(e) => handleSubmit(e)}>
               {/* Categoría */}
               <div className="bg-card border border-border rounded-xl overflow-hidden">
                 <div className="p-3 flex items-center gap-3">
@@ -837,7 +843,7 @@ export default function ListaPresupuestos() {
       {/* Modal de confirmación de eliminación */}
       <Modal
         isOpen={!!presupuestoAEliminar}
-        onClose={() => setPresupuestoAEliminar(null)}
+        onClose={() => !eliminando && setPresupuestoAEliminar(null)}
         title="¿Eliminar presupuesto?"
         size="sm"
         footer={
@@ -845,8 +851,9 @@ export default function ListaPresupuestos() {
             onCancel={() => setPresupuestoAEliminar(null)}
             onConfirm={() => presupuestoAEliminar && handleEliminar(presupuestoAEliminar)}
             cancelText="Cancelar"
-            confirmText="Eliminar"
+            confirmText={<ContainerLoadingButton isLoading={eliminando} loadingText="Eliminando..." text="Eliminar" />}
             confirmVariant="destructive"
+            disabled={eliminando}
           />
         }
       >

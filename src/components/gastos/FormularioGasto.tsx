@@ -14,7 +14,10 @@ import { scanReceipt, validateImageFormat } from '@services/receipts';
 import { useVoiceInput } from '@hooks/useVoiceInput';
 import { VoiceService } from '@services/voice';
 import CustomLoader from '@components/common/CustomLoader';
-import { Camera, Upload, Lightbulb, Check, Plus, Mic, MicOff, ChevronDown, ChevronUp, Calendar, Clock, CreditCard, Repeat, AlignLeft, CircleDollarSign, Zap, Receipt, Tag, Coins, FileText, Hash, RefreshCw, Building2, Calculator, Percent } from 'lucide-react';
+import { Image, Upload, Lightbulb, Check, Plus, Mic, MicOff, ChevronDown, ChevronUp, Calendar, Clock, CreditCard, Repeat, AlignLeft, CircleDollarSign, Zap, Receipt, Tag, Coins, FileText, Hash, RefreshCw, Building2, Calculator, Percent } from 'lucide-react';
+// import Button from '../common/Button';
+import LoadingSpinner from '../common/LoadingSpinner';
+import { obtenerFechaLocalISO } from '@utils/formatters';
 
 export default function FormularioGasto() {
   const navigate = useNavigate();
@@ -36,7 +39,7 @@ export default function FormularioGasto() {
 
   // Estado del formulario
   const [formData, setFormData] = useState<GastoFormData>({
-    fecha: new Date().toISOString().split('T')[0],
+    fecha: obtenerFechaLocalISO(),
     hora: new Date().toTimeString().slice(0, 5), // HH:MM actual
     categoria: 'alimentacion',
     subcategoria: '',
@@ -101,7 +104,7 @@ export default function FormularioGasto() {
           }
 
           setFormData({
-            fecha: fechaGasto.toISOString().split('T')[0],
+            fecha: obtenerFechaLocalISO(fechaGasto),
             hora: fechaGasto.toTimeString().slice(0, 5),
             categoria: gasto.categoria,
             subcategoria: gasto.subcategoria || '',
@@ -339,7 +342,7 @@ export default function FormularioGasto() {
       // Autocompletar formulario si la confianza es alta
       if (expenseData.confidence > 0.6) {
         const today = new Date();
-        const formattedDate = today.toISOString().split('T')[0];
+        const formattedDate = obtenerFechaLocalISO(today);
         const formattedTime = today.toTimeString().slice(0, 5);
 
         // Normalizar subcategoría (capitalizar primera letra)
@@ -643,7 +646,7 @@ export default function FormularioGasto() {
                     </>
                   ) : (
                     <>
-                      <Camera className="h-5 w-5" />
+                      <Image className="h-5 w-5" />
                     </>
                   )}
                 </button>
@@ -1053,13 +1056,28 @@ export default function FormularioGasto() {
                 >
                   Cancelar
                 </button>
+                {/* <Button size='xl' disabled={cargando} variant='secondary' type="button" onClick={() => navigate('/gastos')}>
+                  <span className='font-bold'>
+                  Cancelar
+                  </span>
+                </Button>
+              <Button loading={cargando} size='xl' type='submit' disabled={cargando} spinnerVariant="dots3" loadingText={(cargando && esEdicion) ? 'Actualizando...' : 'Guardando...'}>
+
+                <span className='font-bold flex items-center gap-2'>
+                   <>
+                      <Check className="h-5 w-5" />
+                      {esEdicion ? 'Actualizar' : 'Guardar'}
+                    </>
+                </span>
+              </Button> */}
+
                 <button
                   type="submit"
                   disabled={cargando}
                   className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {cargando ? (
-                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <LoadingSpinner variant="dots3" size="md"/>
                   ) : (
                     <>
                       <Check className="h-5 w-5" />
@@ -1120,7 +1138,7 @@ export default function FormularioGasto() {
             {!esEdicion && (
               <div className="bg-accent/30 border border-border rounded-xl p-4">
                 <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-                  <Camera className="h-4 w-4" />
+                  <Image className="h-4 w-4" />
                   <span>Escanear Recibo</span>
                 </label>
                 <p className="text-sm text-muted-foreground mb-3">
@@ -1171,7 +1189,7 @@ export default function FormularioGasto() {
                       name="fecha"
                       value={formData.fecha}
                       onChange={handleChange}
-                      max={new Date().toISOString().split('T')[0]}
+                      max={obtenerFechaLocalISO()}
                       className="bg-transparent text-sm w-full focus:outline-none font-medium"
                       disabled={cargando}
                     />
@@ -1566,15 +1584,32 @@ export default function FormularioGasto() {
 
             {/* 9. Botones al final (Desktop) */}
             <div className="flex gap-3 pt-6">
+{/* 
+              <Button fullWidth loading={cargando} size='xl' type='submit' disabled={cargando} spinnerVariant="dots3" loadingText={(cargando && esEdicion) ? 'Actualizando...' : 'Guardando...'}>
+
+                <span className='font-bold'>
+                {esEdicion
+                  ? 'Actualizar Gasto'
+                  : 'Guardar Gasto'}
+                </span>
+              </Button> */}
+              
               <button
                 type="submit"
                 disabled={cargando}
                 className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
+                
                 {cargando
                   ? esEdicion
-                    ? 'Actualizando...'
-                    : 'Guardando...'
+                    ? <div className="flex items-center justify-center gap-2">
+                    <LoadingSpinner variant="dots3" size="md"/>
+                    Actualizando...
+                    </div>
+                    : <div className="flex items-center justify-center gap-2">
+                    <LoadingSpinner variant="dots3" size="md"/>
+                    Guardando...
+                    </div>
                   : esEdicion
                   ? 'Actualizar Gasto'
                   : 'Guardar Gasto'}
@@ -1587,6 +1622,13 @@ export default function FormularioGasto() {
               >
                 Cancelar
               </button>
+
+              {/* <Button size='xl' disabled={cargando} variant='secondary' type="button" onClick={() => navigate('/gastos')}>
+
+                <span className='font-bold'>
+                Cancelar
+                </span>
+              </Button> */}
             </div>
           </div>
         </div>

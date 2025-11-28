@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 
 import { useAuth } from '@context/AuthContext';
 import { useGastos } from '@hooks/useGastos';
+import { obtenerFechaLocalISO } from '@utils/formatters';
 
 export default function ShoppingListDetail() {
   const { id } = useParams<{ id: string }>();
@@ -147,7 +148,7 @@ export default function ShoppingListDetail() {
       
       const description = `Compras: ${itemsDescription}`;
 
-      const fechaHora = new Date(`${list.date || new Date().toISOString().split('T')[0]}T${list.time || new Date().toTimeString().slice(0, 5)}:00`);
+      const fechaHora = new Date(`${list.date || obtenerFechaLocalISO()}T${list.time || new Date().toTimeString().slice(0, 5)}:00`);
 
       const expenseData: any = {
         userId: usuario.id,

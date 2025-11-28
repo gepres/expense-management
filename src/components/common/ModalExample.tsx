@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import Modal, { ModalButton, ModalFooterActions } from './Modal';
 import { AlertTriangle, Info, CheckCircle, Calendar, AlignLeft } from 'lucide-react';
+import { obtenerFechaLocalISO } from '@utils/formatters';
 
 export default function ModalExample() {
   const [simpleModal, setSimpleModal] = useState(false);
@@ -17,7 +18,7 @@ export default function ModalExample() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    date: new Date().toISOString().split('T')[0],
+    date: obtenerFechaLocalISO(),
   });
 
   const handleFormSubmit = () => {

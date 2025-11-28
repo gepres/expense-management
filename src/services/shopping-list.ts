@@ -1,13 +1,14 @@
 /**
  * Service for Shopping List feature
  * Uses localStorage for simplicity as requested, or Firebase if preferred.
- * Given the project structure, I'll use a mock service that saves to localStorage for now, 
+ * Given the project structure, I'll use a mock service that saves to localStorage for now,
  * as setting up a full Firebase collection might be out of scope for a quick feature unless specified.
  * However, the user asked for "crea una vista", implying a persistent feature.
  * I'll use localStorage for now to be safe and fast, as I don't have the backend API spec for shopping lists.
  */
 
 import type { ShoppingList, CreateShoppingListDto, UpdateShoppingListDto, ShoppingListItem } from '../types/shopping-list';
+import { obtenerFechaLocalISO } from '@utils/formatters';
 
 const STORAGE_KEY = 'shopping_lists';
 
@@ -33,7 +34,7 @@ export const ShoppingListService = {
       status: 'active',
       createdAt: now,
       updatedAt: now,
-      date: now.toISOString().split('T')[0],
+      date: obtenerFechaLocalISO(now),
       time: now.toTimeString().slice(0, 5),
       currency: data.currency || 'PEN',
     };

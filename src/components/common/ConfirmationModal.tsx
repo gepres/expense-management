@@ -1,5 +1,6 @@
 import { AlertTriangle } from 'lucide-react';
 import Modal, { ModalButton } from './Modal';
+import { ContainerLoadingButton } from './Button';
 
 interface Props {
   isOpen: boolean;
@@ -55,10 +56,9 @@ export default function ConfirmationModal({
             className="flex items-center justify-center gap-2"
           >
             {isLoading ? (
-              <>
-                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Procesando...</span>
-              </>
+              <div className='flex items-center gap-2'>
+                <ContainerLoadingButton isLoading={isLoading} loadingText="Procesando..."/>
+              </div>
             ) : (
               confirmText
             )}

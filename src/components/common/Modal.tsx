@@ -212,7 +212,7 @@ export function ModalButton({
 }: {
   children: React.ReactNode;
   onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'outline' | 'success';
   disabled?: boolean;
   type?: 'button' | 'submit' | 'reset';
   className?: string;
@@ -222,6 +222,8 @@ export function ModalButton({
     secondary: 'bg-muted hover:bg-muted/80 text-foreground',
     destructive: 'bg-destructive hover:bg-destructive/90 text-destructive-foreground',
     ghost: 'bg-transparent hover:bg-muted text-foreground',
+    outline: 'bg-transparent hover:bg-muted text-foreground',
+    success: 'bg-success hover:bg-success/90 text-success-foreground',
   };
 
   return (
@@ -254,7 +256,7 @@ export function ModalFooterActions({
   onCancel: () => void;
   onConfirm: () => void;
   cancelText?: string;
-  confirmText?: string;
+  confirmText?: React.ReactNode;
   confirmVariant?: 'primary' | 'destructive';
   disabled?: boolean;
 }) {

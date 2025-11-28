@@ -19,8 +19,9 @@ import SharedBudgetsTab from './SharedBudgetsTab';
 import SharedExpensesTab from './SharedExpensesTab';
 import SharedMembersTab from './SharedMembersTab';
 import SharedStatsTab from './SharedStatsTab';
-import InviteLinkButton from './InviteLinkButton';
+import InviteMemberModal from './InviteMemberModal';
 import CreateSharedGroupModal from './CreateSharedGroupModal';
+import { ContainerLoadingButton } from '../common/Button';
 
 type Tab = 'activity' | 'budgets' | 'expenses' | 'members' | 'stats';
 
@@ -44,6 +45,7 @@ export default function SharedGroupDetail() {
   const [openExpenseForm, setOpenExpenseForm] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
 
   // Refs para detectar cambios y mostrar notificaciones
   const isInitialLoadExpenses = useRef(true);
@@ -355,12 +357,15 @@ export default function SharedGroupDetail() {
     if (!id) return;
 
     try {
+      setLoadingDelete(true);
       await SharedService.deleteGroup(id);
       toast.success('Grupo eliminado');
       setShowDeleteConfirm(false);
       navigate('/compartidos');
     } catch (error) {
       toast.error('Error al eliminar el grupo');
+    } finally {
+      setLoadingDelete(false);
     }
   };
 
@@ -639,20 +644,12 @@ export default function SharedGroupDetail() {
       </div>
 
       {/* Invite Modal */}
-      {showInviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 !mt-0">
-          <div className="bg-card w-full max-w-sm rounded-2xl p-6 shadow-xl border border-border">
-            <h3 className="text-lg font-bold mb-4">Invitar miembros</h3>
-            <InviteLinkButton groupId={group.id} invitationLink={group.invitationLink} />
-            <button
-              onClick={() => setShowInviteModal(false)}
-              className="w-full mt-4 py-2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
+      <InviteMemberModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        groupId={group.id}
+        invitationLink={group.invitationLink}
+      />
 
       {/* Edit Group Modal */}
       <CreateSharedGroupModal
@@ -704,7 +701,7 @@ export default function SharedGroupDetail() {
             onCancel={() => setShowDeleteConfirm(false)}
             onConfirm={handleDeleteGroup}
             cancelText="Cancelar"
-            confirmText="Eliminar"
+            confirmText={<ContainerLoadingButton isLoading={loadingDelete} loadingText="Eliminando..." text="Eliminar" />}
             confirmVariant="destructive"
           />
         }

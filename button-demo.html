@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Button Component Demo - Gastos App</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #3b82f6;
+      --primary-foreground: #ffffff;
+      --secondary: #6b7280;
+      --destructive: #ef4444;
+      --destructive-foreground: #ffffff;
+      --success: #10b981;
+      --muted: #f3f4f6;
+      --foreground: #111827;
+      --background: #ffffff;
+      --border: #e5e7eb;
+      --accent: #f9fafb;
+    }
+
+    .dark {
+      --primary: #60a5fa;
+      --primary-foreground: #1e293b;
+      --secondary: #9ca3af;
+      --destructive: #dc2626;
+      --muted: #374151;
+      --foreground: #f9fafb;
+      --background: #111827;
+      --border: #4b5563;
+      --accent: #1f2937;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: var(--background);
+      color: var(--foreground);
+      padding: 20px;
+      transition: all 0.3s;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: var(--secondary);
+      font-size: 1rem;
+    }
+
+    .section {
+      background: var(--muted);
+      padding: 30px;
+      border-radius: 20px;
+      margin-bottom: 30px;
+      border: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--foreground);
+    }
+
+    .section-description {
+      color: var(--secondary);
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+
+    /* Button Base Styles */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      outline: none;
+    }
+
+    .btn:focus {
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* Variants */
+    .btn-primary {
+      background: var(--primary);
+      color: var(--primary-foreground);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--primary) 90%, black);
+    }
+
+    .btn-secondary {
+      background: var(--muted);
+      color: var(--foreground);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--muted) 80%, black);
+    }
+
+    .btn-destructive {
+      background: var(--destructive);
+      color: var(--destructive-foreground);
+    }
+
+    .btn-destructive:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--destructive) 90%, black);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--foreground);
+    }
+
+    .btn-ghost:hover:not(:disabled) {
+      background: var(--muted);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--success) 85%, black);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--foreground);
+      border: 2px solid var(--border);
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      background: var(--accent);
+    }
+
+    /* Sizes */
+    .btn-xs {
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      border-radius: 8px;
+    }
+
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      border-radius: 10px;
+    }
+
+    .btn-md {
+      padding: 8px 16px;
+      font-size: 0.875rem;
+      border-radius: 12px;
+    }
+
+    .btn-lg {
+      padding: 12px 24px;
+      font-size: 0.875rem;
+      border-radius: 14px;
+    }
+
+    .btn-xl {
+      padding: 14px 32px;
+      font-size: 1rem;
+      border-radius: 16px;
+    }
+
+    /* Icon Only */
+    .btn-icon-xs {
+      padding: 4px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+    }
+
+    .btn-icon-sm {
+      padding: 6px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+
+    .btn-icon-md {
+      padding: 8px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+    }
+
+    .btn-icon-lg {
+      padding: 10px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+    }
+
+    /* Pill */
+    .btn-pill {
+      border-radius: 9999px;
+    }
+
+    /* Active State */
+    .btn-active {
+      box-shadow: 0 0 0 2px var(--primary), 0 0 0 4px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      display: inline-flex;
+      gap: 4px;
+    }
+
+    .spinner span {
+      width: 6px;
+      height: 6px;
+      background: currentColor;
+      border-radius: 50%;
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+
+    .spinner span:nth-child(1) {
+      animation-delay: -0.32s;
+    }
+
+    .spinner span:nth-child(2) {
+      animation-delay: -0.16s;
+    }
+
+    @keyframes bounce {
+      0%, 80%, 100% {
+        transform: scale(0);
+        opacity: 0.5;
+      }
+      40% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* FAB */
+    .btn-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 50;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+    }
+
+    .btn-fab:hover:not(:disabled) {
+      transform: scale(1.05);
+    }
+
+    /* Theme Toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      background: var(--primary);
+      color: var(--primary-foreground);
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      z-index: 100;
+    }
+
+    /* Info Box */
+    .info-box {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .info-box h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .info-box ul {
+      margin-left: 20px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 768px) {
+      .button-grid {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 1.75rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">🌓 Cambiar Tema</button>
+
+  <div class="container">
+    <div class="header">
+      <h1>🎨 Button Component</h1>
+      <p class="subtitle">Componente completo de botones para Gastos App</p>
+    </div>
+
+    <!-- Section 1: Variantes -->
+    <div class="section">
+      <h2 class="section-title">1. Variantes de Color</h2>
+      <p class="section-description">6 variantes para diferentes acciones</p>
+
+      <div class="button-row">
+        <button class="btn btn-primary btn-md">Primary</button>
+        <button class="btn btn-secondary btn-md">Secondary</button>
+        <button class="btn btn-destructive btn-md">Destructive</button>
+        <button class="btn btn-ghost btn-md">Ghost</button>
+        <button class="btn btn-success btn-md">Success</button>
+        <button class="btn btn-outline btn-md">Outline</button>
+      </div>
+    </div>
+
+    <!-- Section 2: Tamaños -->
+    <div class="section">
+      <h2 class="section-title">2. Tamaños</h2>
+      <p class="section-description">5 tamaños: xs, sm, md, lg, xl</p>
+
+      <div class="button-row">
+        <button class="btn btn-primary btn-xs">Extra Small</button>
+        <button class="btn btn-primary btn-sm">Small</button>
+        <button class="btn btn-primary btn-md">Medium</button>
+        <button class="btn btn-primary btn-lg">Large</button>
+        <button class="btn btn-primary btn-xl">Extra Large</button>
+      </div>
+    </div>
+
+    <!-- Section 3: Estados -->
+    <div class="section">
+      <h2 class="section-title">3. Estados</h2>
+      <p class="section-description">Loading, Disabled, Active</p>
+
+      <div class="button-row">
+        <button class="btn btn-primary btn-md">
+          <span class="spinner">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+          <span>Cargando...</span>
+        </button>
+        <button class="btn btn-primary btn-md" disabled>Disabled</button>
+        <button class="btn btn-primary btn-md btn-active">Active</button>
+      </div>
+    </div>
+
+    <!-- Section 4: Icon Only -->
+    <div class="section">
+      <h2 class="section-title">4. Botones Solo Icono</h2>
+      <p class="section-description">Perfectos para acciones rápidas</p>
+
+      <div class="button-row">
+        <button class="btn btn-primary btn-icon-xs">+</button>
+        <button class="btn btn-primary btn-icon-sm">+</button>
+        <button class="btn btn-primary btn-icon-md">+</button>
+        <button class="btn btn-primary btn-icon-lg">+</button>
+      </div>
+
+      <div class="button-row">
+        <button class="btn btn-primary btn-icon-md">✏️</button>
+        <button class="btn btn-ghost btn-icon-md">✏️</button>
+        <button class="btn btn-destructive btn-icon-md">🗑️</button>
+        <button class="btn btn-success btn-icon-md">✓</button>
+      </div>
+    </div>
+
+    <!-- Section 5: Pill Buttons -->
+    <div class="section">
+      <h2 class="section-title">5. Pill Buttons (Categorías)</h2>
+      <p class="section-description">Para filtros y categorías seleccionables</p>
+
+      <div class="button-row">
+        <button class="btn btn-primary btn-sm btn-pill btn-active">Alimentación</button>
+        <button class="btn btn-outline btn-sm btn-pill">Transporte</button>
+        <button class="btn btn-outline btn-sm btn-pill">Entretenimiento</button>
+        <button class="btn btn-outline btn-sm btn-pill">Salud</button>
+      </div>
+    </div>
+
+    <!-- Section 6: Con Iconos -->
+    <div class="section">
+      <h2 class="section-title">6. Botones con Iconos</h2>
+      <p class="section-description">Iconos a la izquierda o derecha</p>
+
+      <div class="button-row">
+        <button class="btn btn-primary btn-md">
+          <span>+</span>
+          <span>Agregar</span>
+        </button>
+        <button class="btn btn-success btn-md">
+          <span>💾</span>
+          <span>Guardar</span>
+        </button>
+        <button class="btn btn-destructive btn-md">
+          <span>🗑️</span>
+          <span>Eliminar</span>
+        </button>
+      </div>
+
+      <div class="button-row">
+        <button class="btn btn-outline btn-md">
+          <span>Descargar</span>
+          <span>⬇️</span>
+        </button>
+        <button class="btn btn-outline btn-md">
+          <span>Subir</span>
+          <span>⬆️</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Section 7: Full Width -->
+    <div class="section">
+      <h2 class="section-title">7. Full Width (Formularios)</h2>
+      <p class="section-description">Para modales y formularios móviles</p>
+
+      <div style="max-width: 400px;">
+        <button class="btn btn-primary btn-lg" style="width: 100%;">
+          Guardar Cambios
+        </button>
+      </div>
+
+      <div style="max-width: 400px; margin-top: 15px;">
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-secondary btn-md" style="flex: 1;">
+            Cancelar
+          </button>
+          <button class="btn btn-primary btn-md" style="flex: 1;">
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 8: Combinaciones -->
+    <div class="section">
+      <h2 class="section-title">8. Combinaciones Comunes</h2>
+      <p class="section-description">Casos de uso reales del proyecto</p>
+
+      <!-- Acciones en lista -->
+      <div style="background: var(--background); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <p style="font-weight: 600;">Gasto de transporte</p>
+            <p style="font-size: 0.875rem; color: var(--secondary);">S/ 25.00</p>
+          </div>
+          <div style="display: flex; gap: 5px;">
+            <button class="btn btn-ghost btn-icon-sm">✏️</button>
+            <button class="btn btn-ghost btn-icon-sm" style="color: var(--destructive);">🗑️</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer de modal -->
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-secondary btn-md" style="flex: 1;">
+          ❌ Cancelar
+        </button>
+        <button class="btn btn-destructive btn-md" style="flex: 1;">
+          🗑️ Eliminar
+        </button>
+      </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="info-box">
+      <h3>📦 Características del Componente</h3>
+      <ul>
+        <li><strong>6 Variantes:</strong> primary, secondary, destructive, ghost, success, outline</li>
+        <li><strong>5 Tamaños:</strong> xs, sm, md (default), lg, xl</li>
+        <li><strong>Estados:</strong> loading, disabled, active</li>
+        <li><strong>Tipos Especiales:</strong> icon-only, pill, floating (FAB), full-width</li>
+        <li><strong>Soporte de Iconos:</strong> Integración con lucide-react</li>
+        <li><strong>Spinners:</strong> 5 variantes de loading (dots, dots2, dots3, simple, material)</li>
+        <li><strong>Accesibilidad:</strong> aria-label, focus states, disabled states</li>
+        <li><strong>Responsive:</strong> Se adapta a móvil y desktop</li>
+        <li><strong>Animaciones:</strong> Hover, active, loading suaves</li>
+        <li><strong>TypeScript:</strong> Completamente tipado</li>
+      </ul>
+    </div>
+
+    <div class="info-box" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+      <h3>💡 Guía de Uso Rápida</h3>
+      <ul>
+        <li><strong>primary:</strong> Acciones principales (Guardar, Enviar, Confirmar)</li>
+        <li><strong>secondary:</strong> Acciones secundarias (Cancelar, Volver)</li>
+        <li><strong>destructive:</strong> Acciones destructivas (Eliminar, Descartar)</li>
+        <li><strong>ghost:</strong> Acciones sutiles (Editar, Ver más)</li>
+        <li><strong>success:</strong> Confirmaciones positivas (Aprobar, Completar)</li>
+        <li><strong>outline:</strong> Alternativa visual sin relleno</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- FAB Example -->
+  <button class="btn btn-primary btn-icon-lg btn-fab">+</button>
+
+  <script>
+    function toggleTheme() {
+      document.body.classList.toggle('dark');
+    }
+
+    // Auto-detect system theme
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.body.classList.add('dark');
+    }
+  </script>
+</body>
+</html>

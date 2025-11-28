@@ -9,9 +9,11 @@ import { useConfig } from '@context/ConfigContext';
 import { formatearMoneda, formatearFecha } from '@utils/formatters';
 import { calcularTotalGastos, agruparGastosPorMoneda } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
-import { Plus, FileText, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Download, X, Search, Filter, Calendar, CreditCard, TrendingUp, Lightbulb, ChevronRight, Trash2 } from 'lucide-react';
+import { Plus, FileText, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Download, Search, Filter, Calendar, CreditCard, TrendingUp, Lightbulb, ChevronRight, Trash2, AlertTriangle, FileSpreadsheet, FileJson } from 'lucide-react';
 import CustomLoader from '@components/common/CustomLoader';
+import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
 import { ExpensesService } from '../../services/expenses';
+import { ContainerLoadingButton } from '../common/Button';
 
 export default function ListaGastos() {
   const navigate = useNavigate();
@@ -45,6 +47,8 @@ export default function ListaGastos() {
   const [exportYear, setExportYear] = useState(new Date().getFullYear());
   const [exportFormat, setExportFormat] = useState<'json' | 'excel'>('excel');
   const [isExporting, setIsExporting] = useState(false);
+
+  const [loadingDelete, setLoadingDelete] = useState(false);
 
   useEffect(() => {
     cargarGastos();
@@ -102,12 +106,15 @@ export default function ListaGastos() {
   // Manejar eliminación
   const handleEliminar = async (id: string) => {
     try {
+      setLoadingDelete(true);
       await eliminar(id);
       toast.success('Gasto eliminado exitosamente');
       setGastoAEliminar(null);
     } catch (error) {
       console.error('Error al eliminar gasto:', error);
       toast.error('Error al eliminar el gasto');
+    } finally {
+      setLoadingDelete(false);
     }
   };
 
@@ -492,54 +499,92 @@ export default function ListaGastos() {
       </div>
 
       {/* Modal de confirmación de eliminación */}
-      {gastoAEliminar && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full shadow-xl">
-            <h3 className="text-lg font-bold text-foreground mb-2">
-              ¿Eliminar gasto?
-            </h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              Esta acción no se puede deshacer. El gasto será eliminado permanentemente.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleEliminar(gastoAEliminar)}
-                className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground font-semibold py-2 px-4 rounded-md transition-colors"
-              >
-                Eliminar
-              </button>
-              <button
-                onClick={() => setGastoAEliminar(null)}
-                className="flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground font-semibold py-2 px-4 rounded-md transition-colors"
-              >
-                Cancelar
-              </button>
+      <Modal
+        isOpen={!!gastoAEliminar}
+        onClose={() => setGastoAEliminar(null)}
+        title="Eliminar gasto"
+        size="sm"
+        footer={
+          <ModalFooterActions
+            onCancel={() => setGastoAEliminar(null)}
+            onConfirm={() => gastoAEliminar && handleEliminar(gastoAEliminar)}
+            cancelText="Cancelar"
+            disabled={loadingDelete}
+            confirmText={<ContainerLoadingButton isLoading={loadingDelete} loadingText="Eliminando..." text="Eliminar" />}
+            confirmVariant="destructive"
+          />
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center justify-center">
+            <div className="p-4 bg-destructive/10 rounded-full">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
             </div>
           </div>
+
+          <div className="text-center space-y-2">
+            <h3 className="font-semibold text-foreground">
+              ¿Estás seguro?
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Esta acción no se puede deshacer. El gasto será eliminado permanentemente.
+            </p>
+          </div>
         </div>
-      )}
+      </Modal>
 
       {/* Modal de Exportación */}
-      {showExportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-card border border-border rounded-lg p-6 max-w-md w-full shadow-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-foreground">
-                Descargar Reporte
-              </h3>
-              <button onClick={() => setShowExportModal(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="h-5 w-5" />
-              </button>
+      <Modal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Descargar Reporte"
+        subtitle="Selecciona el periodo y formato del reporte"
+        size="md"
+        footer={
+          <ModalButton
+            variant="primary"
+            onClick={handleExport}
+            disabled={isExporting}
+            className="w-full"
+          >
+            {isExporting ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
+                <span>Descargando...</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <Download className="h-4 w-4" />
+                <span>Descargar</span>
+              </div>
+            )}
+          </ModalButton>
+        }
+      >
+        <div className="space-y-4">
+          {/* Icono principal */}
+          <div className="flex items-center justify-center mb-2">
+            <div className="p-4 bg-primary/10 rounded-full">
+              <FileSpreadsheet className="h-12 w-12 text-primary" />
             </div>
-            
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Mes</label>
+          </div>
+
+          {/* Periodo (Mes y Año) */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
+            <div className="flex divide-x divide-border">
+              {/* Mes */}
+              <div className="flex-1 p-3 flex items-center gap-3">
+                <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600 dark:text-blue-400">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">
+                    Mes
+                  </label>
                   <select
                     value={exportMonth}
                     onChange={(e) => setExportMonth(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-md border border-input bg-background"
+                    className="bg-transparent text-sm w-full focus:outline-none font-medium appearance-none"
                   >
                     {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                       <option key={m} value={m}>
@@ -548,64 +593,79 @@ export default function ListaGastos() {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Año</label>
+              </div>
+
+              {/* Año */}
+              <div className="flex-1 p-3 flex items-center gap-3">
+                <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">
+                    Año
+                  </label>
                   <input
                     type="number"
                     value={exportYear}
                     onChange={(e) => setExportYear(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-md border border-input bg-background"
+                    className="bg-transparent text-sm w-full focus:outline-none font-medium"
+                    min="2000"
+                    max="2099"
                   />
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Formato</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="format"
-                      value="excel"
-                      checked={exportFormat === 'excel'}
-                      onChange={() => setExportFormat('excel')}
-                    />
-                    Excel (.xlsx)
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="format"
-                      value="json"
-                      checked={exportFormat === 'json'}
-                      onChange={() => setExportFormat('json')}
-                    />
-                    JSON (.json)
-                  </label>
-                </div>
+          {/* Formato */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="p-3">
+              <label className="text-[10px] text-muted-foreground uppercase tracking-wide block mb-3">
+                Formato de exportación
+              </label>
+              <div className="space-y-2">
+                {/* Excel */}
+                <label className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                  <input
+                    type="radio"
+                    name="format"
+                    value="excel"
+                    checked={exportFormat === 'excel'}
+                    onChange={() => setExportFormat('excel')}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <div className="p-1.5 bg-green-500/10 rounded-lg text-green-600 dark:text-green-400">
+                    <FileSpreadsheet className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">Excel</p>
+                    <p className="text-xs text-muted-foreground">.xlsx - Formato de hoja de cálculo</p>
+                  </div>
+                </label>
+
+                {/* JSON */}
+                <label className="flex items-center gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                  <input
+                    type="radio"
+                    name="format"
+                    value="json"
+                    checked={exportFormat === 'json'}
+                    onChange={() => setExportFormat('json')}
+                    className="w-4 h-4 text-primary"
+                  />
+                  <div className="p-1.5 bg-orange-500/10 rounded-lg text-orange-600 dark:text-orange-400">
+                    <FileJson className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">JSON</p>
+                    <p className="text-xs text-muted-foreground">.json - Formato de datos estructurados</p>
+                  </div>
+                </label>
               </div>
-
-              <button
-                onClick={handleExport}
-                disabled={isExporting}
-                className="w-full bg-primary text-primary-foreground font-semibold py-2 px-4 rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {isExporting ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" />
-                    Descargando...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4" />
-                    Descargar
-                  </>
-                )}
-              </button>
             </div>
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

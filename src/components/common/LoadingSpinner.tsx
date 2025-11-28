@@ -214,7 +214,7 @@ export function LoadingOverlay({
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-in fade-in duration-200 ${responsiveClass}`}
+      className={`fixed inset-0 z-[99999] flex items-center justify-center p-6 animate-in fade-in duration-200 ${responsiveClass}`}
       onClick={handleBackdropClick}
       style={{
         // Fondo oscuro semi-transparente con blur

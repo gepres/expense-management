@@ -11,6 +11,8 @@ import type { SharedBudget, CreateSharedBudgetDto } from '@app-types/shared';
 import { Plus, Edit2, Trash2, Calendar, Clock, FileText, Hash, Building2, CreditCard, AlignLeft, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
+import { obtenerFechaLocalISO } from '@utils/formatters';
+import { ContainerLoadingButton } from '../common/Button';
 
 interface Props {
   groupId: string;
@@ -44,7 +46,7 @@ export default function SharedBudgetsTab({
     description: '',
     paymentMethod: 'efectivo',
     type: 'contribution',
-    date: new Date().toISOString().split('T')[0],
+    date: obtenerFechaLocalISO(),
     time: new Date().toTimeString().slice(0, 5),
     voucherType: 'boleta',
     voucherNumber: '',
@@ -66,7 +68,7 @@ export default function SharedBudgetsTab({
       description: '',
       paymentMethod: 'efectivo',
       type: 'contribution',
-      date: new Date().toISOString().split('T')[0],
+      date: obtenerFechaLocalISO(),
       time: new Date().toTimeString().slice(0, 5),
       voucherType: 'boleta',
       voucherNumber: '',
@@ -124,7 +126,7 @@ export default function SharedBudgetsTab({
       description: budget.description,
       paymentMethod: budget.paymentMethod || 'efectivo',
       type: budget.type,
-      date: budget.date || new Date().toISOString().split('T')[0],
+      date: budget.date || obtenerFechaLocalISO(),
       time: budget.time || new Date().toTimeString().slice(0, 5),
       voucherType: budget.voucherType || 'boleta',
       voucherNumber: budget.voucherNumber || '',
@@ -188,7 +190,11 @@ export default function SharedBudgetsTab({
               disabled={loading}
               className="bg-green-500 hover:bg-green-600"
             >
-              {loading ? 'Guardando...' : editingId ? 'Actualizar' : 'Agregar'}
+              {/* TODO: solo para el autor */}
+              {
+                editingId ? <ContainerLoadingButton isLoading={loading} loadingText="Actualizando..." text="Actualizar" /> : <ContainerLoadingButton isLoading={loading} loadingText="Guardando..." text="Agregar"/>
+              }
+              {/* {loading ? 'Guardando...' : editingId ? 'Actualizar' : 'Agregar'} */}
             </ModalButton>
           </div>
         }
@@ -403,7 +409,7 @@ export default function SharedBudgetsTab({
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{budget.description}</p>
                   <p className="text-xs text-muted-foreground">
-                    {displayName} •  {new Date(budget.createdAt).toLocaleDateString('es-ES')} • {budget.time}
+                    {displayName} •  {budget.date ? new Date(budget.date).toLocaleDateString('es-ES') : new Date(budget.createdAt).toLocaleDateString('es-ES')} • {budget.time}
                     {budget.paymentMethod && ` • ${getPaymentMethodLabel(budget.paymentMethod)}`}
                   </p>
                 </div>

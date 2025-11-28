@@ -187,3 +187,14 @@ export function sanitizarNombreArchivo(nombre: string): string {
     .replace(/_+/g, '_')
     .toLowerCase();
 }
+
+/**
+ * Obtener fecha local en formato YYYY-MM-DD (para inputs tipo date)
+ * Evita problemas de zona horaria usando la fecha local en lugar de UTC
+ */
+export function obtenerFechaLocalISO(fecha: Date = new Date()): string {
+  const year = fecha.getFullYear();
+  const month = String(fecha.getMonth() + 1).padStart(2, '0');
+  const day = String(fecha.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}

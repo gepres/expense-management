@@ -11,6 +11,8 @@ import type { SharedExpense, CreateSharedExpenseDto } from '@app-types/shared';
 import { Plus, Edit2, Trash2, Calendar, Clock, Tag, CreditCard, AlignLeft, FileText, Hash, Building2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
+import { obtenerFechaLocalISO } from '@utils/formatters';
+import { ContainerLoadingButton } from '../common/Button';
 
 interface Props {
   groupId: string;
@@ -53,7 +55,7 @@ export default function SharedExpensesTab({
     category: '',
     subcategory: '',
     paymentMethod: 'efectivo',
-    date: new Date().toISOString().split('T')[0],
+    date: obtenerFechaLocalISO(),
     time: new Date().toTimeString().slice(0, 5),
     voucherType: 'boleta',
     voucherNumber: '',
@@ -68,7 +70,7 @@ export default function SharedExpensesTab({
       category: '',
       subcategory: '',
       paymentMethod: 'efectivo',
-      date: new Date().toISOString().split('T')[0],
+      date: obtenerFechaLocalISO(),
       time: new Date().toTimeString().slice(0, 5),
       voucherType: 'boleta',
       voucherNumber: '',
@@ -147,7 +149,7 @@ export default function SharedExpensesTab({
       category: expense.category || '',
       subcategory: expense.subcategory || '',
       paymentMethod: expense.paymentMethod || 'efectivo',
-      date: expense.date || (expense.createdAt ? new Date(expense.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+      date: expense.date || (expense.createdAt ? obtenerFechaLocalISO(new Date(expense.createdAt)) : obtenerFechaLocalISO()),
       time: expense.time || new Date().toTimeString().slice(0, 5),
       voucherType: expense.voucherType || 'boleta',
       voucherNumber: expense.voucherNumber || '',
@@ -210,7 +212,11 @@ export default function SharedExpensesTab({
               onClick={handleSubmit}
               disabled={loading}
             >
-              {loading ? 'Guardando...' : editingId ? 'Actualizar' : 'Agregar'}
+               {/* TODO: solo para el autor */}
+                            {
+                              editingId ? <ContainerLoadingButton isLoading={loading} loadingText="Actualizando..." text="Actualizar" /> : <ContainerLoadingButton isLoading={loading} loadingText="Guardando..." text="Agregar"/>
+                            }
+              {/* {loading ? 'Guardando...' : editingId ? 'Actualizar' : 'Agregar'} */}
             </ModalButton>
           </div>
         }
@@ -229,7 +235,7 @@ export default function SharedExpensesTab({
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    max={new Date().toISOString().split('T')[0]}
+                    max={obtenerFechaLocalISO()}
                     className="bg-transparent text-sm w-full focus:outline-none font-medium"
                   />
                 </div>
@@ -472,7 +478,7 @@ export default function SharedExpensesTab({
                     {displayName}
                     {/* {expense.category && ` • ${expense.category}`} */}
                     {' • '}
-                    {new Date(expense.createdAt).toLocaleDateString('es-ES')}
+                    {expense.date ? new Date(expense.date).toLocaleDateString('es-ES') : new Date(expense.createdAt).toLocaleDateString('es-ES')}
                     {' • '}
                     {expense.time}
                     {expense.paymentMethod && ` • ${getPaymentMethodLabel(expense.paymentMethod)}`}

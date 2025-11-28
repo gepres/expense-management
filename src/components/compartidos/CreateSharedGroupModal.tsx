@@ -10,6 +10,7 @@ import { Type, AlignLeft, Target, Coins, Smile, Palette } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import Modal, { ModalButton } from '@components/common/Modal';
+import { ContainerLoadingButton } from '../common/Button';
 
 interface Props {
   isOpen: boolean;
@@ -110,7 +111,10 @@ export default function CreateSharedGroupModal({ isOpen, onClose, onSaved, initi
           disabled={loading || !formData.name.trim()}
           className="w-full"
         >
-          {loading ? (isEditing ? 'Guardando...' : 'Creando...') : (isEditing ? 'Guardar Cambios' : 'Crear Grupo')}
+          {/* {loading ? (isEditing ? <ContainerLoadingButton isLoading={loading} loadingText="Guardando..." text="Guardar Cambios"/> : <ContainerLoadingButton isLoading={loading} loadingText="Creando..." text="Crear Grupo"/> ) : (isEditing ? 'Guardar Cambios' : 'Crear Grupo')} */}
+          {
+            isEditing ? <ContainerLoadingButton isLoading={loading} loadingText="Guardando..." text="Guardar Cambios"/> : <ContainerLoadingButton isLoading={loading} loadingText="Creando..." text="Crear Grupo"/>
+          }
         </ModalButton>
       }
     >

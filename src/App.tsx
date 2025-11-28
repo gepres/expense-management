@@ -34,6 +34,9 @@ const JoinGroupPage = lazy(() => import('@components/compartidos/JoinGroupPage')
 const ShoppingListView = lazy(() => import('@/modules/shopping-list/ShoppingListView'));
 const ShoppingListDetail = lazy(() => import('@/modules/shopping-list/ShoppingListDetail'));
 
+// Documentación
+const Documentacion = lazy(() => import('@/pages/Documentacion'));
+
 // ============================================================================
 // Componente de carga
 // ============================================================================
@@ -147,6 +150,9 @@ function AppRoutes() {
 
           {/* Shopping List */}
           <Route path="compras" element={<ShoppingListView />} />
+
+          {/* Documentación */}
+          <Route path="documentacion" element={<Documentacion />} />
           <Route path="compras/:id" element={<ShoppingListDetail />} />
         </Route>
 
