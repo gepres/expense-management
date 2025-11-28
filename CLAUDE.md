@@ -3,8 +3,8 @@
 > Documentación técnica completa para replicar el proyecto de Gestión de Gastos Personales
 
 **Fecha de creación**: 2025-11-14
-**Última actualización**: 2025-11-20
-**Versión**: 2.0.0
+**Última actualización**: 2025-11-28
+**Versión**: 2.1.0
 
 ---
 
@@ -16,14 +16,15 @@
 4. [Sistema de Tipos](#-sistema-de-tipos)
 5. [Configuraciones](#-configuraciones)
 6. [Patrones y Convenciones](#-patrones-y-convenciones)
-7. [Servicios](#-servicios)
-8. [Estado y Contextos](#-estado-y-contextos)
-9. [Hooks Personalizados](#-hooks-personalizados)
-10. [Utilidades](#-utilidades)
-11. [Testing](#-testing)
-12. [Seguridad](#-seguridad)
-13. [Performance](#-performance)
-14. [Deployment](#-deployment)
+7. [Componentes Comunes](#-componentes-comunes)
+8. [Servicios](#-servicios)
+9. [Estado y Contextos](#-estado-y-contextos)
+10. [Hooks Personalizados](#-hooks-personalizados)
+11. [Utilidades](#-utilidades)
+12. [Testing](#-testing)
+13. [Seguridad](#-seguridad)
+14. [Performance](#-performance)
+15. [Deployment](#-deployment)
 
 ---
 
@@ -529,6 +530,426 @@ function fetchData() {
     .catch(err => console.error(err));
 }
 ```
+
+---
+
+## 🎨 Componentes Comunes
+
+### Filosofía de Componentes
+
+Los componentes comunes siguen estos principios:
+- **Reutilizables**: Diseñados para usarse en múltiples contextos
+- **Consistentes**: Mantienen la misma API y comportamiento
+- **Accesibles**: Soporte para ARIA labels y estados
+- **Personalizables**: Props para adaptar estilos y comportamiento
+- **Tipados**: TypeScript estricto con interfaces completas
+
+### Button Component
+
+Componente de botón completo con variantes, tamaños y estados.
+
+**Ubicación**: `src/components/common/Button.tsx`
+
+```typescript
+interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  loading?: boolean;
+  loadingText?: string;
+  active?: boolean;
+  pill?: boolean;
+  iconOnly?: boolean;
+  floating?: boolean;
+  fullWidth?: boolean;
+  icon?: LucideIcon;
+  iconPosition?: 'left' | 'right';
+  spinnerVariant?: 'simple' | 'dots' | 'dots2' | 'dots3' | 'material';
+}
+```
+
+**Características**:
+- 6 variantes de color/estilo
+- 5 tamaños predefinidos
+- Estados: loading, disabled, active
+- Tipos especiales: pill, icon-only, FAB
+- Soporte completo para iconos (Lucide)
+- Animaciones y transiciones suaves
+- ButtonGroup para agrupar botones
+- Componentes auxiliares: IconButton, FloatingActionButton, PillButton
+
+**Ejemplo**:
+```tsx
+<Button
+  variant="primary"
+  size="lg"
+  icon={Check}
+  loading={isSubmitting}
+  loadingText="Guardando..."
+>
+  Guardar
+</Button>
+```
+
+### Input Components - iOS Style
+
+Familia completa de componentes de entrada con diseño minimalista inspirado en iOS.
+
+**Ubicación**: `src/components/common/Input.tsx`
+
+#### Input
+
+Input básico con múltiples variantes y estados.
+
+```typescript
+interface InputProps {
+  variant?: 'default' | 'filled' | 'underlined' | 'ios';
+  error?: boolean;
+  errorMessage?: string;
+  success?: boolean;
+  successMessage?: string;
+  label?: string;
+  labelFloating?: boolean;
+  required?: boolean;
+  icon?: LucideIcon;
+  iconPosition?: 'left' | 'right';
+  iconColor?: string;
+  helperText?: string;
+}
+```
+
+**Variantes**:
+- **default**: Estilo tradicional con bordes completos
+- **filled**: Fondo relleno sin borde
+- **underlined**: Solo línea inferior (Material Design)
+- **ios**: Minimalista sin bordes (estilo iOS Settings)
+
+**Características**:
+- Labels flotantes opcionales
+- Estados: error, success, disabled, focus
+- Iconos personalizables (izquierda/derecha)
+- Helper text y mensajes de validación
+- Animaciones suaves en focus/blur
+- Soporte completo para atributos HTML nativos
+
+**Ejemplo**:
+```tsx
+<Input
+  variant="filled"
+  label="Email"
+  type="email"
+  icon={Mail}
+  placeholder="tu@email.com"
+  error={!!errors.email}
+  errorMessage={errors.email}
+  required
+/>
+```
+
+#### TextArea
+
+Área de texto con auto-resize opcional.
+
+```typescript
+interface TextAreaProps {
+  variant?: 'default' | 'filled' | 'underlined' | 'ios';
+  autoResize?: boolean;
+  maxHeight?: number;
+  error?: boolean;
+  errorMessage?: string;
+  label?: string;
+  icon?: LucideIcon;
+}
+```
+
+**Características**:
+- Auto-resize según contenido
+- Altura máxima configurable
+- Mismas variantes que Input
+- Estados de validación
+- Iconos opcionales
+
+**Ejemplo**:
+```tsx
+<TextArea
+  variant="filled"
+  label="Descripción"
+  autoResize
+  maxHeight={200}
+  icon={AlignLeft}
+  placeholder="Escribe una descripción..."
+/>
+```
+
+#### Select
+
+Select personalizado estilo iOS.
+
+```typescript
+interface SelectProps {
+  variant?: 'default' | 'filled' | 'underlined' | 'ios';
+  error?: boolean;
+  errorMessage?: string;
+  label?: string;
+  icon?: LucideIcon;
+  placeholder?: string;
+}
+```
+
+**Características**:
+- Chevron personalizado
+- Estados de validación
+- Iconos izquierdos
+- Placeholder opcional
+
+**Ejemplo**:
+```tsx
+<Select
+  variant="ios"
+  label="Categoría"
+  icon={Tag}
+  iconColor="text-orange-500"
+>
+  <option value="">Seleccionar...</option>
+  <option value="alimentacion">Alimentación</option>
+  <option value="transporte">Transporte</option>
+</Select>
+```
+
+#### InputGroup
+
+Agrupa inputs al estilo iOS Settings con divisores y contenedor card.
+
+```typescript
+interface InputGroupProps {
+  children: React.ReactNode;
+  title?: string;
+  description?: string;
+  divided?: boolean;
+}
+```
+
+**Características**:
+- Contenedor tipo iOS Settings (card con bordes)
+- Divisores automáticos entre items
+- Título y descripción opcionales
+- Perfecto para formularios de configuración
+
+**Ejemplo**:
+```tsx
+<InputGroup
+  title="Información Personal"
+  description="Actualiza tus datos"
+>
+  <InputRow label="Nombre" icon={User}>
+    <Input variant="ios" placeholder="Tu nombre" />
+  </InputRow>
+
+  <InputRow label="Email" icon={Mail}>
+    <Input variant="ios" type="email" />
+  </InputRow>
+</InputGroup>
+```
+
+#### InputRow
+
+Fila de input estilo iOS Settings (label + icono + input).
+
+```typescript
+interface InputRowProps {
+  label: string;
+  icon?: LucideIcon;
+  iconColor?: string;
+  children: React.ReactNode;
+  description?: string;
+}
+```
+
+**Uso**: Dentro de InputGroup para crear filas estilo iOS Settings.
+
+#### Switch
+
+Toggle switch estilo iOS.
+
+```typescript
+interface SwitchProps {
+  label?: string;
+  description?: string;
+  icon?: LucideIcon;
+  iconColor?: string;
+  checked?: boolean;
+}
+```
+
+**Características**:
+- Animación suave al cambiar
+- Label y descripción opcionales
+- Icono con color personalizable
+- Estados: checked, disabled, focus
+
+**Ejemplo**:
+```tsx
+<Switch
+  label="Notificaciones Push"
+  description="Recibe alertas en tiempo real"
+  icon={Bell}
+  iconColor="bg-purple-500/10"
+  checked={enableNotifications}
+  onChange={handleChange}
+/>
+```
+
+### Otros Componentes Comunes
+
+#### CustomLoader
+
+Loader personalizado con animaciones.
+
+**Ubicación**: `src/components/common/CustomLoader.tsx`
+
+#### LoadingSpinner
+
+Spinner con múltiples variantes.
+
+**Ubicación**: `src/components/common/LoadingSpinner.tsx`
+
+**Variantes**: `simple`, `dots`, `dots2`, `dots3`, `material`
+
+#### ErrorAlert
+
+Componente para mostrar errores.
+
+**Ubicación**: `src/components/common/ErrorAlert.tsx`
+
+#### Modal
+
+Modal base reutilizable.
+
+**Ubicación**: `src/components/common/Modal.tsx`
+
+#### ConfirmationModal
+
+Modal de confirmación para acciones críticas.
+
+**Ubicación**: `src/components/common/ConfirmationModal.tsx`
+
+#### InstallPWA
+
+Banner/botón para instalar la PWA.
+
+**Ubicación**: `src/components/common/InstallPWA.tsx`
+
+#### BudgetMonitor
+
+Monitor de presupuesto con alertas.
+
+**Ubicación**: `src/components/common/BudgetMonitor.tsx`
+
+### Patrones de Uso
+
+#### Formulario iOS Style
+
+```tsx
+<InputGroup title="Nuevo Gasto">
+  <InputRow label="Monto" icon={DollarSign} iconColor="bg-green-500/10">
+    <Input variant="ios" type="number" placeholder="0.00" />
+  </InputRow>
+
+  <InputRow label="Categoría" icon={Tag} iconColor="bg-orange-500/10">
+    <Select variant="ios">
+      <option value="alimentacion">Alimentación</option>
+      <option value="transporte">Transporte</option>
+    </Select>
+  </InputRow>
+
+  <div className="px-3">
+    <TextArea
+      variant="ios"
+      label="Descripción"
+      autoResize
+      placeholder="¿En qué gastaste?"
+    />
+  </div>
+</InputGroup>
+```
+
+#### Formulario Tradicional
+
+```tsx
+<form className="space-y-4">
+  <Input
+    variant="filled"
+    label="Email"
+    type="email"
+    icon={Mail}
+    required
+    error={!!errors.email}
+    errorMessage={errors.email}
+  />
+
+  <TextArea
+    variant="filled"
+    label="Comentario"
+    autoResize
+    maxHeight={200}
+  />
+
+  <Select variant="filled" label="Categoría">
+    <option value="">Seleccionar...</option>
+    <option value="1">Opción 1</option>
+  </Select>
+
+  <Button
+    type="submit"
+    fullWidth
+    loading={isSubmitting}
+    loadingText="Guardando..."
+  >
+    Guardar
+  </Button>
+</form>
+```
+
+#### Configuración con Switches
+
+```tsx
+<InputGroup title="Preferencias">
+  <Switch
+    label="Modo Oscuro"
+    icon={Moon}
+    checked={darkMode}
+    onChange={(e) => setDarkMode(e.target.checked)}
+  />
+
+  <Switch
+    label="Notificaciones"
+    description="Recibe alertas de presupuesto"
+    icon={Bell}
+    checked={notifications}
+    onChange={(e) => setNotifications(e.target.checked)}
+  />
+</InputGroup>
+```
+
+### Decisiones de Diseño
+
+**¿Por qué 4 variantes de input?**
+- **default**: Formularios tradicionales, compatible con todos los diseños
+- **filled**: Modernos, menos ruido visual, ideal para formularios largos
+- **underlined**: Minimalista Material Design, bueno para espacios reducidos
+- **ios**: Ultra-minimalista, perfecto para listas estilo iOS Settings
+
+**¿Por qué InputGroup e InputRow?**
+Estos componentes permiten replicar el diseño característico de iOS Settings que es:
+- Familiar para usuarios de iPhone/iPad
+- Limpio y organizado visualmente
+- Perfecto para formularios de configuración
+- Agrupa inputs relacionados de forma natural
+
+**¿Cuándo usar cada variante?**
+- **Login/Registro**: `filled` o `default`
+- **Formularios de datos**: `default` o `filled`
+- **Configuración/Ajustes**: `ios` dentro de `InputGroup`
+- **Formularios simples**: `underlined`
 
 ---
 
@@ -1331,6 +1752,36 @@ Los custom hooks (useGastos, usePresupuestos) ya tienen toda la lógica.
 
 ## 📜 Changelog
 
+### v2.1.0 (2025-11-28)
+**Release**: Sistema de componentes de Input estilo iOS
+
+**Nuevos Componentes**:
+- ✅ **Input**: Componente de input con 4 variantes (default, filled, underlined, ios)
+- ✅ **TextArea**: Área de texto con auto-resize opcional
+- ✅ **Select**: Select personalizado con iconos y estados
+- ✅ **InputGroup**: Contenedor estilo iOS Settings para agrupar inputs
+- ✅ **InputRow**: Fila de input para usar dentro de InputGroup
+- ✅ **Switch**: Toggle switch estilo iOS con animaciones
+
+**Características de Inputs**:
+- Labels flotantes opcionales
+- Estados de validación (error, success)
+- Iconos personalizables (izquierda/derecha)
+- Helper text y mensajes de error
+- Animaciones suaves en transiciones
+- Auto-resize en TextArea
+- Diseño inspirado en iOS Settings
+
+**Documentación**:
+- ✅ Nueva sección "Componentes Comunes" en CLAUDE.md
+- ✅ Ejemplos completos de uso (InputExamples.tsx)
+- ✅ Patrones de uso para formularios
+- ✅ Decisiones de diseño documentadas
+
+**Archivos Creados**:
+- `src/components/common/Input.tsx` - Componentes principales
+- `src/components/common/InputExamples.tsx` - Ejemplos de uso
+
 ### v2.0.0 (2025-11-20)
 **Release**: Implementación completa de UI y funcionalidades avanzadas
 
@@ -1388,9 +1839,9 @@ Los custom hooks (useGastos, usePresupuestos) ya tienen toda la lógica.
 
 ---
 
-**Última actualización**: 2025-11-20
+**Última actualización**: 2025-11-28
 **Mantenedor**: Claude (Anthropic)
-**Versión del proyecto**: 2.0.0
+**Versión del proyecto**: 2.1.0
 
 ---
 

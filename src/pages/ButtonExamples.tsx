@@ -45,11 +45,11 @@ export function ButtonExamples() {
   ];
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-8 sm:space-y-12">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold mb-4">Button Component</h2>
-        <p className="text-muted-foreground text-lg mb-6">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Button Component</h2>
+        <p className="text-muted-foreground text-base sm:text-lg mb-4 sm:mb-6">
           Componente de botón completo con múltiples variantes, tamaños y estados.
         </p>
 
@@ -89,20 +89,20 @@ export function ButtonExamples() {
       {/* 1. Variantes de Color */}
       <div className="space-y-4">
         <div>
-          <h3 className="text-xl font-bold">1. Variantes de Color</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="text-lg sm:text-xl font-bold">1. Variantes de Color</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             6 variantes para diferentes tipos de acciones
           </p>
         </div>
-        <div className="p-6 bg-muted/30 rounded-xl">
-          <ButtonGroup>
+        <div className="p-6 bg-muted/30 rounded-xl overflow-x-auto">
+          <div className="flex flex-col md:flex-row gap-2 min-w-fit">
             <Button variant="primary">Primary</Button>
             <Button variant="secondary">Secondary</Button>
             <Button variant="destructive">Destructive</Button>
             <Button variant="ghost">Ghost</Button>
             <Button variant="success">Success</Button>
             <Button variant="outline">Outline</Button>
-          </ButtonGroup>
+          </div>
         </div>
       </div>
 
@@ -136,7 +136,7 @@ export function ButtonExamples() {
         <div className="p-6 bg-muted/30 rounded-xl space-y-4">
           <div>
             <p className="text-xs text-muted-foreground mb-2">Icono a la izquierda (default)</p>
-            <ButtonGroup>
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button icon={Plus} iconPosition="left">
                 Agregar
               </Button>
@@ -146,18 +146,18 @@ export function ButtonExamples() {
               <Button icon={Trash2} variant="destructive">
                 Eliminar
               </Button>
-            </ButtonGroup>
+            </div>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-2">Icono a la derecha</p>
-            <ButtonGroup>
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button icon={Download} iconPosition="right">
                 Descargar
               </Button>
               <Button icon={Upload} iconPosition="right" variant="outline">
                 Subir
               </Button>
-            </ButtonGroup>
+            </div>
           </div>
         </div>
       </div>
@@ -173,31 +173,19 @@ export function ButtonExamples() {
         <div className="p-6 bg-muted/30 rounded-xl space-y-4">
           <div>
             <p className="text-xs text-muted-foreground mb-2">Con texto de carga</p>
-            <ButtonGroup>
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button loading loadingText="Guardando...">
                 Guardar
               </Button>
-              {/* <LoadingButton isLoading loadingText="Procesando...">
-                Procesar
-              </LoadingButton>
-              <Button  loadingText="Eliminando..." variant="destructive">
-                Eliminar
-              </Button> */}
-            </ButtonGroup>
+            </div>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-2">Diferentes spinners</p>
-            <ButtonGroup>
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button loading spinnerVariant="dots3" loadingText="Dots 3">
                 Dots 3
               </Button>
-              {/* <Button loading spinnerVariant="simple" loadingText="Simple">
-                Simple
-              </Button>
-              <Button loading spinnerVariant="material" loadingText="Material">
-                Material
-              </Button> */}
-            </ButtonGroup>
+            </div>
           </div>
         </div>
       </div>
@@ -213,22 +201,22 @@ export function ButtonExamples() {
         <div className="p-6 bg-muted/30 rounded-xl space-y-4">
           <div>
             <p className="text-xs text-muted-foreground mb-2">Diferentes tamaños</p>
-            <ButtonGroup>
+            <div className="flex flex-wrap gap-2">
               <IconButton icon={Edit2} size="xs" label="Editar" />
               <IconButton icon={Edit2} size="sm" label="Editar" />
               <IconButton icon={Edit2} size="md" label="Editar" />
               <IconButton icon={Edit2} size="lg" label="Editar" />
               <IconButton icon={Edit2} size="xl" label="Editar" />
-            </ButtonGroup>
+            </div>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-2">Diferentes variantes</p>
-            <ButtonGroup>
+            <div className="flex flex-wrap gap-2">
               <IconButton icon={Plus} variant="primary" label="Agregar" />
               <IconButton icon={Edit2} variant="ghost" label="Editar" />
               <IconButton icon={Trash2} variant="destructive" label="Eliminar" />
               <IconButton icon={Check} variant="success" label="Confirmar" />
-            </ButtonGroup>
+            </div>
           </div>
         </div>
       </div>
@@ -267,23 +255,23 @@ export function ButtonExamples() {
         <div className="p-6 bg-muted/30 rounded-xl space-y-4">
           <div>
             <p className="text-xs text-muted-foreground mb-2">Disabled</p>
-            <ButtonGroup>
-              <Button disabled>Primary Disabled</Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button disabled>Primary</Button>
               <Button variant="secondary" disabled>
-                Secondary Disabled
+                Secondary
               </Button>
               <Button variant="destructive" disabled>
-                Destructive Disabled
+                Destructive
               </Button>
-            </ButtonGroup>
+            </div>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-2">Active (Selected)</p>
-            <ButtonGroup>
+            <div className="flex flex-wrap gap-2">
               <Button active>Seleccionado</Button>
               <Button>Normal</Button>
               <Button>Normal</Button>
-            </ButtonGroup>
+            </div>
           </div>
         </div>
       </div>
@@ -317,11 +305,11 @@ export function ButtonExamples() {
         </div>
         <div className="p-6 bg-muted/30 rounded-xl space-y-6">
           <div>
-            <p className="text-xs text-muted-foreground mb-2">Horizontal (Default)</p>
-            <ButtonGroup orientation="horizontal" spacing="normal">
+            <p className="text-xs text-muted-foreground mb-2">Horizontal (Desktop) / Vertical (Mobile)</p>
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button variant="secondary">Cancelar</Button>
               <Button variant="primary">Guardar</Button>
-            </ButtonGroup>
+            </div>
           </div>
           <div>
             <p className="text-xs text-muted-foreground mb-2">Vertical</p>
@@ -338,20 +326,20 @@ export function ButtonExamples() {
             </ButtonGroup>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground mb-2">Different Spacings</p>
+            <p className="text-xs text-muted-foreground mb-2">Diferentes Espaciados</p>
             <div className="space-y-2">
-              <ButtonGroup spacing="tight">
+              <div className="flex flex-wrap gap-1">
                 <Button size="sm">Tight</Button>
                 <Button size="sm">Spacing</Button>
-              </ButtonGroup>
-              <ButtonGroup spacing="normal">
+              </div>
+              <div className="flex flex-wrap gap-2">
                 <Button size="sm">Normal</Button>
                 <Button size="sm">Spacing</Button>
-              </ButtonGroup>
-              <ButtonGroup spacing="loose">
+              </div>
+              <div className="flex flex-wrap gap-4">
                 <Button size="sm">Loose</Button>
                 <Button size="sm">Spacing</Button>
-              </ButtonGroup>
+              </div>
             </div>
           </div>
         </div>
@@ -437,11 +425,11 @@ export function ButtonExamples() {
       <div className="space-y-4">
         <h3 className="text-2xl font-bold">Props Reference</h3>
 
-        <div className="bg-muted/50 rounded-xl p-6 border border-border space-y-6">
+        <div className="bg-muted/50 rounded-xl p-4 sm:p-6 border border-border space-y-6">
           <div>
             <h4 className="font-bold mb-4 text-lg">Button Props</h4>
-            <div className="space-y-2 text-sm font-mono bg-background p-4 rounded-lg">
-              <p>variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline'</p>
+            <div className="space-y-2 text-xs sm:text-sm font-mono bg-background p-3 sm:p-4 rounded-lg overflow-x-auto">
+              <p className="break-all">variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline'</p>
               <p>size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'</p>
               <p>loading?: boolean</p>
               <p>loadingText?: string</p>
@@ -452,14 +440,14 @@ export function ButtonExamples() {
               <p>fullWidth?: boolean</p>
               <p>icon?: LucideIcon</p>
               <p>iconPosition?: 'left' | 'right'</p>
-              <p>spinnerVariant?: 'simple' | 'dots' | 'dots2' | 'dots3' | 'material'</p>
+              <p className="break-all">spinnerVariant?: 'simple' | 'dots' | 'dots2' | 'dots3' | 'material'</p>
               <p className="text-muted-foreground mt-2">+ Todos los props nativos de HTMLButtonElement</p>
             </div>
           </div>
 
           <div>
             <h4 className="font-bold mb-4 text-lg">ButtonGroup Props</h4>
-            <div className="space-y-2 text-sm font-mono bg-background p-4 rounded-lg">
+            <div className="space-y-2 text-xs sm:text-sm font-mono bg-background p-3 sm:p-4 rounded-lg overflow-x-auto">
               <p>children: React.ReactNode</p>
               <p>orientation?: 'horizontal' | 'vertical'</p>
               <p>spacing?: 'tight' | 'normal' | 'loose'</p>
@@ -469,18 +457,18 @@ export function ButtonExamples() {
 
           <div>
             <h4 className="font-bold mb-4 text-lg">Auxiliary Components</h4>
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-xs sm:text-sm">
               <p>
-                <code className="bg-background px-2 py-1 rounded">IconButton</code> - Botón solo con icono
+                <code className="bg-background px-2 py-1 rounded text-xs">IconButton</code> - Botón solo con icono
               </p>
               <p>
-                <code className="bg-background px-2 py-1 rounded">FloatingActionButton</code> - FAB flotante
+                <code className="bg-background px-2 py-1 rounded text-xs">FloatingActionButton</code> - FAB flotante
               </p>
               <p>
-                <code className="bg-background px-2 py-1 rounded">PillButton</code> - Botón tipo píldora
+                <code className="bg-background px-2 py-1 rounded text-xs">PillButton</code> - Botón tipo píldora
               </p>
               <p>
-                <code className="bg-background px-2 py-1 rounded">LoadingButton</code> - Botón con loading simplificado
+                <code className="bg-background px-2 py-1 rounded text-xs">LoadingButton</code> - Botón con loading simplificado
               </p>
             </div>
           </div>

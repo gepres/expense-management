@@ -10,6 +10,8 @@ import { PillButton } from '@components/common/Button';
 // Importar ejemplos
 import { ButtonExamples } from './ButtonExamples';
 import { ModalExamples } from './ModalExamples';
+import InputExamples from '@components/common/InputExamples';
+import LoadingExamples from '@components/common/LoadingExamples';
 
 type Section = 'intro' | 'buttons' | 'modals' | 'forms' | 'loading';
 
@@ -20,7 +22,7 @@ export default function Documentacion() {
     { id: 'intro' as Section, label: 'Introducción', icon: Book },
     { id: 'buttons' as Section, label: 'Buttons', icon: Code },
     { id: 'modals' as Section, label: 'Modals', icon: Code },
-    { id: 'forms' as Section, label: 'Forms', icon: Code },
+    { id: 'forms' as Section, label: 'Inputs & Forms', icon: Code },
     { id: 'loading' as Section, label: 'Loading States', icon: Code },
   ];
 
@@ -104,8 +106,8 @@ export default function Documentacion() {
               {activeSection === 'intro' && <IntroSection />}
               {activeSection === 'buttons' && <ButtonExamples />}
               {activeSection === 'modals' && <ModalExamples />}
-              {activeSection === 'forms' && <FormsSection />}
-              {activeSection === 'loading' && <LoadingSection />}
+              {activeSection === 'forms' && <InputExamples />}
+              {activeSection === 'loading' && <LoadingExamples />}
             </div>
           </main>
         </div>
@@ -183,14 +185,32 @@ function IntroSection() {
 
           <ComponentCard
             title="LoadingSpinner"
-            description="Spinners de carga con múltiples estilos y overlay móvil."
-            features={['5 variantes', 'Overlay mode', 'Success state', 'Auto-close']}
+            description="Spinners de carga con 7 variantes diferentes estilo iOS."
+            features={['7 variantes', '3 tamaños', 'iOS style', 'Inline support']}
+          />
+
+          <ComponentCard
+            title="LoadingOverlay"
+            description="Overlay modal con glassmorphism para bloquear UI durante operaciones."
+            features={['Glassmorphism', 'Success state', 'Auto-close', 'Mobile optimized']}
           />
 
           <ComponentCard
             title="LoadingScreen"
-            description="Pantalla de carga centralizada con mensaje personalizable."
-            features={['Full screen', 'Custom message', 'Spinner variants']}
+            description="Pantalla de carga centralizada con CustomLoader."
+            features={['Full screen mode', 'Custom message', 'Centered layout']}
+          />
+
+          <ComponentCard
+            title="CustomLoader"
+            description="Loader personalizado con animación de bolas."
+            features={['Unique design', 'Theme aware', 'Smooth animation']}
+          />
+
+          <ComponentCard
+            title="Input Components"
+            description="Familia completa de inputs estilo iOS con múltiples variantes."
+            features={['4 variantes', 'Floating labels', 'Auto-resize', 'iOS Style', 'Validation states']}
           />
         </div>
       </div>
@@ -225,60 +245,3 @@ function ComponentCard({
   );
 }
 
-// ========================================
-// SECCIÓN: FORMS (Placeholder)
-// ========================================
-function FormsSection() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold mb-4">Formularios</h2>
-        <p className="text-muted-foreground">
-          Ejemplos de formularios y componentes de entrada.
-        </p>
-      </div>
-
-      <div className="p-8 text-center border-2 border-dashed border-border rounded-xl">
-        <p className="text-muted-foreground">
-          Esta sección está en desarrollo. Próximamente incluirá ejemplos de:
-        </p>
-        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-          <li>• Input fields</li>
-          <li>• Select dropdowns</li>
-          <li>• Date pickers</li>
-          <li>• Form validation</li>
-          <li>• File uploads</li>
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-// ========================================
-// SECCIÓN: LOADING STATES (Placeholder)
-// ========================================
-function LoadingSection() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold mb-4">Loading States</h2>
-        <p className="text-muted-foreground">
-          Diferentes estados de carga y feedback visual.
-        </p>
-      </div>
-
-      <div className="p-8 text-center border-2 border-dashed border-border rounded-xl">
-        <p className="text-muted-foreground">
-          Esta sección está en desarrollo. Próximamente incluirá ejemplos de:
-        </p>
-        <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-          <li>• LoadingSpinner variants</li>
-          <li>• LoadingOverlay examples</li>
-          <li>• Skeleton loaders</li>
-          <li>• Progress indicators</li>
-          <li>• Shimmer effects</li>
-        </ul>
-      </div>
-    </div>
-  );
-}
