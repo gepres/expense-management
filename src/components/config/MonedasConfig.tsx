@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { ConfigService, type Currency } from '../../services/config';
 import { useConfig } from '@context/ConfigContext';
-import { Plus, Edit2, Trash2, Save, X, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal, { ModalFooterActions } from '@components/common/Modal';
 import LoadingScreen from '@components/common/LoadingScreen';
+import { ContainerLoadingButton } from '../common/Button';
 
 export default function MonedasConfig() {
   const { reloadCurrencies } = useConfig();
@@ -22,6 +23,9 @@ export default function MonedasConfig() {
   const [editCode, setEditCode] = useState('');
   const [editSymbol, setEditSymbol] = useState('');
   const [editName, setEditName] = useState('');
+
+  const [loadingSave, setLoadingSave] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
 
   // Delete confirmation state
   const [currencyToDelete, setCurrencyToDelete] = useState<string | null>(null);
@@ -65,6 +69,7 @@ export default function MonedasConfig() {
     }
 
     try {
+      setLoadingSave(true);
       await ConfigService.createCurrency({
         id: newCode,
         codigoISO: newCode,
@@ -77,6 +82,8 @@ export default function MonedasConfig() {
       loadCurrencies();
     } catch {
       toast.error('Error al crear moneda');
+    } finally {
+      setLoadingSave(false);
     }
   };
 
@@ -84,6 +91,7 @@ export default function MonedasConfig() {
     if (!editCode.trim() || !editSymbol.trim() || !editName.trim()) return;
 
     try {
+      setLoadingSave(true);
       await ConfigService.updateCurrency(id, {
         codigoISO: editCode,
         simbolo: editSymbol,
@@ -94,6 +102,8 @@ export default function MonedasConfig() {
       loadCurrencies();
     } catch {
       toast.error('Error al actualizar moneda');
+    } finally {
+      setLoadingSave(false);
     }
   };
 
@@ -101,12 +111,15 @@ export default function MonedasConfig() {
     if (!currencyToDelete) return;
 
     try {
+      setLoadingDelete(true);
       await ConfigService.deleteCurrency(currencyToDelete);
       toast.success('Moneda eliminada');
       setCurrencyToDelete(null);
       loadCurrencies();
     } catch {
       toast.error('Error al eliminar moneda');
+    } finally {
+      setLoadingDelete(false);
     }
   };
 
@@ -164,11 +177,11 @@ export default function MonedasConfig() {
                 </div>
                 <div className="flex gap-2 pt-2">
                   <button
+                    disabled={loadingSave}
                     onClick={() => handleUpdate(currency.id)}
                     className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center justify-center gap-2 font-medium"
                   >
-                    <Save className="h-4 w-4" />
-                    Guardar
+                    <ContainerLoadingButton isLoading={loadingSave} loadingText="Guardando..." text="Guardar" />
                   </button>
                   <button
                     onClick={() => setEditingId(null)}
@@ -220,7 +233,7 @@ export default function MonedasConfig() {
           <ModalFooterActions
             onCancel={closeModal}
             onConfirm={handleCreate}
-            confirmText="Crear Moneda"
+            confirmText={<ContainerLoadingButton isLoading={loadingSave} loadingText="Creando..." text="Crear Moneda" />}
           />
         }
       >
@@ -289,6 +302,7 @@ export default function MonedasConfig() {
             onCancel={() => setCurrencyToDelete(null)}
             onConfirm={handleDelete}
             confirmVariant="destructive"
+            confirmText={<ContainerLoadingButton isLoading={loadingDelete} loadingText="Eliminando..." text="Eliminar" />}
           />
         }
       >

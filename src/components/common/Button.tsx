@@ -331,7 +331,7 @@ export function LoadingButton({ isLoading, loadingText, variant, ...props }: Loa
 }
 
 
-export function ContainerLoadingButton({ isLoading, loadingText, text }: { isLoading: boolean, loadingText: string, text?: string }) {
+export function ContainerLoadingButton({ isLoading, loadingText, text }: { isLoading: boolean, loadingText: string, text?: React.ReactNode }) {
 
   const { isMobile } = useBreakpoints()
   return <div>

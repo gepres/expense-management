@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import Modal, { ModalFooterActions } from '@components/common/Modal';
 import LoadingScreen from '@components/common/LoadingScreen';
+import { ContainerLoadingButton } from '../common/Button';
 
 export default function MetodosPagoConfig() {
   const { reloadPaymentMethods } = useConfig();
@@ -20,6 +21,9 @@ export default function MetodosPagoConfig() {
   const [methodName, setMethodName] = useState('');
   const [methodIcon, setMethodIcon] = useState('');
   const [methodDesc, setMethodDesc] = useState('');
+
+  const [loadingSave, setLoadingSave] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
 
   // Delete confirmation state
   const [methodToDelete, setMethodToDelete] = useState<string | null>(null);
@@ -79,6 +83,7 @@ export default function MetodosPagoConfig() {
     }
 
     try {
+      setLoadingSave(true);
       if (editingMethod) {
         await ConfigService.updatePaymentMethod(editingMethod.id, {
           nombre: methodName,
@@ -99,6 +104,8 @@ export default function MetodosPagoConfig() {
       closeModal();
     } catch {
       toast.error('Error al guardar método de pago');
+    } finally {
+      setLoadingSave(false);
     }
   };
 
@@ -106,12 +113,15 @@ export default function MetodosPagoConfig() {
     if (!methodToDelete) return;
 
     try {
+      setLoadingDelete(true);
       await ConfigService.deletePaymentMethod(methodToDelete);
       toast.success('Método de pago eliminado');
       setMethodToDelete(null);
       loadMethods();
     } catch {
       toast.error('Error al eliminar método de pago');
+    } finally {
+      setLoadingDelete(false);
     }
   };
 
@@ -181,7 +191,7 @@ export default function MetodosPagoConfig() {
           <ModalFooterActions
             onCancel={closeModal}
             onConfirm={handleSave}
-            confirmText="Guardar Cambios"
+            confirmText={<ContainerLoadingButton isLoading={loadingSave} loadingText="Guardando..." text="Guardar" />}
           />
         }
       >
@@ -272,6 +282,7 @@ export default function MetodosPagoConfig() {
             onCancel={() => setMethodToDelete(null)}
             onConfirm={handleDelete}
             confirmVariant="destructive"
+            confirmText={<ContainerLoadingButton isLoading={loadingDelete} loadingText="Eliminando..." text="Eliminar" />}
           />
         }
       >

@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
 import LoadingScreen from '@components/common/LoadingScreen';
+import { ContainerLoadingButton } from '../common/Button';
 
 export default function CategoriasConfig() {
   const { reloadCategories } = useConfig();
@@ -33,6 +34,12 @@ export default function CategoriasConfig() {
   // Delete confirmation states
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [subcategoryToDelete, setSubcategoryToDelete] = useState<string | null>(null);
+
+  const [loadingSave, setLoadingSave] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
+
+  const [loadingSubSave, setLoadingSubSave] = useState(false);
+  const [loadingSubDelete, setLoadingSubDelete] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -105,6 +112,7 @@ export default function CategoriasConfig() {
     }
 
     try {
+      setLoadingSave(true);
       if (editingCategory) {
         await ConfigService.updateCategory(editingCategory.id, {
           nombre: catNombre,
@@ -127,6 +135,8 @@ export default function CategoriasConfig() {
       closeModal();
     } catch {
       toast.error('Error al guardar categoría');
+    } finally {
+      setLoadingSave(false);
     }
   };
 
@@ -134,12 +144,15 @@ export default function CategoriasConfig() {
     if (!categoryToDelete) return;
 
     try {
+      setLoadingDelete(true);
       await ConfigService.deleteCategory(categoryToDelete);
       toast.success('Categoría eliminada');
       setCategoryToDelete(null);
       loadCategories();
     } catch {
       toast.error('Error al eliminar categoría');
+    } finally {
+      setLoadingDelete(false);
     }
   };
 
@@ -155,6 +168,7 @@ export default function CategoriasConfig() {
     }
 
     try {
+      setLoadingSubSave(true);
       if (editingSubcatId) {
         // Update
         await ConfigService.updateSubcategory(editingCategory.id, editingSubcatId, {
@@ -195,6 +209,8 @@ export default function CategoriasConfig() {
       loadCategories();
     } catch {
       toast.error('Error al guardar subcategoría');
+    } finally {
+      setLoadingSubSave(false);
     }
   };
 
@@ -240,6 +256,7 @@ export default function CategoriasConfig() {
     if (!editingCategory || !subcategoryToDelete) return;
 
     try {
+      setLoadingSubDelete(true);
       await ConfigService.deleteSubcategory(editingCategory.id, subcategoryToDelete);
 
       const updatedSubs = editingCategory.subcategorias?.filter(sub => sub.id !== subcategoryToDelete);
@@ -249,6 +266,8 @@ export default function CategoriasConfig() {
       loadCategories();
     } catch {
       toast.error('Error al eliminar subcategoría');
+    } finally {
+      setLoadingSubDelete(false);
     }
   };
 
@@ -331,9 +350,10 @@ export default function CategoriasConfig() {
             type="submit"
             variant="primary"
             onClick={handleSaveCategory}
+            disabled={loadingSave}
             className="w-full"
           >
-            Guardar Cambios
+           <ContainerLoadingButton isLoading={loadingSave} loadingText="Guardando..." text="Guardar Cambios"/>
           </ModalButton>
         }
       >
@@ -531,8 +551,14 @@ export default function CategoriasConfig() {
                         onClick={handleSaveSubcategory}
                         className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 flex items-center gap-2 text-sm"
                       >
-                        {editingSubcatId ? <Save className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-                        {editingSubcatId ? 'Actualizar' : 'Agregar'}
+                        {/* {editingSubcatId ? <Save className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                        {editingSubcatId ? 'Actualizar' : 'Agregar'} */}
+
+                        <ContainerLoadingButton
+                          isLoading={loadingSubSave}
+                          loadingText={editingSubcatId ? 'Actualizando...' : 'Guardando...'}
+                          text={editingSubcatId ? <div className="flex items-center justify-center gap-2"><Save className="h-3.5 w-3.5" /> Actualizar</div> : <div className="flex items-center justify-center gap-2"><Plus className="h-3.5 w-3.5" /> Agregar</div>}
+                        />
                       </button>
                     </div>
                   </div>
@@ -596,6 +622,7 @@ export default function CategoriasConfig() {
             onCancel={() => setCategoryToDelete(null)}
             onConfirm={handleDeleteCategory}
             confirmVariant="destructive"
+            confirmText={<ContainerLoadingButton isLoading={loadingDelete} loadingText="Eliminando..." text="Confirmar" />}
           />
         }
       >
@@ -624,6 +651,7 @@ export default function CategoriasConfig() {
             onCancel={() => setSubcategoryToDelete(null)}
             onConfirm={handleDeleteSubcategory}
             confirmVariant="destructive"
+            confirmText={<ContainerLoadingButton isLoading={loadingSubDelete} loadingText="Eliminando..." text="Confirmar" />}
           />
         }
       >

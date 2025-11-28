@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import Modal, { ModalFooterActions } from '@components/common/Modal';
 import LoadingScreen from '../common/LoadingScreen';
+import { ContainerLoadingButton } from '../common/Button';
 
 export default function AtajosConfig() {
   const {
@@ -37,6 +38,8 @@ export default function AtajosConfig() {
   const [description, setDescription] = useState('');
   const [tagsInput, setTagsInput] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
+
+  const [loadingDelete, setLoadingDelete] = useState(false);
 
   const openModal = (shortcut?: Shortcut) => {
     if (shortcut) {
@@ -176,12 +179,15 @@ export default function AtajosConfig() {
     if (!shortcutToDelete) return;
 
     try {
+      setLoadingDelete(true);
       await ConfigService.deleteShortcut(shortcutToDelete);
       toast.success('Atajo eliminado');
       setShortcutToDelete(null);
       await reloadShortcuts();
     } catch {
       toast.error('Error al eliminar atajo');
+    } finally {
+      setLoadingDelete(false);
     }
   };
 
@@ -284,7 +290,7 @@ export default function AtajosConfig() {
           <ModalFooterActions
             onCancel={closeModal}
             onConfirm={handleSave}
-            confirmText={saving ? 'Guardando...' : 'Guardar'}
+            confirmText={<ContainerLoadingButton isLoading={saving} loadingText="Guardando..." text="Guardar" />}
             disabled={saving}
           />
         }
@@ -481,6 +487,8 @@ export default function AtajosConfig() {
           <ModalFooterActions
             onCancel={() => setShortcutToDelete(null)}
             onConfirm={handleDelete}
+            disabled={loadingDelete}
+            confirmText={<ContainerLoadingButton isLoading={loadingDelete} loadingText="Eliminando..." text="Confirmar" />}
             confirmVariant="destructive"
           />
         }

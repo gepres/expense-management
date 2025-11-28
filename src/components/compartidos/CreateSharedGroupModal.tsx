@@ -38,18 +38,27 @@ const PRESET_ICONS = ['👥', '🎄', '✈️', '🏠', '🎉', '🍽️', '💒
 export default function CreateSharedGroupModal({ isOpen, onClose, onSaved, initialData, isEditing = false }: Props) {
   const { currencies } = useConfig();
 
-  const [formData, setFormData] = useState<CreateSharedGroupDto>({
+  const initialFormState: CreateSharedGroupDto = {
     name: '',
     description: '',
     icon: '👥',
     color: '#6366f1',
     targetAmount: undefined,
     currency: 'PEN',
-  });
+  };
+
+  const [formData, setFormData] = useState<CreateSharedGroupDto>(initialFormState);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Resetear formulario
+  const resetForm = () => {
+    setFormData(initialFormState);
+    setShowEmojiPicker(false);
+  };
+
+  // Cargar datos iniciales cuando se edita
   useEffect(() => {
     if (initialData && isEditing) {
       setFormData({
@@ -63,6 +72,13 @@ export default function CreateSharedGroupModal({ isOpen, onClose, onSaved, initi
     }
   }, [initialData, isEditing]);
 
+  // Resetear formulario cuando se cierra el modal (solo si no es edición)
+  useEffect(() => {
+    if (!isOpen && !isEditing) {
+      resetForm();
+    }
+  }, [isOpen, isEditing]);
+
   const handleSubmit = async () => {
 
     if (!formData.name.trim()) {
@@ -73,7 +89,7 @@ export default function CreateSharedGroupModal({ isOpen, onClose, onSaved, initi
     setLoading(true);
     try {
       let savedGroup: SharedExpenseGroup;
-      
+
       if (isEditing && initialData) {
         savedGroup = await SharedService.updateGroup(initialData.id, {
           ...formData,
@@ -86,8 +102,10 @@ export default function CreateSharedGroupModal({ isOpen, onClose, onSaved, initi
           targetAmount: formData.targetAmount || undefined,
         });
         toast.success('Grupo creado exitosamente');
+        // Resetear formulario después de crear
+        resetForm();
       }
-      
+
       onSaved(savedGroup);
     } catch (error) {
       console.error('Error saving group:', error);

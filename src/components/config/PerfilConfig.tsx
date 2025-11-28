@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { authService } from '@services/firebase';
-import { User, Mail, Camera, Save, Loader2, MessageCircle, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Mail, Camera, Save, MessageCircle, CheckCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { ContainerLoadingButton } from '../common/Button';
 
 export default function PerfilConfig() {
   const { usuario } = useAuth();
@@ -127,14 +128,13 @@ export default function PerfilConfig() {
           >
             {loading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Guardando...
+               <ContainerLoadingButton isLoading={loading} loadingText="Guardando..." text=""/>
               </>
             ) : (
               <>
                 <Save className="h-4 w-4" />
                 Guardar Cambios
-              </>
+              </> 
             )}
           </button>
         </div>
