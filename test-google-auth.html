@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Google Auth</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #1976d2;
+      margin-top: 0;
+    }
+    button {
+      background: #1976d2;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #1565c0;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    .success {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #81c784;
+    }
+    .error {
+      background: #ffebee;
+      color: #c62828;
+      border: 1px solid #ef5350;
+    }
+    .info {
+      background: #e3f2fd;
+      color: #1565c0;
+      border: 1px solid #64b5f6;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔐 Test Google Authentication</h1>
+    <p>Este script verifica la configuración de Google Sign-In en Firebase.</p>
+
+    <div id="config" class="status info">
+      <strong>Configuración:</strong>
+      <pre id="configDetails">Cargando...</pre>
+    </div>
+
+    <button onclick="testGoogleLogin()">🔵 Test Google Sign-In</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+    // Configuración de Firebase (desde tu .env)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNpDko5oOxxLjeEqs0J_5AQd2Cu18uqns",
+      authDomain: "expense-app-gepres.firebaseapp.com",
+      projectId: "expense-app-gepres",
+      storageBucket: "expense-app-gepres.firebasestorage.app",
+      messagingSenderId: "894025939694",
+      appId: "1:894025939694:web:f79f29c3a10df6f545d1ff"
+    };
+
+    // Mostrar configuración
+    document.getElementById('configDetails').textContent = JSON.stringify({
+      projectId: firebaseConfig.projectId,
+      authDomain: firebaseConfig.authDomain,
+      currentDomain: window.location.hostname,
+      currentPort: window.location.port
+    }, null, 2);
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Función de test
+    window.testGoogleLogin = async function() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '<div class="status info">⏳ Iniciando Google Sign-In...</div>';
+
+      try {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+
+        resultDiv.innerHTML = `
+          <div class="status success">
+            <strong>✅ ¡Éxito!</strong><br>
+            Usuario: ${result.user.email}<br>
+            Nombre: ${result.user.displayName}<br>
+            UID: ${result.user.uid}
+          </div>
+        `;
+      } catch (error) {
+        let errorMessage = '';
+        let solution = '';
+
+        switch (error.code) {
+          case 'auth/unauthorized-domain':
+            errorMessage = `❌ Dominio no autorizado: ${window.location.hostname}`;
+            solution = `
+              <strong>Solución:</strong>
+              <ol style="margin: 10px 0; padding-left: 20px;">
+                <li>Ve a <a href="https://console.firebase.google.com/u/0/project/${firebaseConfig.projectId}/authentication/settings" target="_blank">Firebase Console → Authentication → Settings</a></li>
+                <li>En "Authorized domains", añade: <code>${window.location.hostname}</code></li>
+                <li>Recarga esta página y vuelve a intentarlo</li>
+              </ol>
+            `;
+            break;
+
+          case 'auth/popup-blocked':
+            errorMessage = '❌ El navegador bloqueó el popup';
+            solution = 'Permite popups en este sitio y vuelve a intentarlo.';
+            break;
+
+          case 'auth/popup-closed-by-user':
+            errorMessage = '❌ Popup cerrado por el usuario';
+            solution = 'Completa el proceso de login en el popup.';
+            break;
+
+          default:
+            errorMessage = `❌ Error: ${error.code}`;
+            solution = error.message;
+        }
+
+        resultDiv.innerHTML = `
+          <div class="status error">
+            ${errorMessage}<br>
+            ${solution}<br><br>
+            <strong>Detalles técnicos:</strong>
+            <pre>${JSON.stringify(error, null, 2)}</pre>
+          </div>
+        `;
+      }
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Google Auth - SIMPLE</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      text-align: center;
+    }
+    button {
+      background: #4285f4;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:hover {
+      background: #357ae8;
+    }
+    #status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    pre {
+      text-align: left;
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔐 Test Google Sign-In</h1>
+  <p>Test mínimo para verificar configuración de Firebase</p>
+
+  <button id="googleBtn" onclick="testGoogleSignIn()">
+    🔵 Sign in with Google
+  </button>
+
+  <button onclick="location.reload()" style="background: #666;">
+    🔄 Reload
+  </button>
+
+  <div id="status" class="info">
+    Esperando acción...
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getAuth, signInWithPopup, GoogleAuthProvider } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+    // Tu configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNpDko5oOxxLjeEqs0J_5AQd2Cu18uqns",
+      authDomain: "expense-app-gepres.firebaseapp.com",
+      projectId: "expense-app-gepres",
+      storageBucket: "expense-app-gepres.firebasestorage.app",
+      messagingSenderId: "894025939694",
+      appId: "1:894025939694:web:f79f29c3a10df6f545d1ff"
+    };
+
+    // Inicializar Firebase
+    console.log('🔧 Inicializando Firebase...');
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    console.log('✅ Firebase inicializado');
+    console.log('Auth Domain:', firebaseConfig.authDomain);
+    console.log('Project ID:', firebaseConfig.projectId);
+
+    // Función de test
+    window.testGoogleSignIn = async function() {
+      const statusDiv = document.getElementById('status');
+      const btn = document.getElementById('googleBtn');
+
+      try {
+        btn.disabled = true;
+        statusDiv.className = 'info';
+        statusDiv.innerHTML = '⏳ Iniciando Google Sign-In...<br>Se debería abrir un popup de Google...';
+
+        console.log('🔵 Creando GoogleAuthProvider...');
+        const provider = new GoogleAuthProvider();
+
+        console.log('🔵 Llamando a signInWithPopup...');
+        const result = await signInWithPopup(auth, provider);
+
+        console.log('✅ Sign-In exitoso!', result.user);
+
+        statusDiv.className = 'success';
+        statusDiv.innerHTML = `
+          <h3>✅ ¡Sign-In Exitoso!</h3>
+          <pre>Email: ${result.user.email}
+Nombre: ${result.user.displayName}
+UID: ${result.user.uid}</pre>
+        `;
+      } catch (error) {
+        console.error('❌ Error:', error);
+        console.error('Código:', error.code);
+        console.error('Mensaje:', error.message);
+
+        let errorMsg = '';
+        let solution = '';
+
+        switch (error.code) {
+          case 'auth/operation-not-allowed':
+            errorMsg = '❌ Google Sign-In NO está habilitado';
+            solution = `
+              <strong>SOLUCIÓN:</strong>
+              <ol style="text-align: left; margin: 10px 0; padding-left: 20px;">
+                <li>Ve a <a href="https://console.firebase.google.com/u/0/project/expense-app-gepres/authentication/providers" target="_blank">Firebase Console → Authentication → Sign-in method</a></li>
+                <li>Click en "Google"</li>
+                <li>Activa el toggle "Enable"</li>
+                <li>Click en "Save"</li>
+                <li>Recarga esta página y vuelve a intentar</li>
+              </ol>
+            `;
+            break;
+
+          case 'auth/unauthorized-domain':
+            errorMsg = `❌ Dominio no autorizado: ${window.location.hostname}`;
+            solution = `
+              <strong>SOLUCIÓN:</strong>
+              <ol style="text-align: left; margin: 10px 0; padding-left: 20px;">
+                <li>Ve a <a href="https://console.firebase.google.com/u/0/project/expense-app-gepres/authentication/settings" target="_blank">Firebase Console → Authentication → Settings</a></li>
+                <li>En "Authorized domains", añade: <code>${window.location.hostname}</code></li>
+                <li>Recarga esta página y vuelve a intentar</li>
+              </ol>
+            `;
+            break;
+
+          case 'auth/popup-closed-by-user':
+            errorMsg = '⚠️ Popup cerrado';
+            solution = 'El popup se cerró antes de completar el login. Intenta de nuevo y NO cierres el popup.';
+            break;
+
+          case 'auth/popup-blocked':
+            errorMsg = '❌ Popup bloqueado por el navegador';
+            solution = 'Permite popups para este sitio en la configuración de tu navegador.';
+            break;
+
+          default:
+            errorMsg = `❌ Error: ${error.code}`;
+            solution = error.message;
+        }
+
+        statusDiv.className = 'error';
+        statusDiv.innerHTML = `
+          <h3>${errorMsg}</h3>
+          <div style="margin-top: 10px;">${solution}</div>
+          <details style="margin-top: 15px; text-align: left;">
+            <summary style="cursor: pointer; font-weight: bold;">🔍 Ver detalles técnicos</summary>
+            <pre style="margin-top: 10px; font-size: 12px;">${JSON.stringify({
+              code: error.code,
+              message: error.message,
+              stack: error.stack?.split('\n').slice(0, 5).join('\n')
+            }, null, 2)}</pre>
+          </details>
+        `;
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    // Mostrar info de configuración al cargar
+    window.addEventListener('load', () => {
+      console.log('%c🔥 Firebase Test Ready', 'font-size: 20px; color: #ff6b35; font-weight: bold;');
+      console.log('Configuración:', {
+        authDomain: firebaseConfig.authDomain,
+        projectId: firebaseConfig.projectId,
+        currentDomain: window.location.hostname
+      });
+    });
+  </script>
+</body>
+</html>

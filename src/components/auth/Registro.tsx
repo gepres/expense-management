@@ -94,7 +94,16 @@ export default function Registro() {
       navigate('/');
     } catch (error) {
       const mensaje = error instanceof Error ? error.message : 'Error al registrarse con Google';
+
+      // Si el usuario simplemente cerró el popup, no mostrar error
+      if (mensaje === 'POPUP_CLOSED') {
+        console.log('Usuario canceló el inicio de sesión con Google');
+        return;
+      }
+
+      // Mostrar errores reales
       toast.error(mensaje);
+      console.error('Error en Google Sign-In:', error);
     }
   };
 

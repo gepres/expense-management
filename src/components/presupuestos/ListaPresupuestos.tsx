@@ -3,13 +3,16 @@
  */
 
 import { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePresupuestos } from '@hooks/usePresupuestos';
 import { useGastos } from '@hooks/useGastos';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
+import { usePresupuestoEfectivo } from '@context/PresupuestoEfectivoContext';
 import {
   CATEGORIA_GENERAL,
   SUBCATEGORIAS_PRESUPUESTO_GENERAL,
+  MONEDA_SIMBOLOS,
   type CategoriaGasto,
   type CategoriaGastoOGeneral,
   type Moneda,
@@ -18,7 +21,7 @@ import {
 import { formatearMoneda, parsearMesKey } from '@utils/formatters';
 import { calcularGastosPorCategoria } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
-import { Plus, Target, Wallet, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Tag, Coins, DollarSign, AlertTriangle } from 'lucide-react';
+import { Plus, Target, Wallet, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Tag, Coins, DollarSign, AlertTriangle, ArrowRightLeft, TrendingUp, Sparkles } from 'lucide-react';
 import CustomLoader from '@components/common/CustomLoader';
 import Modal, { ModalFooterActions } from '@components/common/Modal';
 import { ContainerLoadingButton } from '../common/Button';
@@ -31,9 +34,11 @@ interface FormPresupuesto {
 }
 
 export default function ListaPresupuestos() {
+  const navigate = useNavigate();
   const { usuario } = useAuth();
   const { presupuestos, estado, cargarPresupuestos, crear, actualizar, eliminar } = usePresupuestos();
   const { gastos, cargarGastos } = useGastos();
+  const { presupuestosEfectivo } = usePresupuestoEfectivo();
   const { categories, currencies, getCategoryLabel } = useConfig();
 
   const [mesActual, setMesActual] = useState(() => {
@@ -343,6 +348,83 @@ export default function ListaPresupuestos() {
         >
           <Plus className="h-7 w-7" />
         </button>
+      </div>
+
+      {/* Banner de Movimientos de Efectivo */}
+      <div className="bg-card border border-border rounded-xl shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+        {/* Icono de fondo decorativo */}
+        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <Wallet className="h-32 w-32 text-emerald-500 transform rotate-12 translate-x-8 -translate-y-8" />
+        </div>
+
+        <div className="relative z-10 p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="flex-1">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-1.5 bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 rounded-full mb-3">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Gestiona tu efectivo</span>
+              </div>
+
+              {/* Título */}
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                  <ArrowRightLeft className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                Movimientos de Efectivo
+              </h3>
+
+              {/* Descripción */}
+              <p className="text-muted-foreground text-sm sm:text-base mb-4 max-w-2xl">
+                Registra retiros de banco, transferencias y lleva el control de tu dinero en efectivo.
+                <span className="hidden sm:inline"> Cada vez que pagas con efectivo, se descuenta automáticamente.</span>
+              </p>
+
+              {/* Saldos actuales (si existen) */}
+              {(presupuestosEfectivo.PEN || presupuestosEfectivo.USD) && (
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg border border-border">
+                    <Coins className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-sm font-semibold text-foreground">
+                      {MONEDA_SIMBOLOS.PEN} {presupuestosEfectivo.PEN?.saldoActual.toFixed(2) || '0.00'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg border border-border">
+                    <Coins className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-sm font-semibold text-foreground">
+                      {MONEDA_SIMBOLOS.USD} {presupuestosEfectivo.USD?.saldoActual.toFixed(2) || '0.00'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Botones de acción */}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => navigate('/movimientos/nuevo')}
+                  className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>Nuevo Movimiento</span>
+                </button>
+
+                <button
+                  onClick={() => navigate('/efectivo/historial')}
+                  className="inline-flex items-center gap-2 bg-muted hover:bg-muted/80 text-foreground font-medium px-5 py-2.5 rounded-xl border border-border transition-all"
+                >
+                  <TrendingUp className="w-5 h-5" />
+                  <span className="hidden sm:inline">Ver Historial</span>
+                  <span className="sm:hidden">Historial</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Icono decorativo (solo desktop) */}
+            <div className="hidden lg:flex items-center justify-center w-32 h-32 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl group-hover:scale-105 transition-transform">
+              <Wallet className="w-16 h-16 text-emerald-600 dark:text-emerald-400" />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Selector de mes */}

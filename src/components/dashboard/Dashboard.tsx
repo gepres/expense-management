@@ -27,6 +27,7 @@ import {
 import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Target, Plus, Bot, ArrowRight } from 'lucide-react';
 import AIInsights from './AIInsights';
 import InstallPWA from '../common/InstallPWA';
+import PresupuestoEfectivoWidget from '../efectivo/PresupuestoEfectivoWidget';
 import CustomLoader from '../common/CustomLoader';
 
 // Función helper para obtener el icono de la categoría
@@ -305,6 +306,9 @@ export default function Dashboard() {
 
         {/* Columna Derecha: Últimos Gastos (1/3 ancho en desktop) */}
         <div className="space-y-6">
+          {/* Widget de Presupuesto en Efectivo */}
+          <PresupuestoEfectivoWidget />
+
           <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-border flex items-center justify-between bg-muted/20">
               <h2 className="text-lg font-bold text-foreground">Últimos Movimientos</h2>

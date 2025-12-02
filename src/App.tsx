@@ -10,6 +10,7 @@ import { ThemeProvider, useTheme } from '@context/ThemeContext';
 import { ConfigProvider } from '@context/ConfigContext';
 import { PreferencesProvider } from '@context/PreferencesContext';
 import { SharedExpensesProvider } from '@context/SharedExpensesContext';
+import { PresupuestoEfectivoProvider } from '@context/PresupuestoEfectivoContext';
 import ErrorAlert from '@components/common/ErrorAlert';
 import CustomLoader from '@components/common/CustomLoader';
 
@@ -33,6 +34,10 @@ const JoinGroupPage = lazy(() => import('@components/compartidos/JoinGroupPage')
 // Shopping List
 const ShoppingListView = lazy(() => import('@/modules/shopping-list/ShoppingListView'));
 const ShoppingListDetail = lazy(() => import('@/modules/shopping-list/ShoppingListDetail'));
+
+// Movimientos y Efectivo
+const FormularioMovimiento = lazy(() => import('@components/movimientos/FormularioMovimiento'));
+const HistorialEfectivo = lazy(() => import('@components/efectivo/HistorialEfectivo'));
 
 // Documentación
 const Documentacion = lazy(() => import('@/pages/Documentacion'));
@@ -148,6 +153,10 @@ function AppRoutes() {
           <Route path="compartidos" element={<SharedGroupsList />} />
           <Route path="compartidos/:id" element={<SharedGroupDetail />} />
 
+          {/* Movimientos y Efectivo */}
+          <Route path="movimientos/nuevo" element={<FormularioMovimiento />} />
+          <Route path="efectivo/historial" element={<HistorialEfectivo />} />
+
           {/* Shopping List */}
           <Route path="compras" element={<ShoppingListView />} />
 
@@ -225,14 +234,16 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <ConfigProvider>
-            <PreferencesProvider>
-              <SharedExpensesProvider>
-                <AppRoutes />
-                <ToasterWithTheme />
-              </SharedExpensesProvider>
-            </PreferencesProvider>
-          </ConfigProvider>
+          <PresupuestoEfectivoProvider>
+            <ConfigProvider>
+              <PreferencesProvider>
+                <SharedExpensesProvider>
+                  <AppRoutes />
+                  <ToasterWithTheme />
+                </SharedExpensesProvider>
+              </PreferencesProvider>
+            </ConfigProvider>
+          </PresupuestoEfectivoProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

@@ -41,6 +41,12 @@ import type {
   GastoFirestore,
   Presupuesto,
   PresupuestoFirestore,
+  PresupuestoEfectivo,
+  PresupuestoEfectivoFirestore,
+  Movimiento,
+  MovimientoFirestore,
+  AbonoEfectivo,
+  AbonoEfectivoFirestore,
   LoginCredenciales,
   RegistroCredenciales,
 } from '@app-types';
@@ -135,8 +141,13 @@ export const obtenerMensajeError = (error: unknown): string => {
     'auth/invalid-credential': 'Credenciales inválidas',
     'auth/too-many-requests': 'Demasiados intentos. Intenta más tarde',
     'auth/network-request-failed': 'Error de conexión. Verifica tu internet',
-    'auth/popup-closed-by-user': 'Inicio de sesión cancelado',
-    'auth/cancelled-popup-request': 'Inicio de sesión cancelado',
+
+    // Errores de Google Sign-In (no mostrar como error si el usuario cancela)
+    'auth/popup-closed-by-user': 'POPUP_CLOSED', // Marcador especial
+    'auth/cancelled-popup-request': 'POPUP_CLOSED', // Marcador especial
+    'auth/popup-blocked': 'El navegador bloqueó el popup. Por favor permite popups para este sitio y vuelve a intentarlo.',
+    'auth/unauthorized-domain': 'Este dominio no está autorizado. Contacta al administrador.',
+    'auth/account-exists-with-different-credential': 'Ya existe una cuenta con este email usando otro método de inicio de sesión',
 
     // Errores de configuración
     'auth/api-key-not-valid': 'API Key de Firebase no válida. Verifica la configuración',
@@ -358,6 +369,97 @@ export const firestoreToPresupuesto = (
   };
 };
 
+/**
+ * Convierte un documento de Firestore de PresupuestoEfectivo a PresupuestoEfectivo
+ */
+export const firestoreToPresupuestoEfectivo = (
+  id: string,
+  data: PresupuestoEfectivoFirestore
+): PresupuestoEfectivo => {
+  return {
+    id,
+    userId: data.userId,
+    moneda: data.moneda,
+    saldoActual: data.saldoActual,
+    createdAt: timestampToDate(data.createdAt),
+    updatedAt: timestampToDate(data.updatedAt),
+  };
+};
+
+/**
+ * Convierte un documento de Firestore de Movimiento a Movimiento
+ */
+export const firestoreToMovimiento = (
+  id: string,
+  data: MovimientoFirestore
+): Movimiento => {
+  return {
+    id,
+    userId: data.userId,
+    fecha: timestampToDate(data.fecha),
+    tipo: data.tipo,
+    monto: data.monto,
+    moneda: data.moneda,
+    origen: data.origen,
+    destino: data.destino,
+    descripcion: data.descripcion,
+    aplicadoAEfectivo: data.aplicadoAEfectivo,
+    createdAt: timestampToDate(data.createdAt),
+    updatedAt: timestampToDate(data.updatedAt),
+  };
+};
+
+/**
+ * Convierte un Movimiento a MovimientoFirestore (sin id)
+ */
+export const movimientoToFirestore = (movimiento: Partial<Movimiento>): Partial<MovimientoFirestore> => {
+  const firestoreData: Partial<MovimientoFirestore> = {
+    userId: movimiento.userId,
+    tipo: movimiento.tipo,
+    monto: movimiento.monto,
+    moneda: movimiento.moneda,
+    aplicadoAEfectivo: movimiento.aplicadoAEfectivo ?? false,
+  };
+
+  if (movimiento.origen) {
+    firestoreData.origen = movimiento.origen;
+  }
+
+  if (movimiento.destino) {
+    firestoreData.destino = movimiento.destino;
+  }
+
+  if (movimiento.descripcion) {
+    firestoreData.descripcion = movimiento.descripcion;
+  }
+
+  if (movimiento.fecha) {
+    firestoreData.fecha = dateToTimestamp(movimiento.fecha);
+  }
+
+  return firestoreData;
+};
+
+/**
+ * Convierte un documento de Firestore de AbonoEfectivo a AbonoEfectivo
+ */
+export const firestoreToAbonoEfectivo = (
+  id: string,
+  data: AbonoEfectivoFirestore
+): AbonoEfectivo => {
+  return {
+    id,
+    userId: data.userId,
+    fecha: timestampToDate(data.fecha),
+    monto: data.monto,
+    moneda: data.moneda,
+    concepto: data.concepto,
+    movimientoId: data.movimientoId,
+    createdAt: timestampToDate(data.createdAt),
+    updatedAt: timestampToDate(data.updatedAt),
+  };
+};
+
 // ============================================================================
 // Servicios de Autenticación
 // ============================================================================
@@ -425,13 +527,28 @@ export const authService = {
    */
   async loginConGoogle(): Promise<Usuario> {
     try {
+      console.log('🔵 Iniciando Google Sign-In...');
       const provider = new GoogleAuthProvider();
+
+      // Agregar configuraciones recomendadas
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+
+      console.log('🔵 Abriendo popup de Google...');
       const userCredential = await signInWithPopup(auth, provider);
+
+      console.log('✅ Usuario autenticado con Google:', {
+        email: userCredential.user.email,
+        uid: userCredential.user.uid,
+        displayName: userCredential.user.displayName
+      });
 
       // Verificar si el usuario ya existe
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
 
       if (!userDoc.exists()) {
+        console.log('🆕 Creando nuevo usuario en Firestore...');
         // Crear nuevo usuario
         // IMPORTANTE: No incluir campos undefined - Firestore los rechaza
         const usuarioData: Partial<UsuarioFirestore> = {
@@ -448,6 +565,8 @@ export const authService = {
 
         await setDoc(doc(db, 'users', userCredential.user.uid), usuarioData);
 
+        console.log('✅ Usuario creado exitosamente en Firestore');
+
         return {
           id: userCredential.user.uid,
           email: userCredential.user.email!,
@@ -458,8 +577,12 @@ export const authService = {
         };
       }
 
+      console.log('✅ Usuario existente encontrado en Firestore');
       return firestoreToUsuario(userCredential.user.uid, userDoc.data() as UsuarioFirestore);
     } catch (error) {
+      console.error('❌ Error en Google Sign-In:', error);
+      console.error('Código de error:', (error as { code?: string }).code);
+      console.error('Mensaje de error:', (error as Error).message);
       throw new Error(obtenerMensajeError(error));
     }
   },
@@ -727,8 +850,283 @@ export const presupuestosService = {
   },
 };
 
+// ============================================================================
+// Servicios de Presupuesto en Efectivo
+// ============================================================================
+
+export const presupuestoEfectivoService = {
+  /**
+   * Obtener o crear presupuesto en efectivo para una moneda
+   */
+  async obtenerOCrear(userId: string, moneda: string): Promise<PresupuestoEfectivo> {
+    const presupuestosQuery = query(
+      collection(db, 'presupuestosEfectivo'),
+      where('userId', '==', userId),
+      where('moneda', '==', moneda)
+    );
+
+    const querySnapshot = await getDocs(presupuestosQuery);
+
+    // Si existe, retornarlo
+    if (!querySnapshot.empty) {
+      const doc = querySnapshot.docs[0];
+      return firestoreToPresupuestoEfectivo(doc.id, doc.data() as PresupuestoEfectivoFirestore);
+    }
+
+    // Si no existe, crearlo con saldo 0
+    const firestoreData: PresupuestoEfectivoFirestore = {
+      userId,
+      moneda: moneda as any,
+      saldoActual: 0,
+      createdAt: serverTimestamp() as Timestamp,
+      updatedAt: serverTimestamp() as Timestamp,
+    };
+
+    const docRef = await addDoc(collection(db, 'presupuestosEfectivo'), firestoreData);
+    const docSnap = await getDoc(docRef);
+
+    return firestoreToPresupuestoEfectivo(docRef.id, docSnap.data() as PresupuestoEfectivoFirestore);
+  },
+
+  /**
+   * Obtener todos los presupuestos en efectivo de un usuario
+   */
+  async obtenerTodos(userId: string): Promise<PresupuestoEfectivo[]> {
+    const presupuestosQuery = query(
+      collection(db, 'presupuestosEfectivo'),
+      where('userId', '==', userId)
+    );
+
+    const querySnapshot = await getDocs(presupuestosQuery);
+    return querySnapshot.docs.map(doc =>
+      firestoreToPresupuestoEfectivo(doc.id, doc.data() as PresupuestoEfectivoFirestore)
+    );
+  },
+
+  /**
+   * Actualizar saldo de presupuesto en efectivo
+   */
+  async actualizarSaldo(id: string, nuevoSaldo: number): Promise<void> {
+    await updateDoc(doc(db, 'presupuestosEfectivo', id), {
+      saldoActual: nuevoSaldo,
+      updatedAt: serverTimestamp(),
+    });
+  },
+
+  /**
+   * Incrementar saldo (para abonos)
+   */
+  async incrementarSaldo(id: string, monto: number): Promise<void> {
+    const docSnap = await getDoc(doc(db, 'presupuestosEfectivo', id));
+    if (!docSnap.exists()) throw new Error('Presupuesto en efectivo no encontrado');
+
+    const presupuesto = firestoreToPresupuestoEfectivo(docSnap.id, docSnap.data() as PresupuestoEfectivoFirestore);
+    const nuevoSaldo = presupuesto.saldoActual + monto;
+
+    await this.actualizarSaldo(id, nuevoSaldo);
+  },
+
+  /**
+   * Decrementar saldo (para gastos)
+   */
+  async decrementarSaldo(id: string, monto: number): Promise<void> {
+    const docSnap = await getDoc(doc(db, 'presupuestosEfectivo', id));
+    if (!docSnap.exists()) throw new Error('Presupuesto en efectivo no encontrado');
+
+    const presupuesto = firestoreToPresupuestoEfectivo(docSnap.id, docSnap.data() as PresupuestoEfectivoFirestore);
+    const nuevoSaldo = presupuesto.saldoActual - monto;
+
+    await this.actualizarSaldo(id, nuevoSaldo);
+  },
+};
+
+// ============================================================================
+// Servicios de Movimientos
+// ============================================================================
+
+export const movimientosService = {
+  /**
+   * Crear un nuevo movimiento
+   */
+  async crear(movimientoData: Omit<Movimiento, 'id' | 'createdAt' | 'updatedAt'>): Promise<Movimiento> {
+    const firestoreData: MovimientoFirestore = {
+      ...movimientoToFirestore(movimientoData) as MovimientoFirestore,
+      createdAt: serverTimestamp() as Timestamp,
+      updatedAt: serverTimestamp() as Timestamp,
+    };
+
+    const docRef = await addDoc(collection(db, 'movimientos'), firestoreData);
+    const docSnap = await getDoc(docRef);
+
+    return firestoreToMovimiento(docRef.id, docSnap.data() as MovimientoFirestore);
+  },
+
+  /**
+   * Obtener un movimiento por ID
+   */
+  async obtenerPorId(id: string): Promise<Movimiento | null> {
+    const docSnap = await getDoc(doc(db, 'movimientos', id));
+    if (!docSnap.exists()) return null;
+
+    return firestoreToMovimiento(docSnap.id, docSnap.data() as MovimientoFirestore);
+  },
+
+  /**
+   * Obtener todos los movimientos de un usuario
+   */
+  async obtenerPorUsuario(userId: string): Promise<Movimiento[]> {
+    const movimientosQuery = query(
+      collection(db, 'movimientos'),
+      where('userId', '==', userId),
+      orderBy('fecha', 'desc')
+    );
+
+    const querySnapshot = await getDocs(movimientosQuery);
+    return querySnapshot.docs.map(doc =>
+      firestoreToMovimiento(doc.id, doc.data() as MovimientoFirestore)
+    );
+  },
+
+  /**
+   * Actualizar un movimiento
+   */
+  async actualizar(id: string, movimientoData: Partial<Movimiento>): Promise<void> {
+    const firestoreData = {
+      ...movimientoToFirestore(movimientoData),
+      updatedAt: serverTimestamp(),
+    };
+
+    await updateDoc(doc(db, 'movimientos', id), firestoreData);
+  },
+
+  /**
+   * Eliminar un movimiento
+   */
+  async eliminar(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'movimientos', id));
+  },
+
+  /**
+   * Obtener movimientos por rango de fechas
+   */
+  async obtenerPorRangoFechas(
+    userId: string,
+    fechaInicio: Date,
+    fechaFin: Date
+  ): Promise<Movimiento[]> {
+    const movimientosQuery = query(
+      collection(db, 'movimientos'),
+      where('userId', '==', userId),
+      where('fecha', '>=', dateToTimestamp(fechaInicio)),
+      where('fecha', '<=', dateToTimestamp(fechaFin)),
+      orderBy('fecha', 'desc')
+    );
+
+    const querySnapshot = await getDocs(movimientosQuery);
+    return querySnapshot.docs.map(doc =>
+      firestoreToMovimiento(doc.id, doc.data() as MovimientoFirestore)
+    );
+  },
+};
+
+// ============================================================================
+// Servicios de Abonos a Efectivo
+// ============================================================================
+
+export const abonosEfectivoService = {
+  /**
+   * Crear un nuevo abono
+   */
+  async crear(abonoData: Omit<AbonoEfectivo, 'id' | 'createdAt' | 'updatedAt'>): Promise<AbonoEfectivo> {
+    const firestoreData: AbonoEfectivoFirestore = {
+      userId: abonoData.userId,
+      monto: abonoData.monto,
+      moneda: abonoData.moneda,
+      concepto: abonoData.concepto,
+      fecha: dateToTimestamp(abonoData.fecha),
+      createdAt: serverTimestamp() as Timestamp,
+      updatedAt: serverTimestamp() as Timestamp,
+    };
+
+    // Solo agregar movimientoId si existe
+    if (abonoData.movimientoId) {
+      firestoreData.movimientoId = abonoData.movimientoId;
+    }
+
+    const docRef = await addDoc(collection(db, 'abonosEfectivo'), firestoreData);
+    const docSnap = await getDoc(docRef);
+
+    return firestoreToAbonoEfectivo(docRef.id, docSnap.data() as AbonoEfectivoFirestore);
+  },
+
+  /**
+   * Obtener todos los abonos de un usuario
+   */
+  async obtenerPorUsuario(userId: string): Promise<AbonoEfectivo[]> {
+    const abonosQuery = query(
+      collection(db, 'abonosEfectivo'),
+      where('userId', '==', userId),
+      orderBy('fecha', 'desc')
+    );
+
+    const querySnapshot = await getDocs(abonosQuery);
+    return querySnapshot.docs.map(doc =>
+      firestoreToAbonoEfectivo(doc.id, doc.data() as AbonoEfectivoFirestore)
+    );
+  },
+
+  /**
+   * Obtener abonos por moneda
+   */
+  async obtenerPorMoneda(userId: string, moneda: string): Promise<AbonoEfectivo[]> {
+    const abonosQuery = query(
+      collection(db, 'abonosEfectivo'),
+      where('userId', '==', userId),
+      where('moneda', '==', moneda),
+      orderBy('fecha', 'desc')
+    );
+
+    const querySnapshot = await getDocs(abonosQuery);
+    return querySnapshot.docs.map(doc =>
+      firestoreToAbonoEfectivo(doc.id, doc.data() as AbonoEfectivoFirestore)
+    );
+  },
+
+  /**
+   * Eliminar un abono
+   */
+  async eliminar(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'abonosEfectivo', id));
+  },
+
+  /**
+   * Obtener abonos por rango de fechas
+   */
+  async obtenerPorRangoFechas(
+    userId: string,
+    fechaInicio: Date,
+    fechaFin: Date
+  ): Promise<AbonoEfectivo[]> {
+    const abonosQuery = query(
+      collection(db, 'abonosEfectivo'),
+      where('userId', '==', userId),
+      where('fecha', '>=', dateToTimestamp(fechaInicio)),
+      where('fecha', '<=', dateToTimestamp(fechaFin)),
+      orderBy('fecha', 'desc')
+    );
+
+    const querySnapshot = await getDocs(abonosQuery);
+    return querySnapshot.docs.map(doc =>
+      firestoreToAbonoEfectivo(doc.id, doc.data() as AbonoEfectivoFirestore)
+    );
+  },
+};
+
 export default {
   auth: authService,
   gastos: gastosService,
   presupuestos: presupuestosService,
+  presupuestoEfectivo: presupuestoEfectivoService,
+  movimientos: movimientosService,
+  abonosEfectivo: abonosEfectivoService,
 };

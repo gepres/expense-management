@@ -8,6 +8,7 @@ import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import { usePreferences } from '@context/PreferencesContext';
 import { useGastos } from '@hooks/useGastos';
+import { usePresupuestoEfectivo } from '@context/PresupuestoEfectivoContext';
 import { type GastoFormData, type CategoriaGasto, type MetodoPago, type Moneda } from '@app-types';
 import { toast } from 'react-hot-toast';
 import { scanReceipt, validateImageFormat } from '@services/receipts';
@@ -25,6 +26,7 @@ export default function FormularioGasto() {
   const { id } = useParams<{ id: string }>();
   const { usuario } = useAuth();
   const { crear, actualizar, obtenerPorId } = useGastos();
+  const { descontar: descontarEfectivo, recargar: recargarEfectivo } = usePresupuestoEfectivo();
   const {
     categories,
     paymentMethods,
@@ -577,7 +579,16 @@ export default function FormularioGasto() {
       } else {
         // Crear nuevo gasto
         await crear(gastoData);
-        
+
+        // Si el método de pago es efectivo, descontar del presupuesto en efectivo
+        if (formData.metodoPago === 'efectivo') {
+          const descuentoExitoso = await descontarEfectivo(parseFloat(formData.monto), formData.moneda);
+          if (descuentoExitoso) {
+            // Recargar presupuesto en efectivo para actualizar todos los componentes
+            await recargarEfectivo();
+          }
+        }
+
         // Si viene de una lista de compras, actualizar su estado localmente (simulación de backend)
         if (formData.shoppingListId) {
           try {

@@ -295,6 +295,137 @@ export interface AlertaPresupuesto {
 }
 
 // ============================================================================
+// Presupuesto en Efectivo
+// ============================================================================
+
+export interface PresupuestoEfectivo {
+  id: string;
+  userId: string;
+  moneda: Moneda;
+  saldoActual: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PresupuestoEfectivoFirestore {
+  userId: string;
+  moneda: Moneda;
+  saldoActual: number;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ============================================================================
+// Movimientos
+// ============================================================================
+
+export const TIPOS_MOVIMIENTO = [
+  'retiro_banco',
+  'transferencia_cuentas',
+] as const;
+
+export type TipoMovimiento = (typeof TIPOS_MOVIMIENTO)[number];
+
+export const TIPO_MOVIMIENTO_LABELS: Record<TipoMovimiento, string> = {
+  retiro_banco: 'Retiro de Banco',
+  transferencia_cuentas: 'Transferencia entre Cuentas',
+};
+
+export interface Movimiento {
+  id: string;
+  userId: string;
+  fecha: Date;
+  tipo: TipoMovimiento;
+  monto: number;
+  moneda: Moneda;
+  origen?: string; // Banco de origen (ej: "BCP", "Interbank")
+  destino?: string; // Cuenta destino (para transferencias)
+  descripcion?: string;
+  aplicadoAEfectivo: boolean; // Si se abonó al efectivo
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MovimientoFirestore {
+  userId: string;
+  fecha: Timestamp;
+  tipo: TipoMovimiento;
+  monto: number;
+  moneda: Moneda;
+  origen?: string;
+  destino?: string;
+  descripcion?: string;
+  aplicadoAEfectivo: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface MovimientoFormData {
+  fecha: string;
+  hora: string;
+  tipo: TipoMovimiento;
+  monto: string;
+  moneda: Moneda;
+  origen?: string;
+  destino?: string;
+  descripcion?: string;
+  aplicadoAEfectivo: boolean;
+}
+
+// ============================================================================
+// Abonos a Efectivo
+// ============================================================================
+
+export interface AbonoEfectivo {
+  id: string;
+  userId: string;
+  fecha: Date;
+  monto: number;
+  moneda: Moneda;
+  concepto: string;
+  movimientoId?: string; // Link opcional si vino de un movimiento
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AbonoEfectivoFirestore {
+  userId: string;
+  fecha: Timestamp;
+  monto: number;
+  moneda: Moneda;
+  concepto: string;
+  movimientoId?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface AbonoEfectivoFormData {
+  fecha: string;
+  hora: string;
+  monto: string;
+  moneda: Moneda;
+  concepto: string;
+}
+
+// ============================================================================
+// Historial de Efectivo (Estado de Cuenta)
+// ============================================================================
+
+export type TipoTransaccionEfectivo = 'abono' | 'gasto';
+
+export interface TransaccionEfectivo {
+  id: string;
+  fecha: Date;
+  tipo: TipoTransaccionEfectivo;
+  concepto: string;
+  monto: number;
+  moneda: Moneda;
+  saldo: number;
+  categoria?: CategoriaGasto; // Solo para gastos
+  metodoPago?: MetodoPago; // Solo para gastos
+}
+
+// ============================================================================
 // Análisis y Estadísticas
 // ============================================================================
 
