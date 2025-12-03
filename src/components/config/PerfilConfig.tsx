@@ -2,15 +2,18 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { authService } from '@services/firebase';
-import { User, Mail, Camera, Save, MessageCircle, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Mail, Camera, Save, MessageCircle, CheckCircle, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ContainerLoadingButton } from '../common/Button';
+import ConfirmationModal from '../common/ConfirmationModal';
 
 export default function PerfilConfig() {
   const { usuario } = useAuth();
   const [nombre, setNombre] = useState(usuario?.nombre || '');
   const [photoURL, setPhotoURL] = useState(usuario?.photoURL || '');
   const [loading, setLoading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +37,20 @@ export default function PerfilConfig() {
       toast.error('Error al actualizar el perfil');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    try {
+      await authService.deleteAccount();
+      toast.success('Cuenta eliminada correctamente');
+      window.location.href = '/login';
+    } catch (error) {
+      console.error(error);
+      toast.error('Error al eliminar la cuenta');
+      setDeleteLoading(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -139,6 +156,41 @@ export default function PerfilConfig() {
           </button>
         </div>
       </form>
+
+      <div className="mt-12 pt-8 border-t border-border">
+        <h3 className="text-lg font-bold text-destructive mb-4 flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5" />
+          Zona de Peligro
+        </h3>
+        
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <h4 className="font-medium text-destructive mb-2">Eliminar Cuenta</h4>
+          <p className="text-sm text-muted-foreground mb-4">
+            Una vez que elimines tu cuenta, no hay vuelta atrás. Por favor, asegúrate.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg text-sm font-medium hover:bg-destructive/90 transition-colors flex items-center gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            Eliminar mi cuenta
+          </button>
+        </div>
+      </div>
+
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteAccount}
+        title="¿Estás seguro?"
+        description="Esta acción eliminará permanentemente tu cuenta y todos tus datos asociados. No se puede deshacer."
+        confirmText="Sí, eliminar cuenta"
+        cancelText="Cancelar"
+        isDestructive={true}
+        isLoading={deleteLoading}
+        autoClose={false}
+      />
     </div>
   );
 }

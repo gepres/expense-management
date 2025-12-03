@@ -683,6 +683,35 @@ export const authService = {
       throw new Error(obtenerMensajeError(error));
     }
   },
+
+  /**
+   * Eliminar cuenta de usuario
+   */
+  async deleteAccount(): Promise<void> {
+    const user = auth.currentUser;
+    if (!user) throw new Error('No hay usuario autenticado');
+
+    try {
+      const token = await user.getIdToken();
+      const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+
+      const response = await fetch(`${API_URL}/users/profile`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar la cuenta en el servidor');
+      }
+
+      // Cerrar sesión en Firebase
+      await signOut(auth);
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
 };
 
 // ============================================================================

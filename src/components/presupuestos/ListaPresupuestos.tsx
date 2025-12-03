@@ -444,6 +444,7 @@ export default function ListaPresupuestos() {
       {/* Presupuestos Generales */}
       {presupuestosGenerales.length > 0 ? (
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-6 shadow-md">
+          
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="h-14 w-14 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">

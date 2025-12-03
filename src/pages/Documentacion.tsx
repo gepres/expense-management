@@ -12,8 +12,14 @@ import { ButtonExamples } from './ButtonExamples';
 import { ModalExamples } from './ModalExamples';
 import InputExamples from '@components/common/InputExamples';
 import LoadingExamples from '@components/common/LoadingExamples';
+import { CardExamples } from './CardExamples';
+import { BannerExamples } from './BannerExamples';
+import { TableExamples } from './TableExamples';
+import { ItemListExamples } from './ItemListExamples';
+import { TableIOSExamples } from './TableIOSExamples';
+import { Layout, Table as TableIcon, List, CreditCard } from 'lucide-react';
 
-type Section = 'intro' | 'buttons' | 'modals' | 'forms' | 'loading';
+type Section = 'intro' | 'buttons' | 'modals' | 'forms' | 'loading' | 'cards' | 'banners' | 'tables' | 'lists' | 'tableios';
 
 export default function Documentacion() {
   const [activeSection, setActiveSection] = useState<Section>('intro');
@@ -24,6 +30,11 @@ export default function Documentacion() {
     { id: 'modals' as Section, label: 'Modals', icon: Code },
     { id: 'forms' as Section, label: 'Inputs & Forms', icon: Code },
     { id: 'loading' as Section, label: 'Loading States', icon: Code },
+    { id: 'cards' as Section, label: 'Cards', icon: CreditCard },
+    { id: 'banners' as Section, label: 'Banners', icon: Layout },
+    { id: 'tables' as Section, label: 'Tables', icon: TableIcon },
+    { id: 'tableios' as Section, label: 'iOS Tables', icon: TableIcon },
+    { id: 'lists' as Section, label: 'Item Lists', icon: List },
   ];
 
   return (
@@ -108,6 +119,11 @@ export default function Documentacion() {
               {activeSection === 'modals' && <ModalExamples />}
               {activeSection === 'forms' && <InputExamples />}
               {activeSection === 'loading' && <LoadingExamples />}
+              {activeSection === 'cards' && <CardExamples />}
+              {activeSection === 'banners' && <BannerExamples />}
+              {activeSection === 'tables' && <TableExamples />}
+              {activeSection === 'tableios' && <TableIOSExamples />}
+              {activeSection === 'lists' && <ItemListExamples />}
             </div>
           </main>
         </div>
@@ -174,7 +190,7 @@ function IntroSection() {
           <ComponentCard
             title="Button"
             description="Componente de botón con múltiples variantes, tamaños y estados."
-            features={['6 variantes', '5 tamaños', 'Loading states', 'Icon support']}
+            features={['7 variantes', '5 tamaños', 'Loading states', 'Icon support']}
           />
 
           <ComponentCard
@@ -211,6 +227,36 @@ function IntroSection() {
             title="Input Components"
             description="Familia completa de inputs estilo iOS con múltiples variantes."
             features={['4 variantes', 'Floating labels', 'Auto-resize', 'iOS Style', 'Validation states']}
+          />
+
+          <ComponentCard
+            title="Card"
+            description="Contenedor versátil con soporte para header, content, footer y glassmorphism."
+            features={['Header/Footer', 'Glassmorphism', 'Hover effects', 'No padding mode']}
+          />
+
+          <ComponentCard
+            title="Banner"
+            description="Componente para destacar información o alertas con variantes de color."
+            features={['6 variantes', 'Icon support', 'Action slot', 'Gradient mode']}
+          />
+
+          <ComponentCard
+            title="Table"
+            description="Tablas responsivas y estilizadas para datos tabulares."
+            features={['Responsive', 'Styled headers', 'Hover rows', 'Footer support']}
+          />
+
+          <ComponentCard
+            title="iOS Table"
+            description="Tablas estilo iOS con secciones agrupadas, perfectas para configuraciones."
+            features={['Grouped sections', 'Toggle switches', 'iOS Style', 'Chevron navigation']}
+          />
+
+          <ComponentCard
+            title="ItemList"
+            description="Componente de lista optimizado para móviles estilo tarjeta iOS."
+            features={['Mobile optimized', 'iOS Style', 'Tags support', 'Actions slot']}
           />
         </div>
       </div>

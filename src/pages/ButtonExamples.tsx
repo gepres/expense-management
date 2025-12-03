@@ -57,9 +57,9 @@ export function ButtonExamples() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-4 bg-muted/50 rounded-xl border border-border">
             <div className="text-2xl mb-2">🎨</div>
-            <h3 className="font-bold mb-1">6 Variantes</h3>
+            <h3 className="font-bold mb-1">7 Variantes</h3>
             <p className="text-sm text-muted-foreground">
-              Primary, secondary, destructive, ghost, success y outline
+              Primary, secondary, destructive, ghost, success, outline y blue
             </p>
           </div>
           <div className="p-4 bg-muted/50 rounded-xl border border-border">
@@ -91,7 +91,7 @@ export function ButtonExamples() {
         <div>
           <h3 className="text-lg sm:text-xl font-bold">1. Variantes de Color</h3>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            6 variantes para diferentes tipos de acciones
+            7 variantes para diferentes tipos de acciones
           </p>
         </div>
         <div className="p-6 bg-muted/30 rounded-xl overflow-x-auto">
@@ -101,6 +101,7 @@ export function ButtonExamples() {
             <Button variant="destructive">Destructive</Button>
             <Button variant="ghost">Ghost</Button>
             <Button variant="success">Success</Button>
+            <Button variant="blue">Blue</Button>
             <Button variant="outline">Outline</Button>
           </div>
         </div>
@@ -421,6 +422,8 @@ export function ButtonExamples() {
         </div>
       </div>
 
+
+
       {/* Props Reference */}
       <div className="space-y-4">
         <h3 className="text-2xl font-bold">Props Reference</h3>
@@ -429,7 +432,7 @@ export function ButtonExamples() {
           <div>
             <h4 className="font-bold mb-4 text-lg">Button Props</h4>
             <div className="space-y-2 text-xs sm:text-sm font-mono bg-background p-3 sm:p-4 rounded-lg overflow-x-auto">
-              <p className="break-all">variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline'</p>
+              <p className="break-all">variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline' | 'blue'</p>
               <p>size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'</p>
               <p>loading?: boolean</p>
               <p>loadingText?: string</p>
@@ -508,6 +511,9 @@ export function ButtonExamples() {
               </p>
               <p>
                 <strong>outline:</strong> Alternativa visual sin fondo
+              </p>
+              <p>
+                <strong>blue:</strong> Acciones destacadas o informativas
               </p>
             </div>
           </div>

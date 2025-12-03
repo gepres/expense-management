@@ -17,7 +17,7 @@ import { useBreakpoints } from '@/hooks/useBreakpoints';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   // Variantes de color/estilo
-  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline';
+  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline' | 'blue';
 
   // Tamaños
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -79,6 +79,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ghost: 'bg-transparent hover:bg-muted text-foreground',
       success: 'bg-green-500 hover:bg-green-600 text-white shadow-sm',
       outline: 'bg-transparent border-2 border-border hover:bg-accent text-foreground',
+      blue: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm',
     };
 
     // Tamaños
