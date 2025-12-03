@@ -12,7 +12,7 @@ import { TIPOS_MOVIMIENTO, TIPO_MOVIMIENTO_LABELS, MONEDAS, MONEDA_LABELS } from
 import { toast } from 'react-hot-toast';
 import Button from '@components/common/Button';
 import { Input, Select, TextArea, InputGroup, InputRow, Switch } from '@components/common/Input';
-import { ArrowLeft, Save, ArrowRightLeft, Building2, DollarSign, Calendar, Clock, AlignLeft } from 'lucide-react';
+import { Save, ArrowRightLeft, Building2, DollarSign, Calendar, Clock, AlignLeft } from 'lucide-react';
 import { obtenerFechaLocalISO } from '@utils/formatters';
 import { useBreakpoints } from '@/hooks/useBreakpoints';
 
@@ -36,10 +36,9 @@ const BANCOS_PERU = [
 
 interface FormularioMovimientoProps {
   onSuccess?: () => void;
-  showBackButton?: boolean;
 }
 
-export default function FormularioMovimiento({ onSuccess, showBackButton = true }: FormularioMovimientoProps) {
+export default function FormularioMovimiento({ onSuccess }: FormularioMovimientoProps) {
   const navigate = useNavigate();
   const { usuario } = useAuth();
   const { crear } = useMovimientos();
@@ -214,17 +213,6 @@ export default function FormularioMovimiento({ onSuccess, showBackButton = true 
     <div className="max-w-2xl mx-auto px-4 py-6">
       {/* Header */}
       <div className="mb-6 flex items-center gap-4">
-        {showBackButton && (
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={ArrowLeft}
-            onClick={() => navigate(-1)}
-            className="hidden md:flex"
-          >
-            Volver
-          </Button>
-        )}
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-foreground">
             Nuevo Movimiento

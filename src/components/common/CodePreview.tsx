@@ -8,6 +8,8 @@ interface CodePreviewProps {
   title?: string;
   description?: string;
   className?: string;
+  minHeight?: string;
+  classNamePreview?: string;
 }
 
 export default function CodePreview({
@@ -16,6 +18,8 @@ export default function CodePreview({
   title,
   description,
   className,
+  minHeight = "100px",
+  classNamePreview,
 }: CodePreviewProps) {
   const [activeTab, setActiveTab] = useState<"preview" | "code">("preview");
 
@@ -58,7 +62,10 @@ export default function CodePreview({
       {/* Content */}
       <div className="relative">
         {activeTab === "preview" ? (
-          <div className="p-6 bg-background/50 min-h-[100px] flex flex-col justify-center">
+          <div 
+            className={cn("p-6 bg-background/50 flex flex-col justify-center", classNamePreview)}
+            style={{ minHeight }}
+          >
             {children}
           </div>
         ) : (
@@ -72,3 +79,4 @@ export default function CodePreview({
     </div>
   );
 }
+

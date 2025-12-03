@@ -10,7 +10,6 @@ import type { TransaccionEfectivo, Moneda } from '@app-types';
 import { MONEDA_SIMBOLOS } from '@app-types';
 import { formatearFechaCorta } from '@utils/formatters';
 import {
-  ArrowLeft,
   Plus,
   Minus,
   Calendar,
@@ -84,15 +83,13 @@ export default function HistorialEfectivo() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-4">
-          <Button
+          {/* <Button
             variant="ghost"
             size="sm"
             icon={ArrowLeft}
             onClick={() => navigate(-1)}
             className="hidden md:flex"
-          >
-            Volver
-          </Button>
+          /> */}
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground">
               Historial de Efectivo

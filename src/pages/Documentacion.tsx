@@ -24,9 +24,20 @@ import { BudgetMonitorExamples } from './BudgetMonitorExamples';
 import { InstallPWAExamples } from './InstallPWAExamples';
 import { EditNameModalExamples } from './EditNameModalExamples';
 import { CustomLoaderExamples } from './CustomLoaderExamples';
-import { Layout, Table as TableIcon, List, CreditCard, AlertCircle, ToggleLeft, Bell, Download, Edit3, Loader2 } from 'lucide-react';
+import { SegmentedControlExamples } from './SegmentedControlExamples';
+import { ToastExamples } from './ToastExamples';
+import { ActionSheetExamples } from './ActionSheetExamples';
+import { BadgeExamples } from './BadgeExamples';
+import { SearchBarExamples } from './SearchBarExamples';
+import { SwipeableListItemExamples } from './SwipeableListItemExamples';
+import { EmptyStateExamples } from './EmptyStateExamples';
+import { ChipExamples } from './ChipExamples';
+import { DatePickerExamples } from './DatePickerExamples';
+import { StepperExamples } from './StepperExamples';
+import { ProgressBarExamples } from './ProgressBarExamples';
+import { Layout, Table as TableIcon, List, CreditCard, AlertCircle, ToggleLeft, Bell, Download, Edit3, Loader2, LayoutDashboard, MessageSquare, Menu, Hash, Search, GripVertical, Inbox, Tags, Calendar as CalendarIcon, PlusCircle, TrendingUp } from 'lucide-react';
 
-type Section = 'intro' | 'buttons' | 'modals' | 'forms' | 'loading' | 'cards' | 'banners' | 'tables' | 'lists' | 'tableios' | 'alerts' | 'confirmations' | 'switches' | 'budgetmonitor' | 'installpwa' | 'editnamemodal' | 'customloader';
+type Section = 'intro' | 'buttons' | 'modals' | 'forms' | 'loading' | 'cards' | 'banners' | 'tables' | 'lists' | 'tableios' | 'alerts' | 'confirmations' | 'switches' | 'budgetmonitor' | 'installpwa' | 'editnamemodal' | 'customloader' | 'segmentedcontrol' | 'toast' | 'actionsheet' | 'badge' | 'searchbar' | 'swipeable' | 'emptystate' | 'chip' | 'datepicker' | 'stepper' | 'progressbar';
 
 export default function Documentacion() {
   const [activeSection, setActiveSection] = useState<Section>('intro');
@@ -49,6 +60,17 @@ export default function Documentacion() {
     { id: 'installpwa' as Section, label: 'Install PWA', icon: Download },
     { id: 'editnamemodal' as Section, label: 'Edit Name Modal', icon: Edit3 },
     { id: 'customloader' as Section, label: 'Custom Loader', icon: Loader2 },
+    { id: 'segmentedcontrol' as Section, label: 'Segmented Control', icon: LayoutDashboard },
+    { id: 'toast' as Section, label: 'Toast', icon: MessageSquare },
+    { id: 'actionsheet' as Section, label: 'Action Sheet', icon: Menu },
+    { id: 'badge' as Section, label: 'Badge', icon: Hash },
+    { id: 'searchbar' as Section, label: 'Search Bar', icon: Search },
+    { id: 'swipeable' as Section, label: 'Swipeable List', icon: GripVertical },
+    { id: 'emptystate' as Section, label: 'Empty State', icon: Inbox },
+    { id: 'chip' as Section, label: 'Chip / Tag', icon: Tags },
+    { id: 'datepicker' as Section, label: 'Date Picker', icon: CalendarIcon },
+    { id: 'stepper' as Section, label: 'Stepper', icon: PlusCircle },
+    { id: 'progressbar' as Section, label: 'Progress Bar', icon: TrendingUp },
   ];
 
   return (
@@ -145,6 +167,17 @@ export default function Documentacion() {
               {activeSection === 'installpwa' && <InstallPWAExamples />}
               {activeSection === 'editnamemodal' && <EditNameModalExamples />}
               {activeSection === 'customloader' && <CustomLoaderExamples />}
+              {activeSection === 'segmentedcontrol' && <SegmentedControlExamples />}
+              {activeSection === 'toast' && <ToastExamples />}
+              {activeSection === 'actionsheet' && <ActionSheetExamples />}
+              {activeSection === 'badge' && <BadgeExamples />}
+              {activeSection === 'searchbar' && <SearchBarExamples />}
+              {activeSection === 'swipeable' && <SwipeableListItemExamples />}
+              {activeSection === 'emptystate' && <EmptyStateExamples />}
+              {activeSection === 'chip' && <ChipExamples />}
+              {activeSection === 'datepicker' && <DatePickerExamples />}
+              {activeSection === 'stepper' && <StepperExamples />}
+              {activeSection === 'progressbar' && <ProgressBarExamples />}
             </div>
           </main>
         </div>
@@ -161,51 +194,80 @@ function IntroSection() {
     <div className="space-y-8">
       <div>
         <h2 className="text-3xl font-bold mb-4">Bienvenido a la Documentación</h2>
-        <p className="text-muted-foreground text-lg">
-          Esta página contiene ejemplos interactivos de todos los componentes reutilizables
-          de la aplicación.
+        <p className="text-muted-foreground text-lg mb-2">
+          Librería completa de <strong className="text-foreground">30+ componentes UI reutilizables</strong> con
+          ejemplos interactivos, código de uso y mejores prácticas.
+        </p>
+        <p className="text-muted-foreground">
+          Todos los componentes están completamente tipados, optimizados para móviles
+          y siguen las mejores prácticas de diseño iOS/Material Design.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="p-6 bg-primary/5 border border-primary/20 rounded-xl">
-          <h3 className="font-bold text-lg mb-2 text-primary">🎨 Componentes UI</h3>
+          <h3 className="font-bold text-lg mb-2 text-primary">🎨 30+ Componentes</h3>
           <p className="text-sm text-muted-foreground">
-            Botones, modales, formularios y más componentes listos para usar.
+            Buttons, modals, forms, tables, steppers, progress bars y mucho más.
+            Múltiples variantes y tamaños para cada componente.
           </p>
         </div>
 
         <div className="p-6 bg-green-500/5 border border-green-500/20 rounded-xl">
-          <h3 className="font-bold text-lg mb-2 text-green-600">📱 Responsive</h3>
+          <h3 className="font-bold text-lg mb-2 text-green-600">📱 Mobile-First</h3>
           <p className="text-sm text-muted-foreground">
-            Todos los componentes se adaptan automáticamente a móvil y desktop.
+            Diseño iOS-inspired con gestures, animaciones suaves y adaptación
+            automática a todos los dispositivos.
           </p>
         </div>
 
         <div className="p-6 bg-blue-500/5 border border-blue-500/20 rounded-xl">
-          <h3 className="font-bold text-lg mb-2 text-blue-600">⚡ TypeScript</h3>
+          <h3 className="font-bold text-lg mb-2 text-blue-600">⚡ TypeScript + DX</h3>
           <p className="text-sm text-muted-foreground">
-            Completamente tipado para mejor experiencia de desarrollo.
+            Completamente tipado con interfaces claras, autocompletado perfecto
+            y documentación inline para máxima productividad.
           </p>
         </div>
 
         <div className="p-6 bg-purple-500/5 border border-purple-500/20 rounded-xl">
-          <h3 className="font-bold text-lg mb-2 text-purple-600">♿ Accesible</h3>
+          <h3 className="font-bold text-lg mb-2 text-purple-600">✨ Animaciones Pulidas</h3>
           <p className="text-sm text-muted-foreground">
-            Soporte completo para teclado, lectores de pantalla y más.
+            Transiciones suaves, efectos hover/active, scale effects y feedback
+            visual claro en cada interacción.
           </p>
         </div>
       </div>
 
       <div className="border-l-4 border-primary pl-4 py-2">
         <p className="text-sm text-muted-foreground">
-          <strong>Tip:</strong> Usa la navegación lateral para explorar diferentes secciones
-          de componentes. Cada sección incluye ejemplos interactivos y código de uso.
+          <strong>Tip:</strong> Usa la navegación lateral (o los pills en móvil) para explorar
+          los componentes. Cada sección incluye <strong className="text-foreground">ejemplos interactivos,
+          código de uso completo y tabla de props</strong> con todos los parámetros disponibles.
         </p>
       </div>
 
+      {/* Stats Quick View */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="text-center p-4 bg-muted/50 rounded-xl border border-border">
+          <div className="text-3xl font-bold text-primary">30+</div>
+          <div className="text-xs text-muted-foreground mt-1">Componentes</div>
+        </div>
+        <div className="text-center p-4 bg-muted/50 rounded-xl border border-border">
+          <div className="text-3xl font-bold text-green-600">100%</div>
+          <div className="text-xs text-muted-foreground mt-1">TypeScript</div>
+        </div>
+        <div className="text-center p-4 bg-muted/50 rounded-xl border border-border">
+          <div className="text-3xl font-bold text-blue-600">iOS</div>
+          <div className="text-xs text-muted-foreground mt-1">Design System</div>
+        </div>
+        <div className="text-center p-4 bg-muted/50 rounded-xl border border-border">
+          <div className="text-3xl font-bold text-purple-600">60+</div>
+          <div className="text-xs text-muted-foreground mt-1">Variantes</div>
+        </div>
+      </div>
+
       <div className="space-y-4">
-        <h3 className="text-xl font-bold">Componentes Disponibles</h3>
+        <h3 className="text-xl font-bold">Catálogo de Componentes</h3>
 
         <div className="grid gap-3">
           <ComponentCard
@@ -314,6 +376,72 @@ function IntroSection() {
             title="EditNameModal"
             description="Modal especializado para renombrar elementos."
             features={['Input validation', 'Auto-focus', 'Custom title', 'Callback support']}
+          />
+
+          <ComponentCard
+            title="SegmentedControl"
+            description="Control segmentado estilo iOS para cambiar entre vistas."
+            features={['iOS Style', 'Smooth animations', 'Multiple sizes', 'Full width mode']}
+          />
+
+          <ComponentCard
+            title="Toast"
+            description="Notificaciones toast con múltiples variantes y animaciones."
+            features={['5 variantes', 'Auto-dismiss', 'Promise support', 'Theme aware']}
+          />
+
+          <ComponentCard
+            title="ActionSheet"
+            description="Menú de acciones estilo iOS que se desliza desde abajo."
+            features={['iOS Style', 'Swipe to close', 'Destructive actions', 'Backdrop blur']}
+          />
+
+          <ComponentCard
+            title="Badge"
+            description="Insignias para contar notificaciones y destacar información."
+            features={['6 variantes', '3 tamaños', 'Dot mode', 'Max count']}
+          />
+
+          <ComponentCard
+            title="SearchBar"
+            description="Barra de búsqueda estilo iOS con animaciones y cancelación."
+            features={['iOS Style', 'Cancel button', 'Clear button', 'Debounce']}
+          />
+
+          <ComponentCard
+            title="SwipeableListItem"
+            description="Item de lista con acciones al deslizar (swipe gestures)."
+            features={['Swipe actions', 'Left & Right', 'Haptic feedback', 'Customizable']}
+          />
+
+          <ComponentCard
+            title="EmptyState"
+            description="Estados vacíos ilustrados para mejorar la UX cuando no hay datos."
+            features={['Icon support', 'Action buttons', 'Customizable', 'Responsive']}
+          />
+
+          <ComponentCard
+            title="Chip / Tag"
+            description="Etiquetas interactivas para filtros, tags y selección múltiple."
+            features={['6 variantes', '3 tamaños', 'Removable', 'Icon support']}
+          />
+
+          <ComponentCard
+            title="DatePicker"
+            description="Selector de fechas nativo HTML5 estilizado para consistencia."
+            features={['Native HTML5', '4 variantes', 'iOS Style', 'Range support']}
+          />
+
+          <ComponentCard
+            title="Stepper"
+            description="Control numérico estilizado con botones +/- para valores precisos."
+            features={['4 variantes', '3 tamaños', 'Smooth animations', 'Custom format', 'Scale effect']}
+          />
+
+          <ComponentCard
+            title="ProgressBar"
+            description="Barras de progreso animadas con múltiples variantes y modos."
+            features={['6 variantes', '3 tamaños', 'Striped mode', 'Animated', 'Label support']}
           />
         </div>
       </div>

@@ -6,6 +6,9 @@
 import { useState } from 'react';
 import Modal, { ModalButton, ModalFooterActions } from '@components/common/Modal';
 import Button, { ButtonGroup } from '@components/common/Button';
+import CodePreview from "@components/common/CodePreview";
+import { Card } from "@components/common/Card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/common/Table";
 import { AlertTriangle, Check, Info } from 'lucide-react';
 
 export function ModalExamples() {
@@ -81,32 +84,34 @@ function BasicModalExample() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <ExampleSection
-      title="1. Modal Básico"
-      description="Modal simple con título, contenido y botón de cierre"
-    >
-      <Button onClick={() => setIsOpen(true)}>Abrir Modal Básico</Button>
+    <div className="space-y-4">
+      <h3 className="text-xl font-bold">1. Modal Básico</h3>
+      <CodePreview
+        code={`<Button onClick={() => setIsOpen(true)}>Abrir Modal</Button>
 
-      <Modal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title="Modal Básico"
-        subtitle="Este es un modal simple"
-      >
-        <p className="text-muted-foreground">
-          Este es el contenido del modal. Puedes colocar cualquier contenido aquí.
-        </p>
-      </Modal>
-
-      <CodeBlock>{`<Modal
+<Modal
   isOpen={isOpen}
   onClose={() => setIsOpen(false)}
   title="Modal Básico"
   subtitle="Este es un modal simple"
 >
   <p>Contenido del modal...</p>
-</Modal>`}</CodeBlock>
-    </ExampleSection>
+</Modal>`}
+      >
+        <Button onClick={() => setIsOpen(true)}>Abrir Modal Básico</Button>
+
+        <Modal
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          title="Modal Básico"
+          subtitle="Este es un modal simple"
+        >
+          <p className="text-muted-foreground">
+            Este es el contenido del modal. Puedes colocar cualquier contenido aquí.
+          </p>
+        </Modal>
+      </CodePreview>
+    </div>
   );
 }
 
@@ -117,48 +122,51 @@ function ModalSizesExample() {
   const [size, setSize] = useState<'sm' | 'md' | 'lg' | 'xl' | 'full' | null>(null);
 
   return (
-    <ExampleSection
-      title="2. Tamaños de Modal"
-      description="Diferentes tamaños: sm, md, lg, xl, full"
-    >
-      <ButtonGroup spacing="normal">
-        <Button size="sm" onClick={() => setSize('sm')}>
-          Small
-        </Button>
-        <Button size="sm" onClick={() => setSize('md')}>
-          Medium
-        </Button>
-        <Button size="sm" onClick={() => setSize('lg')}>
-          Large
-        </Button>
-        <Button size="sm" onClick={() => setSize('xl')}>
-          Extra Large
-        </Button>
-        <Button size="sm" onClick={() => setSize('full')}>
-          Full
-        </Button>
-      </ButtonGroup>
+    <div className="space-y-4">
+      <h3 className="text-xl font-bold">2. Tamaños de Modal</h3>
+      <CodePreview
+        code={`<Button onClick={() => setSize('sm')}>Small</Button>
+<Button onClick={() => setSize('lg')}>Large</Button>
 
-      <Modal
-        isOpen={size !== null}
-        onClose={() => setSize(null)}
-        title={`Modal ${size?.toUpperCase()}`}
-        size={size || 'md'}
-      >
-        <p className="text-muted-foreground">
-          Este es un modal de tamaño <strong>{size}</strong>.
-        </p>
-      </Modal>
-
-      <CodeBlock>{`<Modal
-  isOpen={isOpen}
-  onClose={onClose}
-  size="lg"  // 'sm' | 'md' | 'lg' | 'xl' | 'full'
-  title="Modal Large"
+<Modal
+  isOpen={!!size}
+  onClose={() => setSize(null)}
+  size={size} // 'sm' | 'md' | 'lg' | 'xl' | 'full'
+  title="Modal Size"
 >
-  <p>Contenido...</p>
-</Modal>`}</CodeBlock>
-    </ExampleSection>
+  ...
+</Modal>`}
+      >
+        <ButtonGroup spacing="normal">
+          <Button size="sm" onClick={() => setSize('sm')}>
+            Small
+          </Button>
+          <Button size="sm" onClick={() => setSize('md')}>
+            Medium
+          </Button>
+          <Button size="sm" onClick={() => setSize('lg')}>
+            Large
+          </Button>
+          <Button size="sm" onClick={() => setSize('xl')}>
+            Extra Large
+          </Button>
+          <Button size="sm" onClick={() => setSize('full')}>
+            Full
+          </Button>
+        </ButtonGroup>
+
+        <Modal
+          isOpen={size !== null}
+          onClose={() => setSize(null)}
+          title={`Modal ${size?.toUpperCase()}`}
+          size={size || 'md'}
+        >
+          <p className="text-muted-foreground">
+            Este es un modal de tamaño <strong>{size}</strong>.
+          </p>
+        </Modal>
+      </CodePreview>
+    </div>
   );
 }
 
@@ -169,51 +177,45 @@ function ModalWithFooterExample() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <ExampleSection
-      title="3. Modal con Footer"
-      description="Modal con botones de acción en el footer"
-    >
-      <Button onClick={() => setIsOpen(true)}>Abrir Modal con Footer</Button>
-
-      <Modal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title="Confirmar Acción"
-        subtitle="¿Estás seguro de continuar?"
-        footer={
-          <div className="flex gap-3">
-            <ModalButton variant="secondary" onClick={() => setIsOpen(false)}>
-              Cancelar
-            </ModalButton>
-            <ModalButton variant="primary" onClick={() => setIsOpen(false)}>
-              Confirmar
-            </ModalButton>
-          </div>
-        }
-      >
-        <p className="text-muted-foreground">
-          Esta acción no se puede deshacer. Por favor confirma para continuar.
-        </p>
-      </Modal>
-
-      <CodeBlock>{`<Modal
-  isOpen={isOpen}
-  onClose={onClose}
+    <div className="space-y-4">
+      <h3 className="text-xl font-bold">3. Modal con Footer</h3>
+      <CodePreview
+        code={`<Modal
   title="Confirmar Acción"
   footer={
     <div className="flex gap-3">
-      <ModalButton variant="secondary" onClick={onCancel}>
-        Cancelar
-      </ModalButton>
-      <ModalButton variant="primary" onClick={onConfirm}>
-        Confirmar
-      </ModalButton>
+      <ModalButton variant="secondary" onClick={onClose}>Cancelar</ModalButton>
+      <ModalButton variant="primary" onClick={onConfirm}>Confirmar</ModalButton>
     </div>
   }
 >
-  <p>Contenido...</p>
-</Modal>`}</CodeBlock>
-    </ExampleSection>
+  ...
+</Modal>`}
+      >
+        <Button onClick={() => setIsOpen(true)}>Abrir Modal con Footer</Button>
+
+        <Modal
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          title="Confirmar Acción"
+          subtitle="¿Estás seguro de continuar?"
+          footer={
+            <div className="flex gap-3">
+              <ModalButton variant="secondary" onClick={() => setIsOpen(false)}>
+                Cancelar
+              </ModalButton>
+              <ModalButton variant="primary" onClick={() => setIsOpen(false)}>
+                Confirmar
+              </ModalButton>
+            </div>
+          }
+        >
+          <p className="text-muted-foreground">
+            Esta acción no se puede deshacer. Por favor confirma para continuar.
+          </p>
+        </Modal>
+      </CodePreview>
+    </div>
   );
 }
 
@@ -226,118 +228,113 @@ function ConfirmationModalExample() {
   const [showDanger, setShowDanger] = useState(false);
 
   return (
-    <ExampleSection
-      title="4. Modales de Confirmación"
-      description="Modales con íconos y diferentes variantes"
-    >
-      <ButtonGroup>
-        <Button variant="success" onClick={() => setShowSuccess(true)}>
-          Success
-        </Button>
-        <Button variant="outline" onClick={() => setShowWarning(true)}>
-          Warning
-        </Button>
-        <Button variant="destructive" onClick={() => setShowDanger(true)}>
-          Danger
-        </Button>
-      </ButtonGroup>
+    <div className="space-y-4">
+      <h3 className="text-xl font-bold">4. Modales de Confirmación</h3>
+      <CodePreview
+        code={`// Success
+<Modal footer={<ModalButton variant="success">Entendido</ModalButton>}>
+  <Check className="text-green-600" />
+  <p>Operación exitosa</p>
+</Modal>
 
-      {/* Success Modal */}
-      <Modal
-        isOpen={showSuccess}
-        onClose={() => setShowSuccess(false)}
-        title="¡Operación Exitosa!"
-        size="sm"
-        footer={
-          <ModalButton variant="success" onClick={() => setShowSuccess(false)} className="w-full">
-            Entendido
-          </ModalButton>
-        }
+// Warning
+<Modal footer={<ModalFooterActions onConfirm={...} />}>
+  <Info className="text-yellow-600" />
+  <p>Advertencia...</p>
+</Modal>
+
+// Danger
+<Modal footer={<ModalFooterActions confirmVariant="destructive" />}>
+  <AlertTriangle className="text-red-600" />
+  <p>Eliminar elemento...</p>
+</Modal>`}
       >
-        <div className="text-center">
-          <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
-            <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
-          </div>
-          <p className="text-muted-foreground">
-            Tu operación se completó correctamente.
-          </p>
-        </div>
-      </Modal>
+        <ButtonGroup>
+          <Button variant="success" onClick={() => setShowSuccess(true)}>
+            Success
+          </Button>
+          <Button variant="outline" onClick={() => setShowWarning(true)}>
+            Warning
+          </Button>
+          <Button variant="destructive" onClick={() => setShowDanger(true)}>
+            Danger
+          </Button>
+        </ButtonGroup>
 
-      {/* Warning Modal */}
-      <Modal
-        isOpen={showWarning}
-        onClose={() => setShowWarning(false)}
-        title="Atención"
-        size="sm"
-        footer={
-          <ModalFooterActions
-            onCancel={() => setShowWarning(false)}
-            onConfirm={() => setShowWarning(false)}
-            cancelText="Cancelar"
-            confirmText="Continuar"
-          />
-        }
-      >
-        <div className="text-center">
-          <div className="mx-auto w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mb-4">
-            <Info className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+        {/* Success Modal */}
+        <Modal
+          isOpen={showSuccess}
+          onClose={() => setShowSuccess(false)}
+          title="¡Operación Exitosa!"
+          size="sm"
+          footer={
+            <ModalButton variant="success" onClick={() => setShowSuccess(false)} className="w-full">
+              Entendido
+            </ModalButton>
+          }
+        >
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
+              <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+            </div>
+            <p className="text-muted-foreground">
+              Tu operación se completó correctamente.
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            Esta acción puede tener consecuencias. ¿Deseas continuar?
-          </p>
-        </div>
-      </Modal>
+        </Modal>
 
-      {/* Danger Modal */}
-      <Modal
-        isOpen={showDanger}
-        onClose={() => setShowDanger(false)}
-        title="¿Eliminar elemento?"
-        size="sm"
-        footer={
-          <ModalFooterActions
-            onCancel={() => setShowDanger(false)}
-            onConfirm={() => setShowDanger(false)}
-            cancelText="Cancelar"
-            confirmText="Eliminar"
-            confirmVariant="destructive"
-          />
-        }
-      >
-        <div className="text-center">
-          <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
-            <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
+        {/* Warning Modal */}
+        <Modal
+          isOpen={showWarning}
+          onClose={() => setShowWarning(false)}
+          title="Atención"
+          size="sm"
+          footer={
+            <ModalFooterActions
+              onCancel={() => setShowWarning(false)}
+              onConfirm={() => setShowWarning(false)}
+              cancelText="Cancelar"
+              confirmText="Continuar"
+            />
+          }
+        >
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mb-4">
+              <Info className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <p className="text-muted-foreground">
+              Esta acción puede tener consecuencias. ¿Deseas continuar?
+            </p>
           </div>
-          <p className="text-muted-foreground">
-            Esta acción no se puede deshacer. El elemento será eliminado permanentemente.
-          </p>
-        </div>
-      </Modal>
+        </Modal>
 
-      <CodeBlock>{`<Modal
-  isOpen={isOpen}
-  onClose={onClose}
-  title="¿Eliminar elemento?"
-  size="sm"
-  footer={
-    <ModalFooterActions
-      onCancel={onClose}
-      onConfirm={handleDelete}
-      cancelText="Cancelar"
-      confirmText="Eliminar"
-      confirmVariant="destructive"
-    />
-  }
->
-  <div className="text-center">
-    <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-      <AlertTriangle className="h-8 w-8 text-red-600" />
+        {/* Danger Modal */}
+        <Modal
+          isOpen={showDanger}
+          onClose={() => setShowDanger(false)}
+          title="¿Eliminar elemento?"
+          size="sm"
+          footer={
+            <ModalFooterActions
+              onCancel={() => setShowDanger(false)}
+              onConfirm={() => setShowDanger(false)}
+              cancelText="Cancelar"
+              confirmText="Eliminar"
+              confirmVariant="destructive"
+            />
+          }
+        >
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
+              <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
+            </div>
+            <p className="text-muted-foreground">
+              Esta acción no se puede deshacer. El elemento será eliminado permanentemente.
+            </p>
+          </div>
+        </Modal>
+      </CodePreview>
     </div>
-    <p>Esta acción no se puede deshacer...</p>
-  </div>
-</Modal>`}</CodeBlock>
-    </ExampleSection>
   );
 }
 
@@ -355,73 +352,59 @@ function FormModalExample() {
   };
 
   return (
-    <ExampleSection
-      title="5. Modal con Formulario"
-      description="Formulario completo dentro de un modal"
-    >
-      <Button onClick={() => setIsOpen(true)}>Abrir Formulario</Button>
-
-      <Modal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title="Nuevo Usuario"
-        subtitle="Completa los datos del usuario"
-        footer={
-          <div className="flex gap-3">
-            <ModalButton variant="secondary" onClick={() => setIsOpen(false)}>
-              Cancelar
-            </ModalButton>
-            <ModalButton variant="primary" type="submit" onClick={handleSubmit}>
-              Guardar
-            </ModalButton>
-          </div>
-        }
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Nombre</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
-              placeholder="Juan Pérez"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
-              placeholder="juan@ejemplo.com"
-            />
-          </div>
-        </form>
-      </Modal>
-
-      <CodeBlock>{`<Modal
-  isOpen={isOpen}
-  onClose={onClose}
-  title="Nuevo Usuario"
-  footer={
-    <div className="flex gap-3">
-      <ModalButton variant="secondary" onClick={onClose}>
-        Cancelar
-      </ModalButton>
-      <ModalButton variant="primary" onClick={handleSubmit}>
-        Guardar
-      </ModalButton>
-    </div>
-  }
->
-  <form onSubmit={handleSubmit} className="space-y-4">
-    <input type="text" placeholder="Nombre" />
-    <input type="email" placeholder="Email" />
+    <div className="space-y-4">
+      <h3 className="text-xl font-bold">5. Modal con Formulario</h3>
+      <CodePreview
+        code={`<Modal title="Nuevo Usuario">
+  <form onSubmit={handleSubmit}>
+    <input ... />
+    <input ... />
   </form>
-</Modal>`}</CodeBlock>
-    </ExampleSection>
+</Modal>`}
+      >
+        <Button onClick={() => setIsOpen(true)}>Abrir Formulario</Button>
+
+        <Modal
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          title="Nuevo Usuario"
+          subtitle="Completa los datos del usuario"
+          footer={
+            <div className="flex gap-3">
+              <ModalButton variant="secondary" onClick={() => setIsOpen(false)}>
+                Cancelar
+              </ModalButton>
+              <ModalButton variant="primary" type="submit" onClick={handleSubmit}>
+                Guardar
+              </ModalButton>
+            </div>
+          }
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Nombre</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="Juan Pérez"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Email</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/50"
+                placeholder="juan@ejemplo.com"
+              />
+            </div>
+          </form>
+        </Modal>
+      </CodePreview>
+    </div>
   );
 }
 
@@ -432,55 +415,63 @@ function LongContentModalExample() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <ExampleSection
-      title="6. Modal con Contenido Largo"
-      description="El contenido largo se hace scroll automáticamente"
-    >
-      <Button onClick={() => setIsOpen(true)}>Abrir Modal con Scroll</Button>
-
-      <Modal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title="Términos y Condiciones"
-        subtitle="Por favor lee los términos antes de continuar"
-        footer={
-          <ModalButton variant="primary" onClick={() => setIsOpen(false)} className="w-full">
-            Aceptar
-          </ModalButton>
-        }
+    <div className="space-y-4">
+      <h3 className="text-xl font-bold">6. Modal con Contenido Largo</h3>
+      <CodePreview
+        code={`<Modal title="Términos">
+  <div className="space-y-4">
+    <p>Contenido largo...</p>
+    <p>Contenido largo...</p>
+    ...
+  </div>
+</Modal>`}
       >
-        <div className="space-y-4 text-sm text-muted-foreground">
-          <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
-            incididunt ut labore et dolore magna aliqua.
-          </p>
-          <p>
-            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-            aliquip ex ea commodo consequat.
-          </p>
-          <p>
-            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-            fugiat nulla pariatur.
-          </p>
-          <p>
-            Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia
-            deserunt mollit anim id est laborum.
-          </p>
-          <p>
-            Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium
-            doloremque laudantium.
-          </p>
-          <p>
-            Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi
-            architecto beatae vitae dicta sunt explicabo.
-          </p>
-          <p>
-            Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed
-            quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
-          </p>
-        </div>
-      </Modal>
-    </ExampleSection>
+        <Button onClick={() => setIsOpen(true)}>Abrir Modal con Scroll</Button>
+
+        <Modal
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          title="Términos y Condiciones"
+          subtitle="Por favor lee los términos antes de continuar"
+          footer={
+            <ModalButton variant="primary" onClick={() => setIsOpen(false)} className="w-full">
+              Aceptar
+            </ModalButton>
+          }
+        >
+          <div className="space-y-4 text-sm text-muted-foreground">
+            <p>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
+              incididunt ut labore et dolore magna aliqua.
+            </p>
+            <p>
+              Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+              aliquip ex ea commodo consequat.
+            </p>
+            <p>
+              Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
+              fugiat nulla pariatur.
+            </p>
+            <p>
+              Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia
+              deserunt mollit anim id est laborum.
+            </p>
+            <p>
+              Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium
+              doloremque laudantium.
+            </p>
+            <p>
+              Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi
+              architecto beatae vitae dicta sunt explicabo.
+            </p>
+            <p>
+              Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed
+              quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
+            </p>
+          </div>
+        </Modal>
+      </CodePreview>
+    </div>
   );
 }
 
@@ -492,163 +483,116 @@ function PropsReference() {
     <div className="space-y-4">
       <h3 className="text-2xl font-bold">Props Reference</h3>
 
-      <div className="bg-muted/50 rounded-xl p-6 border border-border">
-        <h4 className="font-bold mb-4">Modal Props</h4>
-        <div className="space-y-3 text-sm">
-          <PropRow
-            name="isOpen"
-            type="boolean"
-            required
-            description="Controla si el modal está visible"
-          />
-          <PropRow
-            name="onClose"
-            type="() => void"
-            required
-            description="Función que se ejecuta al cerrar el modal"
-          />
-          <PropRow
-            name="title"
-            type="string"
-            description="Título del modal"
-          />
-          <PropRow
-            name="subtitle"
-            type="string"
-            description="Subtítulo opcional"
-          />
-          <PropRow
-            name="size"
-            type="'sm' | 'md' | 'lg' | 'xl' | 'full'"
-            description="Tamaño del modal (default: 'md')"
-          />
-          <PropRow
-            name="showCloseButton"
-            type="boolean"
-            description="Mostrar botón X de cierre (default: true)"
-          />
-          <PropRow
-            name="closeOnBackdrop"
-            type="boolean"
-            description="Cerrar al hacer clic fuera (default: true)"
-          />
-          <PropRow
-            name="closeOnEscape"
-            type="boolean"
-            description="Cerrar con tecla ESC (default: true)"
-          />
-          <PropRow
-            name="footer"
-            type="React.ReactNode"
-            description="Contenido del footer (botones de acción)"
-          />
-          <PropRow
-            name="className"
-            type="string"
-            description="Clases CSS adicionales"
-          />
-        </div>
+      <div className="space-y-6">
+        <Card>
+          <div className="p-4 border-b border-border">
+            <h4 className="font-bold">Modal Props</h4>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Prop</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Required</TableHead>
+                <TableHead>Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-mono text-xs">isOpen</TableCell>
+                <TableCell className="font-mono text-xs">boolean</TableCell>
+                <TableCell className="text-red-500">Yes</TableCell>
+                <TableCell>Controla si el modal está visible.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">onClose</TableCell>
+                <TableCell className="font-mono text-xs">() =&gt; void</TableCell>
+                <TableCell className="text-red-500">Yes</TableCell>
+                <TableCell>Función que se ejecuta al cerrar el modal.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">title</TableCell>
+                <TableCell className="font-mono text-xs">string</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>Título del modal.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">subtitle</TableCell>
+                <TableCell className="font-mono text-xs">string</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>Subtítulo opcional.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">size</TableCell>
+                <TableCell className="font-mono text-xs">'sm' | 'md' | 'lg' | 'xl' | 'full'</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>Tamaño del modal (default: 'md').</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">showCloseButton</TableCell>
+                <TableCell className="font-mono text-xs">boolean</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>Mostrar botón X de cierre (default: true).</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">closeOnBackdrop</TableCell>
+                <TableCell className="font-mono text-xs">boolean</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>Cerrar al hacer clic fuera (default: true).</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">closeOnEscape</TableCell>
+                <TableCell className="font-mono text-xs">boolean</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>Cerrar con tecla ESC (default: true).</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">footer</TableCell>
+                <TableCell className="font-mono text-xs">React.ReactNode</TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>Contenido del footer (botones de acción).</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Card>
+
+        <Card>
+          <div className="p-4 border-b border-border">
+            <h4 className="font-bold">ModalButton Props</h4>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Prop</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-mono text-xs">variant</TableCell>
+                <TableCell className="font-mono text-xs">'primary' | 'secondary' | 'destructive' | 'ghost'</TableCell>
+                <TableCell>Variante del botón (default: 'primary').</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">disabled</TableCell>
+                <TableCell className="font-mono text-xs">boolean</TableCell>
+                <TableCell>Deshabilitar botón.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">loading</TableCell>
+                <TableCell className="font-mono text-xs">boolean</TableCell>
+                <TableCell>Mostrar estado de carga.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">type</TableCell>
+                <TableCell className="font-mono text-xs">'button' | 'submit' | 'reset'</TableCell>
+                <TableCell>Tipo de botón HTML (default: 'button').</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Card>
       </div>
-
-      <div className="bg-muted/50 rounded-xl p-6 border border-border">
-        <h4 className="font-bold mb-4">ModalButton Props</h4>
-        <div className="space-y-3 text-sm">
-          <PropRow
-            name="variant"
-            type="'primary' | 'secondary' | 'destructive' | 'ghost'"
-            description="Variante del botón (default: 'primary')"
-          />
-          <PropRow
-            name="disabled"
-            type="boolean"
-            description="Deshabilitar botón"
-          />
-          <PropRow
-            name="loading"
-            type="boolean"
-            description="Mostrar estado de carga"
-          />
-          <PropRow
-            name="type"
-            type="'button' | 'submit' | 'reset'"
-            description="Tipo de botón HTML (default: 'button')"
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PropRow({
-  name,
-  type,
-  required,
-  description,
-}: {
-  name: string;
-  type: string;
-  required?: boolean;
-  description: string;
-}) {
-  return (
-    <div className="flex flex-col md:flex-row md:items-start gap-2 py-2 border-b border-border last:border-0">
-      <div className="md:w-1/3">
-        <code className="font-mono text-xs bg-background px-2 py-1 rounded">
-          {name}
-          {required && <span className="text-red-500 ml-1">*</span>}
-        </code>
-      </div>
-      <div className="md:w-1/3">
-        <code className="font-mono text-xs text-muted-foreground">{type}</code>
-      </div>
-      <div className="md:w-1/3 text-muted-foreground">{description}</div>
-    </div>
-  );
-}
-
-// ========================================
-// UTILIDADES
-// ========================================
-function ExampleSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-xl font-bold">{title}</h3>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-      <div className="space-y-4">{children}</div>
-    </div>
-  );
-}
-
-function CodeBlock({ children }: { children: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(children);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="relative">
-      <pre className="bg-muted/50 rounded-lg p-4 overflow-x-auto text-sm border border-border">
-        <code className="font-mono">{children}</code>
-      </pre>
-      <button
-        onClick={handleCopy}
-        className="absolute top-2 right-2 px-2 py-1 bg-background rounded text-xs font-medium border border-border hover:bg-accent transition-colors"
-      >
-        {copied ? '✓ Copiado' : 'Copiar'}
-      </button>
     </div>
   );
 }

@@ -14,6 +14,9 @@ import LoadingSpinner, { LoadingOverlay } from './LoadingSpinner';
 import type { LucideIcon } from 'lucide-react';
 import { useBreakpoints } from '@/hooks/useBreakpoints';
 
+// Re-export LucideIcon for use in other components
+export type { LucideIcon };
+
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   // Variantes de color/estilo
   variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline' | 'blue';

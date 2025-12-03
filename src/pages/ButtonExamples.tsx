@@ -19,7 +19,6 @@ import {
   X,
   Check,
   Download,
-  Upload,
   Settings,
   Search,
 } from 'lucide-react';
@@ -40,11 +39,6 @@ export function ButtonExamples() {
     { id: 'transport', label: 'Transporte' },
     { id: 'entertainment', label: 'Entretenimiento' },
     { id: 'health', label: 'Salud' },
-  ];
-
-  const items = [
-    { id: 1, name: 'Gasto 1', amount: 100 },
-    { id: 2, name: 'Gasto 2', amount: 200 },
   ];
 
   return (
