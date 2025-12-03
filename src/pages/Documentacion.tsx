@@ -17,9 +17,12 @@ import { BannerExamples } from './BannerExamples';
 import { TableExamples } from './TableExamples';
 import { ItemListExamples } from './ItemListExamples';
 import { TableIOSExamples } from './TableIOSExamples';
-import { Layout, Table as TableIcon, List, CreditCard } from 'lucide-react';
+import { ErrorAlertExamples } from './ErrorAlertExamples';
+import { ConfirmationModalExamples } from './ConfirmationModalExamples';
+import { SwitchExamples } from './SwitchExamples';
+import { Layout, Table as TableIcon, List, CreditCard, AlertCircle, ToggleLeft } from 'lucide-react';
 
-type Section = 'intro' | 'buttons' | 'modals' | 'forms' | 'loading' | 'cards' | 'banners' | 'tables' | 'lists' | 'tableios';
+type Section = 'intro' | 'buttons' | 'modals' | 'forms' | 'loading' | 'cards' | 'banners' | 'tables' | 'lists' | 'tableios' | 'alerts' | 'confirmations' | 'switches';
 
 export default function Documentacion() {
   const [activeSection, setActiveSection] = useState<Section>('intro');
@@ -35,6 +38,9 @@ export default function Documentacion() {
     { id: 'tables' as Section, label: 'Tables', icon: TableIcon },
     { id: 'tableios' as Section, label: 'iOS Tables', icon: TableIcon },
     { id: 'lists' as Section, label: 'Item Lists', icon: List },
+    { id: 'alerts' as Section, label: 'Error Alerts', icon: AlertCircle },
+    { id: 'confirmations' as Section, label: 'Confirmations', icon: AlertCircle },
+    { id: 'switches' as Section, label: 'Switches', icon: ToggleLeft },
   ];
 
   return (
@@ -124,6 +130,9 @@ export default function Documentacion() {
               {activeSection === 'tables' && <TableExamples />}
               {activeSection === 'tableios' && <TableIOSExamples />}
               {activeSection === 'lists' && <ItemListExamples />}
+              {activeSection === 'alerts' && <ErrorAlertExamples />}
+              {activeSection === 'confirmations' && <ConfirmationModalExamples />}
+              {activeSection === 'switches' && <SwitchExamples />}
             </div>
           </main>
         </div>
@@ -257,6 +266,24 @@ function IntroSection() {
             title="ItemList"
             description="Componente de lista optimizado para móviles estilo tarjeta iOS."
             features={['Mobile optimized', 'iOS Style', 'Tags support', 'Actions slot']}
+          />
+
+          <ComponentCard
+            title="ErrorAlert"
+            description="Alertas de error con detección automática de permisos y soluciones."
+            features={['Auto-detect permissions', 'Dismissible', 'Solution guides', 'Dark mode']}
+          />
+
+          <ComponentCard
+            title="ConfirmationModal"
+            description="Modal de confirmación para acciones importantes con estados de carga."
+            features={['Destructive variant', 'Loading states', 'Auto-close', 'Customizable']}
+          />
+
+          <ComponentCard
+            title="Switch"
+            description="Toggle switch estilo iOS para activar/desactivar opciones."
+            features={['iOS Style', 'With icons', 'Disabled state', 'Label & description']}
           />
         </div>
       </div>
