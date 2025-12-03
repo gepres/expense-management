@@ -20,9 +20,13 @@ import { TableIOSExamples } from './TableIOSExamples';
 import { ErrorAlertExamples } from './ErrorAlertExamples';
 import { ConfirmationModalExamples } from './ConfirmationModalExamples';
 import { SwitchExamples } from './SwitchExamples';
-import { Layout, Table as TableIcon, List, CreditCard, AlertCircle, ToggleLeft } from 'lucide-react';
+import { BudgetMonitorExamples } from './BudgetMonitorExamples';
+import { InstallPWAExamples } from './InstallPWAExamples';
+import { EditNameModalExamples } from './EditNameModalExamples';
+import { CustomLoaderExamples } from './CustomLoaderExamples';
+import { Layout, Table as TableIcon, List, CreditCard, AlertCircle, ToggleLeft, Bell, Download, Edit3, Loader2 } from 'lucide-react';
 
-type Section = 'intro' | 'buttons' | 'modals' | 'forms' | 'loading' | 'cards' | 'banners' | 'tables' | 'lists' | 'tableios' | 'alerts' | 'confirmations' | 'switches';
+type Section = 'intro' | 'buttons' | 'modals' | 'forms' | 'loading' | 'cards' | 'banners' | 'tables' | 'lists' | 'tableios' | 'alerts' | 'confirmations' | 'switches' | 'budgetmonitor' | 'installpwa' | 'editnamemodal' | 'customloader';
 
 export default function Documentacion() {
   const [activeSection, setActiveSection] = useState<Section>('intro');
@@ -41,12 +45,16 @@ export default function Documentacion() {
     { id: 'alerts' as Section, label: 'Error Alerts', icon: AlertCircle },
     { id: 'confirmations' as Section, label: 'Confirmations', icon: AlertCircle },
     { id: 'switches' as Section, label: 'Switches', icon: ToggleLeft },
+    { id: 'budgetmonitor' as Section, label: 'Budget Monitor', icon: Bell },
+    { id: 'installpwa' as Section, label: 'Install PWA', icon: Download },
+    { id: 'editnamemodal' as Section, label: 'Edit Name Modal', icon: Edit3 },
+    { id: 'customloader' as Section, label: 'Custom Loader', icon: Loader2 },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-card border-b border-border backdrop-blur-sm bg-card/95">
+      <header className="sticky top-0 z-40 border-b border-border backdrop-blur-sm bg-card/95">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -133,6 +141,10 @@ export default function Documentacion() {
               {activeSection === 'alerts' && <ErrorAlertExamples />}
               {activeSection === 'confirmations' && <ConfirmationModalExamples />}
               {activeSection === 'switches' && <SwitchExamples />}
+              {activeSection === 'budgetmonitor' && <BudgetMonitorExamples />}
+              {activeSection === 'installpwa' && <InstallPWAExamples />}
+              {activeSection === 'editnamemodal' && <EditNameModalExamples />}
+              {activeSection === 'customloader' && <CustomLoaderExamples />}
             </div>
           </main>
         </div>
@@ -285,6 +297,24 @@ function IntroSection() {
             description="Toggle switch estilo iOS para activar/desactivar opciones."
             features={['iOS Style', 'With icons', 'Disabled state', 'Label & description']}
           />
+
+          <ComponentCard
+            title="BudgetMonitor"
+            description="Componente lógico para monitorear presupuestos y enviar alertas."
+            features={['Invisible', 'Real-time monitoring', 'Toast alerts', 'PWA notifications']}
+          />
+
+          <ComponentCard
+            title="InstallPWA"
+            description="Banner promocional para instalación de PWA."
+            features={['Auto-detection', 'Manual instructions', 'Dismissible', 'Native install']}
+          />
+
+          <ComponentCard
+            title="EditNameModal"
+            description="Modal especializado para renombrar elementos."
+            features={['Input validation', 'Auto-focus', 'Custom title', 'Callback support']}
+          />
         </div>
       </div>
     </div>
@@ -317,4 +347,3 @@ function ComponentCard({
     </div>
   );
 }
-

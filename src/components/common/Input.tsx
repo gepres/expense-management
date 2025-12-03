@@ -13,7 +13,7 @@
  * - Animaciones suaves
  */
 
-import { forwardRef, useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react';
 
@@ -52,32 +52,29 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   wrapperClassName?: string;
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(
-  (
-    {
-      variant = 'default',
-      error = false,
-      errorMessage,
-      success = false,
-      successMessage,
-      label,
-      labelFloating = false,
-      required = false,
-      icon: Icon,
-      iconPosition = 'left',
-      iconClassName = '',
-      iconColor,
-      helperText,
-      containerClassName = '',
-      wrapperClassName = '',
-      className = '',
-      disabled,
-      value,
-      onChange,
-      ...props
-    },
-    ref
-  ) => {
+export const Input = ({
+    variant = 'default',
+    error = false,
+    errorMessage,
+    success = false,
+    successMessage,
+    label,
+    labelFloating = false,
+    required = false,
+    icon: Icon,
+    iconPosition = 'left',
+    iconClassName = '',
+    iconColor,
+    helperText,
+    containerClassName = '',
+    wrapperClassName = '',
+    className = '',
+    disabled,
+    value,
+    onChange,
+    ref,
+    ...props
+  }: InputProps & { ref?: React.Ref<HTMLInputElement> }) => {
     const [isFocused, setIsFocused] = useState(false);
     const [hasValue, setHasValue] = useState(!!value);
 
@@ -217,8 +214,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
       </div>
     );
-  }
-);
+  };
 
 Input.displayName = 'Input';
 
@@ -243,30 +239,27 @@ export interface TextAreaProps extends React.TextareaHTMLAttributes<HTMLTextArea
   iconColor?: string;
 }
 
-export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
-  (
-    {
-      variant = 'default',
-      error = false,
-      errorMessage,
-      success = false,
-      successMessage,
-      label,
-      required = false,
-      helperText,
-      containerClassName = '',
-      autoResize = false,
-      maxHeight = 300,
-      icon: Icon,
-      iconClassName = '',
-      iconColor,
-      className = '',
-      disabled,
-      onChange,
-      ...props
-    },
-    ref
-  ) => {
+export const TextArea = ({
+    variant = 'default',
+    error = false,
+    errorMessage,
+    success = false,
+    successMessage,
+    label,
+    required = false,
+    helperText,
+    containerClassName = '',
+    autoResize = false,
+    maxHeight = 300,
+    icon: Icon,
+    iconClassName = '',
+    iconColor,
+    className = '',
+    disabled,
+    onChange,
+    ref,
+    ...props
+  }: TextAreaProps & { ref?: React.Ref<HTMLTextAreaElement> }) => {
     const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
 
     // Auto resize
@@ -352,6 +345,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
               if (typeof ref === 'function') {
                 ref(node);
               } else if (ref) {
+                // @ts-ignore
                 ref.current = node;
               }
             }}
@@ -384,8 +378,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         )}
       </div>
     );
-  }
-);
+  };
 
 TextArea.displayName = 'TextArea';
 
@@ -409,29 +402,26 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
   placeholder?: string;
 }
 
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  (
-    {
-      variant = 'default',
-      error = false,
-      errorMessage,
-      success = false,
-      successMessage,
-      label,
-      required = false,
-      helperText,
-      containerClassName = '',
-      icon: Icon,
-      iconClassName = '',
-      iconColor,
-      className = '',
-      disabled,
-      placeholder,
-      children,
-      ...props
-    },
-    ref
-  ) => {
+export const Select = ({
+    variant = 'default',
+    error = false,
+    errorMessage,
+    success = false,
+    successMessage,
+    label,
+    required = false,
+    helperText,
+    containerClassName = '',
+    icon: Icon,
+    iconClassName = '',
+    iconColor,
+    className = '',
+    disabled,
+    placeholder,
+    children,
+    ref,
+    ...props
+  }: SelectProps & { ref?: React.Ref<HTMLSelectElement> }) => {
     const variantClasses = {
       default: `
         px-4 py-2.5 pr-10 rounded-lg border border-border
@@ -525,8 +515,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         )}
       </div>
     );
-  }
-);
+  };
 
 Select.displayName = 'Select';
 
@@ -639,22 +628,19 @@ export interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
   containerClassName?: string;
 }
 
-export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
-  (
-    {
-      label,
-      description,
-      icon: Icon,
-      iconColor,
-      iconClassName = '',
-      containerClassName = '',
-      className = '',
-      checked,
-      disabled,
-      ...props
-    },
-    ref
-  ) => {
+export const Switch = ({
+    label,
+    description,
+    icon: Icon,
+    iconColor,
+    iconClassName = '',
+    containerClassName = '',
+    className = '',
+    checked,
+    disabled,
+    ref,
+    ...props
+  }: SwitchProps & { ref?: React.Ref<HTMLInputElement> }) => {
     return (
       <div className={`flex items-center justify-between ${containerClassName}`}>
         {/* Label e icono */}
@@ -699,8 +685,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
         </label>
       </div>
     );
-  }
-);
+  };
 
 Switch.displayName = 'Switch';
 

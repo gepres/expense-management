@@ -1,6 +1,9 @@
 import ErrorAlert from "@components/common/ErrorAlert";
 import { useState } from "react";
 import Button from "@components/common/Button";
+import CodePreview from "@components/common/CodePreview";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/common/Table";
+import { Card } from "@components/common/Card";
 
 export function ErrorAlertExamples() {
   const [error1, setError1] = useState<string | null>(null);
@@ -16,54 +19,101 @@ export function ErrorAlertExamples() {
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Error Standard */}
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Error Estándar</h3>
-          <Button onClick={() => setError1("No se pudo conectar con el servidor. Por favor, intenta de nuevo.")}>
-            Mostrar Error
-          </Button>
-          <ErrorAlert error={error1} onDismiss={() => setError1(null)} />
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Error Estándar</h3>
+          <CodePreview
+            code={`const [error, setError] = useState<string | null>(null);
+
+// ...
+
+<Button onClick={() => setError("Mensaje de error")}>
+  Mostrar Error
+</Button>
+
+<ErrorAlert 
+  error={error} 
+  onDismiss={() => setError(null)} 
+/>`}
+          >
+            <div className="space-y-4 max-w-md mx-auto">
+              <Button onClick={() => setError1("No se pudo conectar con el servidor. Por favor, intenta de nuevo.")}>
+                Mostrar Error
+              </Button>
+              <ErrorAlert error={error1} onDismiss={() => setError1(null)} />
+            </div>
+          </CodePreview>
         </div>
 
         {/* Permission Error */}
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Error de Permisos (con solución)</h3>
-          <Button onClick={() => setError2("Permission denied: Missing or insufficient permissions to access Firestore.")}>
-            Mostrar Error de Permisos
-          </Button>
-          <ErrorAlert error={error2} onDismiss={() => setError2(null)} />
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Error de Permisos (con solución)</h3>
+          <CodePreview
+            code={`// El componente detecta automáticamente palabras clave como "permission"
+<ErrorAlert 
+  error="Permission denied: Missing or insufficient permissions." 
+  onDismiss={handleDismiss} 
+/>`}
+          >
+            <div className="space-y-4 max-w-md mx-auto">
+              <Button onClick={() => setError2("Permission denied: Missing or insufficient permissions to access Firestore.")}>
+                Mostrar Error de Permisos
+              </Button>
+              <ErrorAlert error={error2} onDismiss={() => setError2(null)} />
+            </div>
+          </CodePreview>
         </div>
 
         {/* Error without dismiss */}
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Error sin botón de cerrar</h3>
-          <Button onClick={() => setError3("Este error no se puede cerrar manualmente.")}>
-            Mostrar Error Persistente
-          </Button>
-          <ErrorAlert error={error3} />
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Error Persistente</h3>
+          <CodePreview
+            code={`// Sin onDismiss, la alerta no se puede cerrar
+<ErrorAlert error="Este error no se puede cerrar manualmente." />`}
+          >
+            <div className="space-y-4 max-w-md mx-auto">
+              <Button onClick={() => setError3("Este error no se puede cerrar manualmente.")}>
+                Mostrar Error Persistente
+              </Button>
+              <ErrorAlert error={error3} />
+            </div>
+          </CodePreview>
         </div>
+      </div>
 
-        {/* Props Reference */}
-        <div className="mt-8 p-6 bg-muted/50 rounded-xl">
-          <h3 className="text-lg font-semibold mb-4">Props</h3>
-          <div className="space-y-2 text-sm">
-            <div>
-              <code className="bg-muted px-2 py-1 rounded">error</code>
-              <span className="text-muted-foreground ml-2">: string | null - Mensaje de error a mostrar</span>
-            </div>
-            <div>
-              <code className="bg-muted px-2 py-1 rounded">onDismiss</code>
-              <span className="text-muted-foreground ml-2">?: () =&gt; void - Callback para cerrar la alerta</span>
-            </div>
-          </div>
+      {/* Props Reference */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Props Reference</h3>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Prop</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-mono text-xs">error</TableCell>
+                <TableCell className="font-mono text-xs">string | null</TableCell>
+                <TableCell>Mensaje de error a mostrar. Si es null, no se renderiza nada.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">onDismiss</TableCell>
+                <TableCell className="font-mono text-xs">() =&gt; void</TableCell>
+                <TableCell>Callback opcional para cerrar la alerta.</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Card>
 
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-blue-900 dark:text-blue-100">
-              <strong>💡 Detección Automática:</strong> Si el mensaje contiene "permission" o "permisos", 
-              se muestra automáticamente una guía de solución con enlace a Firebase Console.
-            </p>
-          </div>
+        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <p className="text-sm text-blue-900 dark:text-blue-100">
+            <strong>💡 Detección Automática:</strong> Si el mensaje contiene "permission" o "permisos", 
+            se muestra automáticamente una guía de solución con enlace a Firebase Console.
+          </p>
         </div>
       </div>
     </div>

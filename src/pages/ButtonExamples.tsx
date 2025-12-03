@@ -8,6 +8,9 @@ import Button, {
   IconButton,
   PillButton,
 } from '@components/common/Button';
+import CodePreview from "@components/common/CodePreview";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@components/common/Table";
+import { Card } from "@components/common/Card";
 import {
   Plus,
   Edit2,
@@ -88,14 +91,17 @@ export function ButtonExamples() {
 
       {/* 1. Variantes de Color */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-lg sm:text-xl font-bold">1. Variantes de Color</h3>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            7 variantes para diferentes tipos de acciones
-          </p>
-        </div>
-        <div className="p-6 bg-muted/30 rounded-xl overflow-x-auto">
-          <div className="flex flex-col md:flex-row gap-2 min-w-fit">
+        <h3 className="text-lg sm:text-xl font-bold">1. Variantes de Color</h3>
+        <CodePreview
+          code={`<Button variant="primary">Primary</Button>
+<Button variant="secondary">Secondary</Button>
+<Button variant="destructive">Destructive</Button>
+<Button variant="ghost">Ghost</Button>
+<Button variant="success">Success</Button>
+<Button variant="blue">Blue</Button>
+<Button variant="outline">Outline</Button>`}
+        >
+          <div className="flex flex-col md:flex-row gap-2 flex-wrap">
             <Button variant="primary">Primary</Button>
             <Button variant="secondary">Secondary</Button>
             <Button variant="destructive">Destructive</Button>
@@ -104,133 +110,96 @@ export function ButtonExamples() {
             <Button variant="blue">Blue</Button>
             <Button variant="outline">Outline</Button>
           </div>
-        </div>
+        </CodePreview>
       </div>
 
       {/* 2. Tamaños */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold">2. Tamaños</h3>
-          <p className="text-sm text-muted-foreground">
-            5 tamaños disponibles: xs, sm, md (default), lg, xl
-          </p>
-        </div>
-        <div className="p-6 bg-muted/30 rounded-xl">
-          <ButtonGroup orientation="vertical" spacing="normal">
+        <h3 className="text-xl font-bold">2. Tamaños</h3>
+        <CodePreview
+          code={`<Button size="xs">Extra Small</Button>
+<Button size="sm">Small</Button>
+<Button size="md">Medium</Button>
+<Button size="lg">Large</Button>
+<Button size="xl">Extra Large</Button>`}
+        >
+          <div className="flex flex-col items-start gap-2">
             <Button size="xs">Extra Small (xs)</Button>
             <Button size="sm">Small (sm)</Button>
             <Button size="md">Medium (md) - Default</Button>
             <Button size="lg">Large (lg)</Button>
             <Button size="xl">Extra Large (xl)</Button>
-          </ButtonGroup>
-        </div>
+          </div>
+        </CodePreview>
       </div>
 
       {/* 3. Con Iconos */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold">3. Botones con Iconos</h3>
-          <p className="text-sm text-muted-foreground">
-            Iconos a la izquierda o derecha del texto
-          </p>
-        </div>
-        <div className="p-6 bg-muted/30 rounded-xl space-y-4">
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Icono a la izquierda (default)</p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button icon={Plus} iconPosition="left">
-                Agregar
-              </Button>
-              <Button icon={Save} variant="success">
-                Guardar
-              </Button>
-              <Button icon={Trash2} variant="destructive">
-                Eliminar
-              </Button>
-            </div>
+        <h3 className="text-xl font-bold">3. Botones con Iconos</h3>
+        <CodePreview
+          code={`<Button icon={Plus}>Agregar</Button>
+<Button icon={Save} variant="success">Guardar</Button>
+<Button icon={Download} iconPosition="right">Descargar</Button>`}
+        >
+          <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
+            <Button icon={Plus} iconPosition="left">
+              Agregar
+            </Button>
+            <Button icon={Save} variant="success">
+              Guardar
+            </Button>
+            <Button icon={Trash2} variant="destructive">
+              Eliminar
+            </Button>
+            <Button icon={Download} iconPosition="right">
+              Descargar
+            </Button>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Icono a la derecha</p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button icon={Download} iconPosition="right">
-                Descargar
-              </Button>
-              <Button icon={Upload} iconPosition="right" variant="outline">
-                Subir
-              </Button>
-            </div>
-          </div>
-        </div>
+        </CodePreview>
       </div>
 
       {/* 4. Estados de Carga */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold">4. Estados de Carga</h3>
-          <p className="text-sm text-muted-foreground">
-            Diferentes spinners y estados loading
-          </p>
-        </div>
-        <div className="p-6 bg-muted/30 rounded-xl space-y-4">
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Con texto de carga</p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button loading loadingText="Guardando...">
-                Guardar
-              </Button>
-            </div>
+        <h3 className="text-xl font-bold">4. Estados de Carga</h3>
+        <CodePreview
+          code={`<Button loading loadingText="Guardando...">Guardar</Button>
+<Button loading spinnerVariant="dots3">Loading</Button>`}
+        >
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button loading loadingText="Guardando...">
+              Guardar
+            </Button>
+            <Button loading spinnerVariant="dots3" loadingText="Dots 3">
+              Dots 3
+            </Button>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Diferentes spinners</p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button loading spinnerVariant="dots3" loadingText="Dots 3">
-                Dots 3
-              </Button>
-            </div>
-          </div>
-        </div>
+        </CodePreview>
       </div>
 
       {/* 5. Icon Only */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold">5. Botones Solo Icono</h3>
-          <p className="text-sm text-muted-foreground">
-            Perfectos para acciones rápidas y listas
-          </p>
-        </div>
-        <div className="p-6 bg-muted/30 rounded-xl space-y-4">
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Diferentes tamaños</p>
-            <div className="flex flex-wrap gap-2">
-              <IconButton icon={Edit2} size="xs" label="Editar" />
-              <IconButton icon={Edit2} size="sm" label="Editar" />
-              <IconButton icon={Edit2} size="md" label="Editar" />
-              <IconButton icon={Edit2} size="lg" label="Editar" />
-              <IconButton icon={Edit2} size="xl" label="Editar" />
-            </div>
+        <h3 className="text-xl font-bold">5. Botones Solo Icono</h3>
+        <CodePreview
+          code={`<IconButton icon={Edit2} size="sm" label="Editar" />
+<IconButton icon={Trash2} variant="destructive" label="Eliminar" />`}
+        >
+          <div className="flex flex-wrap gap-2">
+            <IconButton icon={Edit2} size="sm" label="Editar" />
+            <IconButton icon={Edit2} size="md" label="Editar" />
+            <IconButton icon={Plus} variant="primary" label="Agregar" />
+            <IconButton icon={Trash2} variant="destructive" label="Eliminar" />
+            <IconButton icon={Check} variant="success" label="Confirmar" />
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Diferentes variantes</p>
-            <div className="flex flex-wrap gap-2">
-              <IconButton icon={Plus} variant="primary" label="Agregar" />
-              <IconButton icon={Edit2} variant="ghost" label="Editar" />
-              <IconButton icon={Trash2} variant="destructive" label="Eliminar" />
-              <IconButton icon={Check} variant="success" label="Confirmar" />
-            </div>
-          </div>
-        </div>
+        </CodePreview>
       </div>
 
       {/* 6. Pill Buttons */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold">6. Botones Pill (Categorías)</h3>
-          <p className="text-sm text-muted-foreground">
-            Ideales para filtros y categorías seleccionables
-          </p>
-        </div>
-        <div className="p-6 bg-muted/30 rounded-xl">
+        <h3 className="text-xl font-bold">6. Botones Pill</h3>
+        <CodePreview
+          code={`<PillButton selected={true} onClick={...}>Alimentación</PillButton>
+<PillButton selected={false} onClick={...}>Transporte</PillButton>`}
+        >
           <div className="flex flex-wrap gap-2">
             {categories.map((cat) => (
               <PillButton
@@ -242,294 +211,186 @@ export function ButtonExamples() {
               </PillButton>
             ))}
           </div>
-        </div>
+        </CodePreview>
       </div>
 
       {/* 7. Estados */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold">7. Estados (Disabled, Active)</h3>
-          <p className="text-sm text-muted-foreground">
-            Disabled para bloquear interacción, Active para resaltar selección
-          </p>
-        </div>
-        <div className="p-6 bg-muted/30 rounded-xl space-y-4">
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Disabled</p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button disabled>Primary</Button>
-              <Button variant="secondary" disabled>
-                Secondary
-              </Button>
-              <Button variant="destructive" disabled>
-                Destructive
-              </Button>
-            </div>
+        <h3 className="text-xl font-bold">7. Estados</h3>
+        <CodePreview
+          code={`<Button disabled>Disabled</Button>
+<Button active>Active</Button>`}
+        >
+          <div className="flex flex-wrap gap-2">
+            <Button disabled>Disabled</Button>
+            <Button variant="secondary" disabled>
+              Disabled Secondary
+            </Button>
+            <Button active>Active State</Button>
           </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Active (Selected)</p>
-            <div className="flex flex-wrap gap-2">
-              <Button active>Seleccionado</Button>
-              <Button>Normal</Button>
-              <Button>Normal</Button>
-            </div>
-          </div>
-        </div>
+        </CodePreview>
       </div>
 
       {/* 8. Full Width */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold">8. Full Width</h3>
-          <p className="text-sm text-muted-foreground">
-            Botones que ocupan todo el ancho disponible
-          </p>
-        </div>
-        <div className="p-6 bg-muted/30 rounded-xl max-w-md space-y-4">
-          <Button fullWidth variant="primary">
-            Botón Ancho Completo
-          </Button>
-          <ButtonGroup fullWidth>
-            <Button variant="secondary">50%</Button>
-            <Button variant="primary">50%</Button>
-          </ButtonGroup>
-        </div>
+        <h3 className="text-xl font-bold">8. Full Width</h3>
+        <CodePreview
+          code={`<Button fullWidth variant="primary">Botón Ancho Completo</Button>
+<ButtonGroup fullWidth>
+  <Button>50%</Button>
+  <Button>50%</Button>
+</ButtonGroup>`}
+        >
+          <div className="space-y-4 max-w-md mx-auto">
+            <Button fullWidth variant="primary">
+              Botón Ancho Completo
+            </Button>
+            <ButtonGroup fullWidth>
+              <Button variant="secondary">50%</Button>
+              <Button variant="primary">50%</Button>
+            </ButtonGroup>
+          </div>
+        </CodePreview>
       </div>
 
       {/* 9. Button Groups */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold">9. Button Groups</h3>
-          <p className="text-sm text-muted-foreground">
-            Agrupa botones con espaciado consistente
-          </p>
-        </div>
-        <div className="p-6 bg-muted/30 rounded-xl space-y-6">
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Horizontal (Desktop) / Vertical (Mobile)</p>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button variant="secondary">Cancelar</Button>
-              <Button variant="primary">Guardar</Button>
-            </div>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Vertical</p>
-            <ButtonGroup orientation="vertical" spacing="normal">
-              <Button fullWidth icon={Settings}>
-                Configuración
-              </Button>
-              <Button fullWidth icon={Search}>
-                Buscar
-              </Button>
-              <Button fullWidth icon={Download}>
-                Descargar
-              </Button>
-            </ButtonGroup>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground mb-2">Diferentes Espaciados</p>
-            <div className="space-y-2">
-              <div className="flex flex-wrap gap-1">
+        <h3 className="text-xl font-bold">9. Button Groups</h3>
+        <CodePreview
+          code={`<ButtonGroup spacing="tight">
+  <Button size="sm">Tight</Button>
+  <Button size="sm">Spacing</Button>
+</ButtonGroup>
+
+<ButtonGroup orientation="vertical">
+  <Button icon={Settings}>Configuración</Button>
+  <Button icon={Search}>Buscar</Button>
+</ButtonGroup>`}
+        >
+          <div className="space-y-6">
+            <div className="flex flex-wrap gap-4">
+              <ButtonGroup spacing="tight">
                 <Button size="sm">Tight</Button>
                 <Button size="sm">Spacing</Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
+              </ButtonGroup>
+              <ButtonGroup spacing="normal">
                 <Button size="sm">Normal</Button>
                 <Button size="sm">Spacing</Button>
-              </div>
-              <div className="flex flex-wrap gap-4">
-                <Button size="sm">Loose</Button>
-                <Button size="sm">Spacing</Button>
-              </div>
+              </ButtonGroup>
+            </div>
+            <div className="max-w-xs">
+              <ButtonGroup orientation="vertical" spacing="normal">
+                <Button fullWidth icon={Settings}>
+                  Configuración
+                </Button>
+                <Button fullWidth icon={Search}>
+                  Buscar
+                </Button>
+              </ButtonGroup>
             </div>
           </div>
-        </div>
+        </CodePreview>
       </div>
 
       {/* 10. Ejemplo en Formulario */}
       <div className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold">10. Ejemplo en Formulario</h3>
-          <p className="text-sm text-muted-foreground">Uso real en un formulario</p>
-        </div>
-        <div className="p-6 bg-muted/30 rounded-xl max-w-md">
-          <form onSubmit={handleFormSubmit} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Descripción del gasto"
-              className="w-full px-3 py-2 border border-border rounded-lg bg-background"
-            />
-            <ButtonGroup fullWidth>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={loading}
-                icon={X}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                loading={loading}
-                loadingText="Guardando..."
-                icon={Save}
-              >
-                Guardar
-              </Button>
-            </ButtonGroup>
-          </form>
-        </div>
-      </div>
-
-      {/* 11. Acciones en Lista */}
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-xl font-bold">11. Acciones en Lista</h3>
-          <p className="text-sm text-muted-foreground">
-            Botones de acción para items en listas
-          </p>
-        </div>
-        <div className="p-6 bg-muted/30 rounded-xl space-y-2">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between p-3 bg-card border border-border rounded-xl group hover:border-primary/50 transition-colors"
-            >
-              <div>
-                <p className="font-medium">{item.name}</p>
-                <p className="text-sm text-muted-foreground">S/ {item.amount}</p>
-              </div>
-
-              <ButtonGroup spacing="tight">
-                <IconButton
-                  icon={Edit2}
-                  variant="ghost"
-                  size="sm"
-                  label="Editar"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                />
-                <IconButton
-                  icon={Trash2}
-                  variant="ghost"
-                  size="sm"
-                  label="Eliminar"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
-                />
+        <h3 className="text-xl font-bold">10. Ejemplo en Formulario</h3>
+        <CodePreview
+          code={`<form onSubmit={handleSubmit}>
+  <input className="..." />
+  <ButtonGroup fullWidth>
+    <Button variant="secondary" disabled={loading}>Cancelar</Button>
+    <Button type="submit" loading={loading}>Guardar</Button>
+  </ButtonGroup>
+</form>`}
+        >
+          <div className="max-w-md mx-auto">
+            <form onSubmit={handleFormSubmit} className="space-y-4">
+              <input
+                type="text"
+                placeholder="Descripción del gasto"
+                className="w-full px-3 py-2 border border-border rounded-lg bg-background"
+              />
+              <ButtonGroup fullWidth>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={loading}
+                  icon={X}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={loading}
+                  loadingText="Guardando..."
+                  icon={Save}
+                >
+                  Guardar
+                </Button>
               </ButtonGroup>
-            </div>
-          ))}
-        </div>
+            </form>
+          </div>
+        </CodePreview>
       </div>
-
-
 
       {/* Props Reference */}
       <div className="space-y-4">
         <h3 className="text-2xl font-bold">Props Reference</h3>
-
-        <div className="bg-muted/50 rounded-xl p-4 sm:p-6 border border-border space-y-6">
-          <div>
-            <h4 className="font-bold mb-4 text-lg">Button Props</h4>
-            <div className="space-y-2 text-xs sm:text-sm font-mono bg-background p-3 sm:p-4 rounded-lg overflow-x-auto">
-              <p className="break-all">variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline' | 'blue'</p>
-              <p>size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'</p>
-              <p>loading?: boolean</p>
-              <p>loadingText?: string</p>
-              <p>active?: boolean</p>
-              <p>pill?: boolean</p>
-              <p>iconOnly?: boolean</p>
-              <p>floating?: boolean</p>
-              <p>fullWidth?: boolean</p>
-              <p>icon?: LucideIcon</p>
-              <p>iconPosition?: 'left' | 'right'</p>
-              <p className="break-all">spinnerVariant?: 'simple' | 'dots' | 'dots2' | 'dots3' | 'material'</p>
-              <p className="text-muted-foreground mt-2">+ Todos los props nativos de HTMLButtonElement</p>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="font-bold mb-4 text-lg">ButtonGroup Props</h4>
-            <div className="space-y-2 text-xs sm:text-sm font-mono bg-background p-3 sm:p-4 rounded-lg overflow-x-auto">
-              <p>children: React.ReactNode</p>
-              <p>orientation?: 'horizontal' | 'vertical'</p>
-              <p>spacing?: 'tight' | 'normal' | 'loose'</p>
-              <p>fullWidth?: boolean</p>
-            </div>
-          </div>
-
-          <div>
-            <h4 className="font-bold mb-4 text-lg">Auxiliary Components</h4>
-            <div className="space-y-2 text-xs sm:text-sm">
-              <p>
-                <code className="bg-background px-2 py-1 rounded text-xs">IconButton</code> - Botón solo con icono
-              </p>
-              <p>
-                <code className="bg-background px-2 py-1 rounded text-xs">FloatingActionButton</code> - FAB flotante
-              </p>
-              <p>
-                <code className="bg-background px-2 py-1 rounded text-xs">PillButton</code> - Botón tipo píldora
-              </p>
-              <p>
-                <code className="bg-background px-2 py-1 rounded text-xs">LoadingButton</code> - Botón con loading simplificado
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="border-l-4 border-primary pl-4 py-2 bg-primary/5 rounded-r-lg">
-          <p className="text-sm">
-            <strong>Tip:</strong> Consulta el componente{' '}
-            <code className="bg-background px-2 py-1 rounded text-xs">Button.tsx</code> para ver la
-            implementación completa y todos los detalles de cada prop.
-          </p>
-        </div>
-      </div>
-
-      {/* Guía de Uso */}
-      <div className="space-y-4">
-        <h3 className="text-2xl font-bold">Guía de Uso Rápida</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
-            <h4 className="font-bold mb-3">📌 Cuándo usar cada variante</h4>
-            <div className="space-y-2 text-sm">
-              <p>
-                <strong>primary:</strong> Acción principal (Guardar, Confirmar)
-              </p>
-              <p>
-                <strong>secondary:</strong> Acciones secundarias (Cancelar)
-              </p>
-              <p>
-                <strong>destructive:</strong> Acciones destructivas (Eliminar)
-              </p>
-              <p>
-                <strong>ghost:</strong> Acciones sutiles (Editar)
-              </p>
-              <p>
-                <strong>success:</strong> Confirmaciones positivas
-              </p>
-              <p>
-                <strong>outline:</strong> Alternativa visual sin fondo
-              </p>
-              <p>
-                <strong>blue:</strong> Acciones destacadas o informativas
-              </p>
-            </div>
-          </div>
-
-          <div className="p-4 bg-green-500/5 border border-green-500/20 rounded-xl">
-            <h4 className="font-bold mb-3 text-green-600">✅ Mejores Prácticas</h4>
-            <div className="space-y-2 text-sm">
-              <p>• Usa IconButton para acciones sin texto</p>
-              <p>• Usa PillButton para categorías/filtros</p>
-              <p>• Siempre proporciona loadingText cuando loading=true</p>
-              <p>• Usa label en IconButton para accesibilidad</p>
-              <p>• Prefiere fullWidth en modales móviles</p>
-              <p>• Agrupa botones relacionados con ButtonGroup</p>
-            </div>
-          </div>
-        </div>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Prop</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Description</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-mono text-xs">variant</TableCell>
+                <TableCell className="font-mono text-xs">'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline' | 'blue'</TableCell>
+                <TableCell>Estilo visual del botón.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">size</TableCell>
+                <TableCell className="font-mono text-xs">'xs' | 'sm' | 'md' | 'lg' | 'xl'</TableCell>
+                <TableCell>Tamaño del botón.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">loading</TableCell>
+                <TableCell className="font-mono text-xs">boolean</TableCell>
+                <TableCell>Muestra estado de carga.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">loadingText</TableCell>
+                <TableCell className="font-mono text-xs">string</TableCell>
+                <TableCell>Texto a mostrar durante la carga.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">icon</TableCell>
+                <TableCell className="font-mono text-xs">LucideIcon</TableCell>
+                <TableCell>Icono a mostrar.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">iconPosition</TableCell>
+                <TableCell className="font-mono text-xs">'left' | 'right'</TableCell>
+                <TableCell>Posición del icono.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">fullWidth</TableCell>
+                <TableCell className="font-mono text-xs">boolean</TableCell>
+                <TableCell>Ocupa el 100% del ancho disponible.</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-mono text-xs">active</TableCell>
+                <TableCell className="font-mono text-xs">boolean</TableCell>
+                <TableCell>Fuerza el estado activo.</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Card>
       </div>
     </div>
   );

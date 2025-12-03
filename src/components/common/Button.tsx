@@ -10,7 +10,6 @@
  * - Animaciones y transiciones suaves
  */
 
-import { forwardRef } from 'react';
 import LoadingSpinner, { LoadingOverlay } from './LoadingSpinner';
 import type { LucideIcon } from 'lucide-react';
 import { useBreakpoints } from '@/hooks/useBreakpoints';
@@ -47,30 +46,27 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   children?: React.ReactNode;
 }
 
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
-      variant = 'primary',
-      size = 'md',
-      loading = false,
-      loadingText,
-      active = false,
-      pill = false,
-      iconOnly = false,
-      floating = false,
-      fullWidth = false,
-      icon: Icon,
-      iconPosition = 'left',
-      iconClassName = '',
-      spinnerVariant = 'dots3',
-      className = '',
-      disabled,
-      children,
-      loadingOverlay,
-      ...props
-    },
-    ref
-  ) => {
+const Button = ({
+    variant = 'primary',
+    size = 'md',
+    loading = false,
+    loadingText,
+    active = false,
+    pill = false,
+    iconOnly = false,
+    floating = false,
+    fullWidth = false,
+    icon: Icon,
+    iconPosition = 'left',
+    iconClassName = '',
+    spinnerVariant = 'dots3',
+    className = '',
+    disabled,
+    children,
+    loadingOverlay,
+    ref,
+    ...props
+  }: ButtonProps & { ref?: React.Ref<HTMLButtonElement> }) => {
     // Variantes de color
     const variantClasses = {
       primary: 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm',
@@ -196,8 +192,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {renderContent()}
       </button>
     );
-  }
-);
+  };
 
 Button.displayName = 'Button';
 
