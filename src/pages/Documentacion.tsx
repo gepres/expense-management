@@ -35,9 +35,11 @@ import { ChipExamples } from './ChipExamples';
 import { DatePickerExamples } from './DatePickerExamples';
 import { StepperExamples } from './StepperExamples';
 import { ProgressBarExamples } from './ProgressBarExamples';
-import { Layout, Table as TableIcon, List, CreditCard, AlertCircle, ToggleLeft, Bell, Download, Edit3, Loader2, LayoutDashboard, MessageSquare, Menu, Hash, Search, GripVertical, Inbox, Tags, Calendar as CalendarIcon, PlusCircle, TrendingUp } from 'lucide-react';
+import { StatCardExamples } from './StatCardExamples';
+import { DashboardWidgetsExamples } from './DashboardWidgetsExamples';
+import { Layout, Table as TableIcon, List, CreditCard, AlertCircle, ToggleLeft, Bell, Download, Edit3, Loader2, LayoutDashboard, MessageSquare, Menu, Hash, Search, GripVertical, Inbox, Tags, Calendar as CalendarIcon, PlusCircle, TrendingUp, BarChart2, Zap } from 'lucide-react';
 
-type Section = 'intro' | 'buttons' | 'modals' | 'forms' | 'loading' | 'cards' | 'banners' | 'tables' | 'lists' | 'tableios' | 'alerts' | 'confirmations' | 'switches' | 'budgetmonitor' | 'installpwa' | 'editnamemodal' | 'customloader' | 'segmentedcontrol' | 'toast' | 'actionsheet' | 'badge' | 'searchbar' | 'swipeable' | 'emptystate' | 'chip' | 'datepicker' | 'stepper' | 'progressbar';
+type Section = 'intro' | 'buttons' | 'modals' | 'forms' | 'loading' | 'cards' | 'banners' | 'tables' | 'lists' | 'tableios' | 'alerts' | 'confirmations' | 'switches' | 'budgetmonitor' | 'installpwa' | 'editnamemodal' | 'customloader' | 'segmentedcontrol' | 'toast' | 'actionsheet' | 'badge' | 'searchbar' | 'swipeable' | 'emptystate' | 'chip' | 'datepicker' | 'stepper' | 'progressbar' | 'statcard' | 'dashboardwidgets';
 
 export default function Documentacion() {
   const [activeSection, setActiveSection] = useState<Section>('intro');
@@ -71,6 +73,8 @@ export default function Documentacion() {
     { id: 'datepicker' as Section, label: 'Date Picker', icon: CalendarIcon },
     { id: 'stepper' as Section, label: 'Stepper', icon: PlusCircle },
     { id: 'progressbar' as Section, label: 'Progress Bar', icon: TrendingUp },
+    { id: 'statcard' as Section, label: 'Stat Card', icon: BarChart2 },
+    { id: 'dashboardwidgets' as Section, label: 'Dashboard Widgets', icon: Zap },
   ];
 
   return (
@@ -178,6 +182,8 @@ export default function Documentacion() {
               {activeSection === 'datepicker' && <DatePickerExamples />}
               {activeSection === 'stepper' && <StepperExamples />}
               {activeSection === 'progressbar' && <ProgressBarExamples />}
+              {activeSection === 'statcard' && <StatCardExamples />}
+              {activeSection === 'dashboardwidgets' && <DashboardWidgetsExamples />}
             </div>
           </main>
         </div>
@@ -195,7 +201,7 @@ function IntroSection() {
       <div>
         <h2 className="text-3xl font-bold mb-4">Bienvenido a la Documentación</h2>
         <p className="text-muted-foreground text-lg mb-2">
-          Librería completa de <strong className="text-foreground">30+ componentes UI reutilizables</strong> con
+          Librería completa de <strong className="text-foreground">35+ componentes UI reutilizables</strong> con
           ejemplos interactivos, código de uso y mejores prácticas.
         </p>
         <p className="text-muted-foreground">
@@ -206,9 +212,9 @@ function IntroSection() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="p-6 bg-primary/5 border border-primary/20 rounded-xl">
-          <h3 className="font-bold text-lg mb-2 text-primary">🎨 30+ Componentes</h3>
+          <h3 className="font-bold text-lg mb-2 text-primary">🎨 35+ Componentes</h3>
           <p className="text-sm text-muted-foreground">
-            Buttons, modals, forms, tables, steppers, progress bars y mucho más.
+            Buttons, modals, forms, tables, steppers, stat cards, dashboard widgets y mucho más.
             Múltiples variantes y tamaños para cada componente.
           </p>
         </div>
@@ -249,7 +255,7 @@ function IntroSection() {
       {/* Stats Quick View */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="text-center p-4 bg-muted/50 rounded-xl border border-border">
-          <div className="text-3xl font-bold text-primary">30+</div>
+          <div className="text-3xl font-bold text-primary">35+</div>
           <div className="text-xs text-muted-foreground mt-1">Componentes</div>
         </div>
         <div className="text-center p-4 bg-muted/50 rounded-xl border border-border">
@@ -261,7 +267,7 @@ function IntroSection() {
           <div className="text-xs text-muted-foreground mt-1">Design System</div>
         </div>
         <div className="text-center p-4 bg-muted/50 rounded-xl border border-border">
-          <div className="text-3xl font-bold text-purple-600">60+</div>
+          <div className="text-3xl font-bold text-purple-600">70+</div>
           <div className="text-xs text-muted-foreground mt-1">Variantes</div>
         </div>
       </div>
@@ -442,6 +448,24 @@ function IntroSection() {
             title="ProgressBar"
             description="Barras de progreso animadas con múltiples variantes y modos."
             features={['6 variantes', '3 tamaños', 'Striped mode', 'Animated', 'Label support']}
+          />
+
+          <ComponentCard
+            title="StatCard"
+            description="Tarjetas de estadísticas para dashboards con iconos y barras de progreso."
+            features={['6 colores', 'Progress bar', 'Subtitle & footer', 'Hover effects', 'Background icon']}
+          />
+
+          <ComponentCard
+            title="ActivityList"
+            description="Lista de actividad reciente con iconos, valores y acciones."
+            features={['Header/Footer actions', 'Badges support', 'Empty state', 'Clickable items']}
+          />
+
+          <ComponentCard
+            title="QuickAction"
+            description="Botones de acceso rápido con iconos para dashboards."
+            features={['5 variantes', '3 tamaños', 'Grid responsive', 'Badge support', 'Hover effects']}
           />
         </div>
       </div>
