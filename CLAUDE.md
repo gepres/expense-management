@@ -3,8 +3,8 @@
 > Documentación técnica completa para replicar el proyecto de Gestión de Gastos Personales
 
 **Fecha de creación**: 2025-11-14
-**Última actualización**: 2025-11-28
-**Versión**: 2.1.0
+**Última actualización**: 2025-12-04
+**Versión**: 2.2.0
 
 ---
 
@@ -104,9 +104,13 @@ Personas que quieren llevar un control detallado de sus finanzas personales.
   "vitest": "^4.0.9",
   "@testing-library/react": "^16.3.0",
   "msw": "^2.12.1",
-  "cypress": "^15.6.0"
+  "cypress": "^15.6.0",
+  "@playwright/test": "^1.57.0",
+  "playwright": "^1.57.0"
 }
 ```
+
+**Nota**: Se usa **Playwright** como framework principal de testing E2E por su mejor rendimiento, soporte multi-navegador y debugging. Cypress se mantiene como alternativa.
 
 ---
 
@@ -1358,6 +1362,109 @@ it('debe renderizar componente', () => {
 });
 ```
 
+### Playwright E2E Tests
+
+**Configuración**: `playwright.config.ts`
+
+```typescript
+export default defineConfig({
+  testDir: './e2e',
+  timeout: 30 * 1000,
+  fullyParallel: true,
+  retries: process.env.CI ? 2 : 0,
+
+  use: {
+    baseURL: 'http://localhost:5173',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    trace: 'on-first-retry',
+  },
+
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+  },
+
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    { name: 'Mobile Chrome', use: { ...devices['Pixel 5'] } },
+    { name: 'Mobile Safari', use: { ...devices['iPhone 12'] } },
+  ],
+});
+```
+
+**Estructura de Tests**:
+```
+e2e/
+├── auth.spec.ts        # Tests de autenticación (Login, Registro)
+├── dashboard.spec.ts   # Tests del dashboard y AI Insights
+├── gastos.spec.ts      # Tests CRUD de gastos e importación Excel
+└── .gitignore         # Ignora reports y videos
+```
+
+**Ejemplo de Test**:
+```typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('Autenticación', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+  });
+
+  test('debe mostrar el formulario de login', async ({ page }) => {
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toBeVisible();
+  });
+
+  test('debe validar formato de email', async ({ page }) => {
+    const emailInput = page.locator('input[type="email"]');
+    await emailInput.fill('email-invalido');
+
+    const isInvalid = await emailInput.evaluate(
+      (el: HTMLInputElement) => !el.validity.valid
+    );
+    expect(isInvalid).toBeTruthy();
+  });
+});
+```
+
+**Comandos Útiles**:
+```bash
+# Ejecutar tests
+npm run test:e2e
+
+# Modo UI (debugging interactivo)
+npm run test:e2e:ui
+
+# Modo headed (ver navegador)
+npm run test:e2e:headed
+
+# Generar tests automáticamente
+npm run test:e2e:codegen
+
+# Ver reporte HTML
+npm run test:e2e:report
+```
+
+**Características**:
+- ✅ Tests multi-navegador (Chromium, Firefox, WebKit)
+- ✅ Tests responsive (Desktop y Mobile)
+- ✅ Screenshots automáticos al fallar
+- ✅ Videos de fallos
+- ✅ Trazas de ejecución
+- ✅ Reportes HTML interactivos
+- ✅ Codegen para generar tests grabando interacciones
+
+**Ventajas sobre Cypress**:
+- Más rápido (ejecuta tests en paralelo nativamente)
+- Mejor soporte multi-navegador (incluyendo WebKit/Safari)
+- Mejor debugging con UI mode y traces
+- Menos flakiness (esperas automáticas inteligentes)
+- Sin necesidad de servidor proxy
+
 ---
 
 ## 🔒 Seguridad
@@ -1446,7 +1553,13 @@ npm run format:check     # Verificar formato
 npm run test             # Vitest en modo watch
 npm run test:run         # Vitest una vez
 npm run test:coverage    # Coverage
-npm run test:e2e         # Cypress
+npm run test:e2e         # Playwright tests E2E
+npm run test:e2e:ui      # Playwright UI mode (debugging)
+npm run test:e2e:headed  # Playwright con navegador visible
+npm run test:e2e:debug   # Playwright modo debug paso a paso
+npm run test:e2e:report  # Ver reporte HTML de Playwright
+npm run test:e2e:codegen # Generar tests con Playwright Codegen
+npm run test:cypress     # Cypress (alternativa legacy)
 
 # Utilidades
 npm run type-check       # TypeScript check
@@ -1752,6 +1865,60 @@ Los custom hooks (useGastos, usePresupuestos) ya tienen toda la lógica.
 
 ## 📜 Changelog
 
+### v2.2.0 (2025-12-04)
+**Release**: Integración de Playwright para Testing E2E
+
+**Nuevas Herramientas**:
+- ✅ **Playwright**: Framework principal de testing E2E (v1.57.0)
+- ✅ Tests multi-navegador (Chromium, Firefox, WebKit)
+- ✅ Tests responsive (Desktop y Mobile: Pixel 5, iPhone 12)
+- ✅ UI Mode para debugging interactivo
+- ✅ Codegen para generar tests automáticamente
+- ✅ Screenshots y videos de fallos
+- ✅ Trazas de ejecución para debugging
+- ✅ Reportes HTML interactivos
+
+**Tests Implementados**:
+- `e2e/auth.spec.ts` - Autenticación (Login, Registro, Validaciones)
+- `e2e/dashboard.spec.ts` - Dashboard, AI Insights, Estadísticas
+- `e2e/gastos.spec.ts` - CRUD de gastos, Importación/Exportación Excel
+
+**Configuración**:
+- `playwright.config.ts` - Configuración multi-navegador con auto-start del dev server
+- Scripts npm para diferentes modos de ejecución
+- Auto-retry en CI (2 reintentos)
+- Ejecución paralela de tests
+
+**Scripts Agregados**:
+```bash
+npm run test:e2e          # Ejecutar tests E2E
+npm run test:e2e:ui       # Modo UI (debugging)
+npm run test:e2e:headed   # Con navegador visible
+npm run test:e2e:debug    # Modo debug paso a paso
+npm run test:e2e:report   # Ver reporte HTML
+npm run test:e2e:codegen  # Generar tests grabando
+```
+
+**Archivos Creados**:
+- `playwright.config.ts` - Configuración principal
+- `e2e/auth.spec.ts` - Tests de autenticación
+- `e2e/dashboard.spec.ts` - Tests del dashboard
+- `e2e/gastos.spec.ts` - Tests CRUD y Excel
+- `e2e/.gitignore` - Ignora reports/videos
+
+**Documentación**:
+- ✅ Nueva sección "Playwright E2E Tests" en CLAUDE.md
+- ✅ Ejemplos de tests y comandos útiles
+- ✅ Comparativa Playwright vs Cypress
+- ✅ Scripts actualizados en package.json
+
+**Ventajas sobre Cypress**:
+- Más rápido (paralelismo nativo)
+- Mejor soporte multi-navegador (WebKit/Safari)
+- Mejor debugging (UI mode, traces)
+- Menos flakiness (esperas automáticas)
+- Sin servidor proxy
+
 ### v2.1.0 (2025-11-28)
 **Release**: Sistema de componentes de Input estilo iOS
 
@@ -1839,9 +2006,9 @@ Los custom hooks (useGastos, usePresupuestos) ya tienen toda la lógica.
 
 ---
 
-**Última actualización**: 2025-11-28
+**Última actualización**: 2025-12-04
 **Mantenedor**: Claude (Anthropic)
-**Versión del proyecto**: 2.1.0
+**Versión del proyecto**: 2.2.0
 
 ---
 

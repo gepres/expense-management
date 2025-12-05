@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=\"C:\\\\Users\\\\User\\\\AppData\\\\Local\\\\ms-playwright\" npm run test:e2e:*)"
     ],
     "deny": [],
     "ask": []

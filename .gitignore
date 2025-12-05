@@ -32,3 +32,11 @@ dist-ssr
 .firebase/
 firebase-debug.log
 firebase-debug.*.log
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+e2e/.auth/
+*.mp4
+*.webm
