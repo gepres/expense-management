@@ -115,6 +115,7 @@ export default function Layout() {
 
               <div className="relative">
                 <button
+                  data-testid="user-menu-trigger"
                   onClick={() => setMenuUsuarioAbierto(!menuUsuarioAbierto)}
                   className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent transition-colors"
                 >
@@ -165,6 +166,7 @@ export default function Layout() {
                         Configuración
                       </button>
                       <button
+                        data-testid="desktop-logout-button"
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors flex items-center gap-2"
                       >
@@ -218,6 +220,7 @@ export default function Layout() {
           })}
           
           <button
+            data-testid="mobile-menu-trigger"
             onClick={() => setMobileMenuOpen(true)}
             className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${
               mobileMenuOpen ? 'text-primary' : 'text-muted-foreground hover:text-foreground'

@@ -174,6 +174,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
           <div className="h-px bg-border my-4" />
 
           <button
+            data-testid="mobile-logout-button"
             onClick={handleLogout}
             className="w-full flex items-center gap-3 p-4 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 text-red-600 transition-colors"
           >

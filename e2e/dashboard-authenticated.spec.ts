@@ -7,10 +7,11 @@ import * as dotenv from 'dotenv';
  */
 
 // Cargar credenciales
-dotenv.config({ path: '.env.test' });
-
+// Cargar credenciales
+// dotenv.config loaded via globalSetup
 const TEST_EMAIL = process.env.TEST_EMAIL || '';
 const TEST_PASSWORD = process.env.TEST_PASSWORD || '';
+
 
 /**
  * Helper: Login directo en el test
@@ -94,24 +95,32 @@ test.describe('Dashboard Autenticado', () => {
     console.log('✅ Accedió al asistente IA');
   });
 
-  test('debe poder cerrar sesión', async ({ page }) => {
+  test('debe poder cerrar sesión', async ({ page, isMobile }) => {
     // Login
     await doLogin(page);
-
     await page.goto('/dashboard');
+    
+    // Determine expected button ID based on viewport
+    const logoutBtnId = isMobile ? 'mobile-logout-button' : 'desktop-logout-button';
+    const logoutButton = page.getByTestId(logoutBtnId);
 
-    // Buscar botón de logout
-    const logoutButton = page.locator('button, a').filter({ hasText: /cerrar sesión|logout|salir/i });
-
-    if (await logoutButton.count() > 0) {
-      await logoutButton.first().click();
-
-      // Verificar que redirige a login
-      await page.waitForURL(/\/(login)?/, { timeout: 5000 });
-      console.log('✅ Cerró sesión correctamente');
-    } else {
-      console.log('⚠️  No se encontró botón de logout (puede estar en un menú desplegable)');
+    if (!(await logoutButton.isVisible())) {
+      console.log('🔘 Logout hidden, opening menu...');
+      
+      const triggerId = isMobile ? 'mobile-menu-trigger' : 'user-menu-trigger';
+      const trigger = page.getByTestId(triggerId);
+      
+      await expect(trigger).toBeVisible();
+      await trigger.click();
     }
+
+    // Wait for the text to definitely be visible
+    await expect(logoutButton).toBeVisible();
+    await logoutButton.click();
+
+    // Verify redirect
+    await page.waitForURL(/\/(login)?/, { timeout: 10000 });
+    console.log('✅ Cerró sesión correctamente');
   });
 });
 
