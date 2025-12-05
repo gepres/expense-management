@@ -247,6 +247,8 @@ export const firestoreToUsuario = (
     photoURL: data.photoURL,
     whatsappPhone: data.whatsappPhone,
     whatsappLinkedAt: data.whatsappLinkedAt ? timestampToDate(data.whatsappLinkedAt) : undefined,
+    role: data.role || 'standard',
+    proRequestStatus: data.proRequestStatus || 'none',
     createdAt: timestampToDate(data.createdAt),
     updatedAt: timestampToDate(data.updatedAt),
   };
@@ -480,6 +482,8 @@ export const authService = {
       const usuarioData: Partial<UsuarioFirestore> = {
         email,
         nombre,
+        role: 'standard',
+        proRequestStatus: 'none',
         createdAt: serverTimestamp() as Timestamp,
         updatedAt: serverTimestamp() as Timestamp,
       };
@@ -496,6 +500,8 @@ export const authService = {
         email,
         nombre,
         photoURL: userCredential.user.photoURL || undefined,
+        role: 'standard',
+        proRequestStatus: 'none',
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -554,6 +560,8 @@ export const authService = {
         const usuarioData: Partial<UsuarioFirestore> = {
           email: userCredential.user.email!,
           nombre: userCredential.user.displayName || 'Usuario',
+          role: 'standard',
+          proRequestStatus: 'none',
           createdAt: serverTimestamp() as Timestamp,
           updatedAt: serverTimestamp() as Timestamp,
         };
@@ -572,6 +580,8 @@ export const authService = {
           email: userCredential.user.email!,
           nombre: userCredential.user.displayName || 'Usuario',
           photoURL: userCredential.user.photoURL || undefined,
+          role: 'standard',
+          proRequestStatus: 'none',
           createdAt: new Date(),
           updatedAt: new Date(),
         };
@@ -708,6 +718,71 @@ export const authService = {
 
       // Cerrar sesión en Firebase
       await signOut(auth);
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
+
+  /**
+   * Solicitar rol PRO
+   */
+  async requestProRole(): Promise<void> {
+    const user = auth.currentUser;
+    if (!user) throw new Error('No hay usuario autenticado');
+
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        proRequestStatus: 'pending',
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
+
+  /**
+   * Aprobar solicitud PRO (Admin)
+   */
+  async approveProRequest(userId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        role: 'pro',
+        proRequestStatus: 'approved',
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
+
+  /**
+   * Rechazar solicitud PRO (Admin)
+   */
+  async rejectProRequest(userId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        proRequestStatus: 'rejected',
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
+
+  /**
+   * Obtener solicitudes PRO pendientes (Admin)
+   */
+  async getPendingProRequests(): Promise<Usuario[]> {
+    try {
+      const q = query(
+        collection(db, 'users'),
+        where('proRequestStatus', '==', 'pending')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => 
+        firestoreToUsuario(doc.id, doc.data() as UsuarioFirestore)
+      );
     } catch (error) {
       throw new Error(obtenerMensajeError(error));
     }

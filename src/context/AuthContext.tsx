@@ -22,6 +22,9 @@ interface AuthContextType extends AuthState {
   registrar: (credenciales: RegistroCredenciales) => Promise<void>;
   logout: () => Promise<void>;
   actualizarUsuario: () => Promise<void>;
+  requestProRole: () => Promise<void>;
+  isAdmin: boolean;
+  isPro: boolean;
 }
 
 // ============================================================================
@@ -160,6 +163,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  /**
+   * Solicitar rol PRO
+   */
+  const requestProRole = async (): Promise<void> => {
+    try {
+      await authService.requestProRole();
+      await actualizarUsuario();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al solicitar rol PRO';
+      throw new Error(errorMessage);
+    }
+  };
+
+  const isAdmin = usuario?.role === 'admin';
+  const isPro = usuario?.role === 'pro' || usuario?.role === 'admin';
+
   const value: AuthContextType = {
     usuario,
     cargando,
@@ -169,6 +188,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     registrar,
     logout,
     actualizarUsuario,
+    requestProRole,
+    isAdmin,
+    isPro,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

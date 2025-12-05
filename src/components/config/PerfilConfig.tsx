@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { authService } from '@services/firebase';
-import { User, Mail, Camera, Save, MessageCircle, CheckCircle, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
+import { User, Mail, Camera, Save, MessageCircle, CheckCircle, AlertCircle, Trash2, AlertTriangle, Shield, Crown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ContainerLoadingButton } from '../common/Button';
 import ConfirmationModal from '../common/ConfirmationModal';
+import ProRequestButton from '../user/ProRequestButton';
 
 export default function PerfilConfig() {
-  const { usuario } = useAuth();
+  const { usuario, isAdmin, isPro } = useAuth();
   const [nombre, setNombre] = useState(usuario?.nombre || '');
   const [photoURL, setPhotoURL] = useState(usuario?.photoURL || '');
   const [loading, setLoading] = useState(false);
@@ -71,9 +72,18 @@ export default function PerfilConfig() {
             <Camera className="h-4 w-4" />
           </div>
         </div>
-        <h2 className="mt-4 text-xl font-bold text-foreground">{usuario?.nombre}</h2>
+        <h2 className="mt-4 text-xl font-bold text-foreground flex justify-center">{usuario?.nombre}
+         {
+          isPro && (
+            <div className="ml-2 flex  items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-success text-xs font-medium">
+              <Crown className="h-5 w-5 text-amber-500 fill-amber-500" />
+              PRO
+          </div>
+          )
+         }
+        </h2>
         <p className="text-sm text-muted-foreground">{usuario?.email}</p>
-        
+
         {/* WhatsApp Status Badge */}
         <div className="mt-3 inline-flex items-center gap-2">
           {isWhatsAppLinked ? (
@@ -95,6 +105,26 @@ export default function PerfilConfig() {
             Configurar
           </Link>
         </div>
+
+        {/* Admin Dashboard Link */}
+        {isAdmin && (
+          <div className="my-4">
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <Shield className="w-5 h-5" />
+              Panel de Administración
+            </Link>
+          </div>
+        )}
+
+        {/* Pro Request Button */}
+        {
+          (!isAdmin && !isPro) && (
+            <ProRequestButton />
+          )
+        }
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

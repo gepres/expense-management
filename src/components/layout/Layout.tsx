@@ -7,7 +7,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
-import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, ShoppingBag, BanknoteArrowDown } from 'lucide-react';
+import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, ShoppingBag, BanknoteArrowDown, Crown } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import BudgetMonitor from '../common/BudgetMonitor';
 import NotificationsPanel from '../compartidos/NotificationsPanel';
@@ -132,6 +132,11 @@ export default function Layout() {
                   {/* <span className="text-sm font-medium text-foreground">
                     {usuario?.nombre}
                   </span> */}
+                  {(usuario?.role === 'pro' || usuario?.role === 'admin') && (
+                    <div className="absolute top-1 right-0 bg-background rounded-full p-0.5 ">
+                      <Crown className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                    </div>
+                  )}
                 </button>
 
                 {menuUsuarioAbierto && (

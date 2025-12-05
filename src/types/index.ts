@@ -8,11 +8,16 @@ import { Timestamp } from 'firebase/firestore';
 // Usuario
 // ============================================================================
 
+export type UserRole = 'admin' | 'pro' | 'standard';
+export type ProRequestStatus = 'none' | 'pending' | 'approved' | 'rejected';
+
 export interface Usuario {
   id: string;
   email: string;
   nombre: string;
   photoURL?: string;
+  role: UserRole;
+  proRequestStatus: ProRequestStatus;
   whatsappPhone?: string;
   whatsappLinkedAt?: Date;
   createdAt: Date;
@@ -23,6 +28,8 @@ export interface UsuarioFirestore {
   email: string;
   nombre: string;
   photoURL?: string;
+  role: UserRole;
+  proRequestStatus: ProRequestStatus;
   whatsappPhone?: string;
   whatsappLinkedAt?: Timestamp;
   createdAt: Timestamp;

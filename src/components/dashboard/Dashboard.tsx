@@ -24,7 +24,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Target, Plus, Bot, ArrowRight } from 'lucide-react';
+import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Target, Plus, Bot, ArrowRight, Crown } from 'lucide-react';
 import AIInsights from './AIInsights';
 import InstallPWA from '../common/InstallPWA';
 import PresupuestoEfectivoWidget from '../efectivo/PresupuestoEfectivoWidget';
@@ -58,10 +58,12 @@ const getCategoryIcon = (categoria: string, className?: string) => {
 
 
 export default function Dashboard() {
-  const { usuario } = useAuth();
+  const { usuario, isPro } = useAuth();
   const { gastos, estado, cargarGastos } = useGastos();
   const { presupuestos, estado: estadoPresupuestos, cargarPresupuestos } = usePresupuestos();
   const { getCategoryLabel, getPaymentMethodLabel } = useConfig();
+
+
 
   const [mesActual] = useState(() => {
     const fecha = new Date();
@@ -145,7 +147,15 @@ export default function Dashboard() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-              Hola, {usuario?.nombre?.split(' ')[0]} <span className="animate-wave inline-block origin-[70%_70%]">👋</span>
+              Hola, {usuario?.nombre?.split(' ')[0]} 
+              <span className="animate-wave inline-block origin-[70%_70%]">👋</span>
+              {
+                isPro && (
+                  <div className="ml-2 flex  items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-success text-xs font-medium">
+                    <Crown className="h-5 w-5 text-amber-500 fill-amber-500" />
+                  </div>
+                )
+              }
             </h1>
             <p className="text-muted-foreground text-sm md:text-base">
               Resumen de {new Date(year, month - 1).toLocaleString('es', { month: 'long', year: 'numeric' })}

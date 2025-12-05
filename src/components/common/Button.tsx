@@ -19,7 +19,7 @@ export type { LucideIcon };
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   // Variantes de color/estilo
-  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline' | 'blue';
+  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline' | 'blue' | 'pro';
 
   // Tamaños
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -79,6 +79,7 @@ const Button = ({
       success: 'bg-green-500 hover:bg-green-600 text-white shadow-sm',
       outline: 'bg-transparent border-2 border-border hover:bg-accent text-foreground',
       blue: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm',
+      pro: 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md hover:scale-105',
     };
 
     // Tamaños

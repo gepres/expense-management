@@ -25,6 +25,7 @@ const AsistenteIA = lazy(() => import('@components/asistente/AsistenteIA'));
 const Presupuestos = lazy(() => import('@components/presupuestos/ListaPresupuestos'));
 const Configuracion = lazy(() => import('@components/config/Configuracion'));
 const Layout = lazy(() => import('@components/layout/Layout'));
+const AdminDashboard = lazy(() => import('@components/admin/AdminDashboard'));
 
 // Gastos Compartidos
 const SharedGroupsList = lazy(() => import('@components/compartidos/SharedGroupsList'));
@@ -148,6 +149,7 @@ function AppRoutes() {
           <Route path="presupuestos" element={<Presupuestos />} />
           <Route path="asistente" element={<AsistenteIA />} />
           <Route path="configuracion" element={<Configuracion />} />
+          <Route path="admin" element={<AdminDashboard />} />
 
           {/* Gastos Compartidos */}
           <Route path="compartidos" element={<SharedGroupsList />} />
