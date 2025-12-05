@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useAuth } from '@context/AuthContext';
-import { MessageCircle, Link2, Unlink, Info, Check, X, Loader2, ChevronDown, ChevronUp, ExternalLink, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { MessageCircle, Link2, Unlink, Info, Check, X, Loader2, ChevronDown, ChevronUp, ExternalLink, CheckCircle2, AlertTriangle, Crown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import Button from '@components/common/Button';
 import Modal, { ModalFooterActions } from '@components/common/Modal';
 import { auth } from '@services/firebase';
 
 export default function WhatsAppConfig() {
-  const { usuario, actualizarUsuario } = useAuth();
+  const { usuario, actualizarUsuario, isPro } = useAuth();
+  const navigate = useNavigate();
   const [phoneNumber, setPhoneNumber] = useState('+51');
   const [loading, setLoading] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
@@ -174,7 +177,27 @@ export default function WhatsAppConfig() {
 
       {/* Formulario de Vinculación - iOS Style */}
       {!isLinked && (
-        <div className="bg-card rounded-2xl border border-border shadow-sm mb-6">
+        <div className="bg-card rounded-2xl border border-border shadow-sm mb-6 relative overflow-hidden">
+          {!isPro && (
+            <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center p-6 text-center">
+              <div className="p-3 bg-amber-500/10 rounded-full mb-3">
+                <Crown className="h-8 w-8 text-amber-500" />
+              </div>
+              <h3 className="font-bold text-lg mb-2">Función PRO</h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-xs">
+                Vincula tu WhatsApp para registrar gastos al instante enviando un mensaje.
+              </p>
+              <Button
+                onClick={() => navigate('/configuracion?tab=perfil')}
+                variant="pro"
+                icon={Crown}
+                className="px-6 py-2.5"
+              >
+                Actualizar a PRO
+              </Button>
+            </div>
+          )}
+          
           <div className="p-4 border-b border-border/50">
             <h3 className="font-semibold text-foreground flex items-center gap-2">
               <Link2 className="h-5 w-5" />
@@ -192,6 +215,7 @@ export default function WhatsAppConfig() {
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="+51999999999"
                 className="w-full bg-transparent border-0 focus:outline-none focus:ring-0 text-base font-mono border-b border-border/50 pb-2"
+                disabled={!isPro}
               />
               <p className="text-xs text-muted-foreground mt-1">
                 Incluye el código de país (ej: +51 para Perú)
@@ -199,7 +223,7 @@ export default function WhatsAppConfig() {
             </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isPro}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (

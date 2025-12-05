@@ -10,6 +10,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useConfig } from '@context/ConfigContext';
+import { useAuth } from '@context/AuthContext';
 import {
   validateFile,
   analyzeExpenses,
@@ -29,9 +30,10 @@ import {
   Upload, FileText, Check, Settings,
   Brain, ArrowLeft, Sparkles, FileSpreadsheet,
   AlertCircle, ChevronDown, ChevronUp, Filter, Zap,
-  CheckCircle2, XCircle, RefreshCw, Eye, Database
+  CheckCircle2, XCircle, RefreshCw, Eye, Database, Crown
 } from 'lucide-react';
 import CustomLoader from '@components/common/CustomLoader';
+import Button from '@components/common/Button';
 
 type Step = 'upload' | 'validating' | 'preview-valid' | 'analyzing' | 'preview-enhanced' | 'uploading' | 'results';
 
@@ -39,6 +41,7 @@ export default function ImportarExcel() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { getCategoryLabel } = useConfig();
+  const { isPro } = useAuth();
 
   // Estado del flujo
   const [step, setStep] = useState<Step>('upload');
@@ -234,7 +237,30 @@ export default function ImportarExcel() {
         </p>
       </div>
 
-      {/* Progress Steps */}
+      {!isPro ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center space-y-6 bg-card border border-border rounded-2xl p-8 shadow-sm">
+          <div className="h-20 w-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
+            <Crown className="h-10 w-10 text-amber-600 dark:text-amber-500" />
+          </div>
+          <div className="max-w-md space-y-2">
+            <h2 className="text-xl font-bold text-foreground">Función Exclusiva PRO</h2>
+            <p className="text-muted-foreground">
+              La importación masiva de gastos desde Excel, CSV o JSON está disponible solo para usuarios PRO.
+              Ahorra tiempo y mantén tus finanzas al día.
+            </p>
+          </div>
+          <Button
+            onClick={() => navigate('/configuracion?tab=perfil')}
+            variant="pro"
+            icon={Crown}
+            className="px-6 py-3"
+          >
+            Actualizar a PRO
+          </Button>
+        </div>
+      ) : (
+        <>
+          {/* Progress Steps */}
       <div className="mb-8">
         <div className="flex items-center justify-between max-w-md mx-auto">
           {[
@@ -781,7 +807,9 @@ export default function ImportarExcel() {
           )}
 
         </AnimatePresence>
-      </div>
+        </div>
+      </>
+      )}
     </div>
   );
 }

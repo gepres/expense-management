@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { callAssistant } from '@services/ai';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Crown } from 'lucide-react';
+import { useAuth } from '@context/AuthContext';
+import { Link } from 'react-router-dom';
 
 interface AIInsightsProps {
   month: number;
@@ -8,6 +10,7 @@ interface AIInsightsProps {
 }
 
 export default function AIInsights({ month, year }: AIInsightsProps) {
+  const { isPro } = useAuth();
   const [insights, setInsights] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -20,6 +23,15 @@ export default function AIInsights({ month, year }: AIInsightsProps) {
     const currentKey = `${month}-${year}`;
 
     const loadInsights = async () => {
+      if (!isPro) {
+        setInsights([
+          "Desbloquea todo el potencial de tu asistente financiero con una cuenta PRO.",
+          "Obtén análisis detallados y consejos personalizados para mejorar tus finanzas."
+        ]);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         
@@ -58,7 +70,7 @@ export default function AIInsights({ month, year }: AIInsightsProps) {
     loadInsights();
 
     return () => { mounted = false; };
-  }, [month, year]);
+  }, [month, year, isPro]);
 
   useEffect(() => {
     if (insights.length <= 1) return;
@@ -86,17 +98,33 @@ export default function AIInsights({ month, year }: AIInsightsProps) {
   if (insights.length === 0) return null;
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-1 shadow-lg">
+    <div className={`relative overflow-hidden rounded-xl p-1 shadow-lg transition-all duration-300 ${
+      isPro 
+        ? 'bg-gradient-to-r from-indigo-600 to-purple-600' 
+        : 'bg-muted/50 grayscale opacity-80'
+    }`}>
       <div className="absolute top-0 left-0 w-full h-full bg-white/10 backdrop-blur-[1px]"></div>
       
       <div className="relative bg-card/95 backdrop-blur-sm rounded-lg p-4 flex items-start gap-4">
-        <div className="flex-shrink-0 p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-full">
-          <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400 animate-pulse" />
+        <div className={`flex-shrink-0 p-2 rounded-full ${
+          isPro 
+            ? 'bg-indigo-100 dark:bg-indigo-900/50' 
+            : 'bg-muted'
+        }`}>
+          <Sparkles className={`h-5 w-5 ${
+            isPro 
+              ? 'text-indigo-600 dark:text-indigo-400 animate-pulse' 
+              : 'text-muted-foreground'
+          }`} />
         </div>
         
         <div className="flex-1 min-w-0 flex flex-col justify-center min-h-[3rem]">
-          <h3 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1 flex items-center gap-2">
-            AI Insights <span className="text-[10px] px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900 rounded-full">BETA</span>
+          <h3 className={`text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-2 ${
+            isPro ? 'text-indigo-600 dark:text-indigo-400' : 'text-muted-foreground'
+          }`}>
+            AI Insights <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+              isPro ? 'bg-indigo-100 dark:bg-indigo-900' : 'bg-muted'
+            }`}>BETA</span>
           </h3>
           
           <p 
@@ -106,6 +134,16 @@ export default function AIInsights({ month, year }: AIInsightsProps) {
           >
             {insights[currentIndex]}
           </p>
+          
+          {!isPro && (
+            <Link 
+              to="/configuracion?tab=perfil"
+              className="mt-2 text-xs font-semibold !text-amber-600 !dark:text-amber-500 hover:underline flex items-center gap-1"
+            >
+              <Crown className="w-3 h-3" />
+              Actualizar a PRO
+            </Link>
+          )}
         </div>
 
         {insights.length > 1 && (

@@ -2,7 +2,7 @@
  * Button Component
  * Componente de botón reutilizable con todas las variantes del proyecto
  * ✨ Características:
- * - 5 variantes (primary, secondary, destructive, ghost, success)
+ * - 8 variantes (primary, secondary, destructive, ghost, success, outline, blue, pro)
  * - 5 tamaños (xs, sm, md, lg, xl)
  * - Estados: loading, disabled, active
  * - Tipos especiales: icon-only, pill, floating

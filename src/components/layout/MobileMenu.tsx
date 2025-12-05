@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Users,
   Target,
-  ShoppingBag
+  ShoppingBag,
+  Crown
 } from 'lucide-react';
 
 interface MobileMenuProps {
@@ -22,7 +23,7 @@ interface MobileMenuProps {
 
 export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const navigate = useNavigate();
-  const { usuario, logout } = useAuth();
+  const { usuario, isPro, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   if (!isOpen) return null;
@@ -59,11 +60,18 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
         {/* User Profile Card */}
         <div className="bg-accent/30 rounded-2xl p-4 mb-6 flex items-center gap-4 border border-border/50">
-          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border-2 border-background shadow-sm">
-            {usuario?.photoURL ? (
-              <img src={usuario.photoURL} alt={usuario.nombre} className="h-full w-full object-cover" />
-            ) : (
-              <User className="h-6 w-6 text-primary" />
+          <div className="relative">
+            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden border-2 border-background shadow-sm">
+              {usuario?.photoURL ? (
+                <img src={usuario.photoURL} alt={usuario.nombre} className="h-full w-full object-cover" />
+              ) : (
+                <User className="h-6 w-6 text-primary" />
+              )}
+            </div>
+            {isPro && (
+              <div className="absolute -top-2 -right-1 bg-background rounded-full p-1 shadow-sm border-2 border-background">
+                <Crown className="h-3 w-3 text-amber-500 fill-amber-500" />
+              </div>
             )}
           </div>
           <div className="flex-1 min-w-0">

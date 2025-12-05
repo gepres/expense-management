@@ -15,7 +15,7 @@ import { scanReceipt, validateImageFormat } from '@services/receipts';
 import { useVoiceInput } from '@hooks/useVoiceInput';
 import { VoiceService } from '@services/voice';
 import CustomLoader from '@components/common/CustomLoader';
-import { Image, Upload, Lightbulb, Check, Plus, Mic, MicOff, ChevronDown, ChevronUp, Calendar, Clock, CreditCard, Repeat, AlignLeft, CircleDollarSign, Zap, Receipt, Tag, Coins, FileText, Hash, RefreshCw, Building2, Calculator, Percent } from 'lucide-react';
+import { Image, Upload, Lightbulb, Check, Plus, Mic, MicOff, ChevronDown, ChevronUp, Calendar, Clock, CreditCard, Repeat, AlignLeft, CircleDollarSign, Zap, Receipt, Tag, Coins, FileText, Hash, RefreshCw, Building2, Calculator, Percent, Crown } from 'lucide-react';
 // import Button from '../common/Button';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { obtenerFechaLocalISO } from '@utils/formatters';
@@ -24,7 +24,7 @@ export default function FormularioGasto() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams<{ id: string }>();
-  const { usuario } = useAuth();
+  const { usuario, isPro } = useAuth();
   const { crear, actualizar, obtenerPorId } = useGastos();
   const { descontar: descontarEfectivo, recargar: recargarEfectivo } = usePresupuestoEfectivo();
   const {
@@ -646,10 +646,14 @@ export default function FormularioGasto() {
               <div>
                 <button
                   type="button"
-                  onClick={handleEscanearClick}
+                  onClick={isPro ? handleEscanearClick : () => navigate('/configuracion?tab=perfil')}
                   disabled={escaneando}
-                  className={` p-3 rounded-full transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:scale-105 lg:hidden`}
-                  title={'Scanea yape/plin'}
+                  className={`p-3 rounded-full transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isPro 
+                      ? 'bg-primary text-primary-foreground hover:scale-105' 
+                      : 'bg-muted text-muted-foreground'
+                  } lg:hidden relative`}
+                  title={isPro ? 'Scanea yape/plin' : 'Disponible en PRO'}
                 >
                  {escaneando ? (
                     <>
@@ -657,8 +661,14 @@ export default function FormularioGasto() {
                     </>
                   ) : (
                     <>
-                      <Image className="h-5 w-5" />
+                      {isPro ? <Image className="h-5 w-5" /> : <Crown className="h-5 w-5 text-amber-500" />}
                     </>
+                  )}
+                  {!isPro && (
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                    </span>
                   )}
                 </button>
                 <span className='hidden lg:inline'>Nuevo Gasto</span>
@@ -669,16 +679,28 @@ export default function FormularioGasto() {
           {!esEdicion && isSupported && (
             <button
               type="button"
-              onClick={handleVoiceButtonClick}
+              onClick={isPro ? handleVoiceButtonClick : () => navigate('/configuracion?tab=perfil')}
               disabled={processingVoice || cargando}
               className={`p-3 rounded-full transition-all shadow-lg ${
-                isListening 
-                  ? 'bg-destructive text-destructive-foreground animate-pulse' 
-                  : 'bg-primary text-primary-foreground hover:scale-105'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-              title={isListening ? 'Detener grabación' : 'Agregar gasto por voz'}
+                isPro
+                  ? isListening 
+                    ? 'bg-destructive text-destructive-foreground animate-pulse' 
+                    : 'bg-primary text-primary-foreground hover:scale-105'
+                  : 'bg-muted text-muted-foreground'
+              } disabled:opacity-50 disabled:cursor-not-allowed relative`}
+              title={isPro ? (isListening ? 'Detener grabación' : 'Agregar gasto por voz') : 'Disponible en PRO'}
             >
-              {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              {isPro ? (
+                isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />
+              ) : (
+                <Crown className="h-5 w-5 text-amber-500" />
+              )}
+              {!isPro && (
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                </span>
+              )}
             </button>
           )}
         </div>
@@ -728,7 +750,7 @@ export default function FormularioGasto() {
           <div className="md:hidden space-y-6">
             
             {/* 1. Atajos Rápidos (Horizontal Scroll) */}
-            {!esEdicion && shortcuts.length > 0 && (
+            {!esEdicion && (
               <div className="overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
                 <div className="flex gap-2 w-max">
                   {shortcuts.map((shortcut) => (
@@ -1148,7 +1170,7 @@ export default function FormularioGasto() {
             {/* 2. Escanear Boleta (Desktop) */}
             {!esEdicion && (
               <div className="bg-accent/30 border border-border rounded-xl p-4">
-                <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
                   <Image className="h-4 w-4" />
                   <span>Escanear Recibo</span>
                 </label>
@@ -1164,9 +1186,13 @@ export default function FormularioGasto() {
                 />
                 <button
                   type="button"
-                  onClick={handleEscanearClick}
+                  onClick={isPro ? handleEscanearClick : () => navigate('/configuracion?tab=perfil')}
                   disabled={escaneando}
-                  className="w-full px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className={`w-full px-4 py-2 font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative ${
+                    isPro 
+                      ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
                 >
                   {escaneando ? (
                     <>
@@ -1175,9 +1201,15 @@ export default function FormularioGasto() {
                     </>
                   ) : (
                     <>
-                      <Upload className="h-4 w-4" />
-                      <span>Subir Boleta (Yape + Plin + Trans.)</span>
+                      {isPro ? <Upload className="h-4 w-4" /> : <Crown className="h-4 w-4 text-amber-500" />}
+                      <span>{isPro ? 'Subir Boleta (Yape + Plin + Trans.)' : 'Subir Boleta (Solo PRO)'}</span>
                     </>
+                  )}
+                  {!isPro && (
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                    </span>
                   )}
                 </button>
               </div>

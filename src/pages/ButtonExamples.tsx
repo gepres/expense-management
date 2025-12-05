@@ -56,7 +56,7 @@ export function ButtonExamples() {
             <div className="text-2xl mb-2">🎨</div>
             <h3 className="font-bold mb-1">7 Variantes</h3>
             <p className="text-sm text-muted-foreground">
-              Primary, secondary, destructive, ghost, success, outline y blue
+              Primary, secondary, destructive, ghost, success, outline, blue y pro
             </p>
           </div>
           <div className="p-4 bg-muted/50 rounded-xl border border-border">
@@ -93,7 +93,8 @@ export function ButtonExamples() {
 <Button variant="ghost">Ghost</Button>
 <Button variant="success">Success</Button>
 <Button variant="blue">Blue</Button>
-<Button variant="outline">Outline</Button>`}
+<Button variant="outline">Outline</Button>
+<Button variant="pro">Pro</Button>`}
         >
           <div className="flex flex-col md:flex-row gap-2 flex-wrap">
             <Button variant="primary">Primary</Button>
@@ -103,6 +104,7 @@ export function ButtonExamples() {
             <Button variant="success">Success</Button>
             <Button variant="blue">Blue</Button>
             <Button variant="outline">Outline</Button>
+            <Button variant="pro">Pro</Button>
           </div>
         </CodePreview>
       </div>
@@ -344,7 +346,7 @@ export function ButtonExamples() {
             <TableBody>
               <TableRow>
                 <TableCell className="font-mono text-xs">variant</TableCell>
-                <TableCell className="font-mono text-xs">'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline' | 'blue'</TableCell>
+                <TableCell className="font-mono text-xs">'primary' | 'secondary' | 'destructive' | 'ghost' | 'success' | 'outline' | 'blue' | 'pro'</TableCell>
                 <TableCell>Estilo visual del botón.</TableCell>
               </TableRow>
               <TableRow>
