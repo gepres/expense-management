@@ -9,10 +9,14 @@ import { useAssistant } from '@hooks/useAssistant';
 import { SUGGESTED_QUESTIONS } from '@services/ai';
 import { useAuth } from '@context/AuthContext';
 import { formatearFecha } from '@utils/formatters';
-import { Lightbulb, Send, Calendar, MessageSquare, Plus, Trash2, Menu, X, Edit2, Check, TrendingUp } from 'lucide-react';
+import { Lightbulb, Send, Calendar, MessageSquare, Plus, Trash2, Menu, X, Edit2, Check, TrendingUp, Crown, Bot } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import Modal from '@components/common/Modal';
+import Button from '@components/common/Button';
 
 export default function AsistenteIA() {
-  const { usuario } = useAuth();
+  const { usuario, isPro } = useAuth();
+  const navigate = useNavigate();
   const {
     conversations,
     currentConversationId,
@@ -33,6 +37,7 @@ export default function AsistenteIA() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [editingConvId, setEditingConvId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
+  const [showProLimitModal, setShowProLimitModal] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -67,18 +72,60 @@ export default function AsistenteIA() {
     // await createNewConversation(); 
   };
 
+  const checkDailyLimit = () => {
+    if (isPro) return true;
+    if (!usuario) return false;
+
+    const today = new Date().toISOString().split('T')[0];
+    const storageKey = `ai_daily_usage_${usuario.id}`;
+    const usageData = localStorage.getItem(storageKey);
+
+    if (usageData) {
+      const { date, count } = JSON.parse(usageData);
+      if (date === today && count >= 1) {
+        setShowProLimitModal(true);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const incrementDailyUsage = () => {
+    if (isPro || !usuario) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const storageKey = `ai_daily_usage_${usuario.id}`;
+    const usageData = localStorage.getItem(storageKey);
+
+    let newCount = 1;
+    if (usageData) {
+      const { date, count } = JSON.parse(usageData);
+      if (date === today) {
+        newCount = count + 1;
+      }
+    }
+
+    localStorage.setItem(storageKey, JSON.stringify({ date: today, count: newCount }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (inputMessage.trim() && !isLoading) {
+      if (!checkDailyLimit()) return;
+
       await sendMessage(inputMessage.trim(), selectedMonth, selectedYear);
+      incrementDailyUsage();
       setInputMessage('');
     }
   };
 
   const handleSuggestedQuestion = async (question: string) => {
     if (!isLoading) {
+      if (!checkDailyLimit()) return;
+
       setInputMessage(question);
       await sendMessage(question, selectedMonth, selectedYear);
+      incrementDailyUsage();
       setInputMessage('');
     }
   };
@@ -215,7 +262,7 @@ export default function AsistenteIA() {
               <Menu className="h-5 w-5" />
             </button>
             <div className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-primary/10 flex items-center justify-center text-lg md:text-xl ring-2 ring-background shadow-sm">
-              🤖
+              <Bot className="h-5 w-5" />
             </div>
             <div>
               <h1 className="text-base md:text-lg font-bold text-foreground leading-tight">Asistente</h1>
@@ -396,6 +443,43 @@ export default function AsistenteIA() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Límite PRO */}
+      <Modal
+        isOpen={showProLimitModal}
+        onClose={() => setShowProLimitModal(false)}
+        title="Límite Diario Alcanzado"
+        size="sm"
+      >
+        <div className="flex flex-col items-center text-center space-y-4 py-4">
+          <div className="p-4 bg-amber-500/10 rounded-full">
+            <Crown className="h-12 w-12 text-amber-500" />
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-foreground">¡Descubre todo el poder de la IA!</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Los usuarios estándar tienen 1 mensaje diario. Actualiza a PRO para consultas ilimitadas y análisis profundos.
+            </p>
+          </div>
+          <Button
+            onClick={() => {
+              setShowProLimitModal(false);
+              navigate('/configuracion?tab=perfil');
+            }}
+            variant="pro"
+            className="w-full"
+            icon={Crown}
+          >
+            Actualizar a PRO
+          </Button>
+          <button
+            onClick={() => setShowProLimitModal(false)}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Quizás más tarde
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
