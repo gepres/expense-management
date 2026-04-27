@@ -3,7 +3,23 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(npm install:*)",
-      "Bash(PLAYWRIGHT_BROWSERS_PATH=\"C:\\\\Users\\\\User\\\\AppData\\\\Local\\\\ms-playwright\" npm run test:e2e:*)"
+      "Bash(PLAYWRIGHT_BROWSERS_PATH=\"C:\\\\Users\\\\User\\\\AppData\\\\Local\\\\ms-playwright\" npm run test:e2e:*)",
+      "Bash(git -C D:/PROYECTOS/gepres/gastos status --short)",
+      "Bash(git -C D:/PROYECTOS/gepres/gastos branch --show-current)",
+      "Bash(git -C D:/PROYECTOS/gepres/gastos-backend status --short)",
+      "Bash(git -C D:/PROYECTOS/gepres/gastos-backend branch --show-current)",
+      "Bash(git -C D:/PROYECTOS/gepres/gastos-firebase-functions status --short)",
+      "Bash(git -C D:/PROYECTOS/gepres/gastos checkout -b feat/multi-cuenta)",
+      "Bash(git -C D:/PROYECTOS/gepres/gastos-backend checkout -b feat/multi-cuenta)",
+      "Bash(git -C D:/PROYECTOS/gepres/gastos-firebase-functions checkout -b feat/multi-cuenta)",
+      "Bash(node -e \"console.log\\('Sintaxis OK'\\); require\\('./scripts/backup-firestore.js'\\)\")",
+      "Bash(node --check scripts/backup-firestore.js)",
+      "Bash(grep -v \"^.*\\\\.collection\\('users'\\)$\")",
+      "Bash(node scripts/backup-firestore.js)",
+      "Bash(node -e \"const r = require\\('D:/PROYECTOS/gepres/gastos-backend/backups/firestore-2026-04-26-054232/receipts.json'\\); console.log\\('Total:', r.length\\); console.log\\('Sample fields:', Object.keys\\(r[0]?.data || {}\\).join\\(', '\\)\\);\")",
+      "Bash(node *)",
+      "Bash(firebase --version)",
+      "Bash(firebase deploy *)"
     ],
     "deny": [],
     "ask": []
