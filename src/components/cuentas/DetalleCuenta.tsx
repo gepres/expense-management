@@ -7,7 +7,8 @@
  *  - Historial unificado: gastos asociados + transfers in/out.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ChevronLeft,
@@ -517,61 +518,23 @@ export default function DetalleCuenta() {
                     </Link>
                   )}
                   {showCashActions && (
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setActionsOpenForRow(menuOpen ? null : row.id)
-                        }
-                        disabled={isBusy}
-                        className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-                        title="Acciones"
-                        aria-label="Acciones del movimiento"
-                      >
-                        {isBusy ? (
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <MoreVertical className="h-4 w-4" />
-                        )}
-                      </button>
-                      {menuOpen && (
-                        <>
-                          {/* Backdrop para cerrar al click fuera */}
-                          <div
-                            className="fixed inset-0 z-20"
-                            onClick={() => setActionsOpenForRow(null)}
-                          />
-                          <div className="absolute right-0 top-full mt-1 z-30 min-w-[180px] bg-card border border-border rounded-lg shadow-lg overflow-hidden">
-                            {canRevert && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  row.cashMovementId &&
-                                  handleRevertMovement(row.cashMovementId)
-                                }
-                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-foreground hover:bg-muted transition-colors"
-                              >
-                                <RotateCcw className="h-3.5 w-3.5" />
-                                Revertir
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActionsOpenForRow(null);
-                                setConfirmDeleteMovementId(
-                                  row.cashMovementId ?? null,
-                                );
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-destructive hover:bg-destructive/10 transition-colors"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Eliminar
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                    <RowActionsMenu
+                      open={menuOpen}
+                      busy={isBusy}
+                      canRevert={canRevert}
+                      onToggle={() =>
+                        setActionsOpenForRow(menuOpen ? null : row.id)
+                      }
+                      onRevert={() =>
+                        row.cashMovementId &&
+                        handleRevertMovement(row.cashMovementId)
+                      }
+                      onDelete={() => {
+                        setActionsOpenForRow(null);
+                        setConfirmDeleteMovementId(row.cashMovementId ?? null);
+                      }}
+                      onClose={() => setActionsOpenForRow(null)}
+                    />
                   )}
                 </div>
               );
@@ -640,5 +603,123 @@ export default function DetalleCuenta() {
         isDestructive
       />
     </div>
+  );
+}
+
+// ============================================================================
+// RowActionsMenu — menu de acciones de cada fila del historial.
+// Usa createPortal para escapar overflow:hidden del card padre y posición
+// fixed calculada desde getBoundingClientRect del trigger.
+// ============================================================================
+
+interface RowActionsMenuProps {
+  open: boolean;
+  busy: boolean;
+  canRevert: boolean;
+  onToggle: () => void;
+  onRevert: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}
+
+function RowActionsMenu({
+  open,
+  busy,
+  canRevert,
+  onToggle,
+  onRevert,
+  onDelete,
+  onClose,
+}: RowActionsMenuProps) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPos(null);
+      return;
+    }
+    const recompute = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      // Anclar el menu a la esquina inferior-derecha del trigger.
+      // `right` se mide desde el borde derecho de la ventana.
+      setPos({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      });
+    };
+    recompute();
+    window.addEventListener('scroll', recompute, true);
+    window.addEventListener('resize', recompute);
+    return () => {
+      window.removeEventListener('scroll', recompute, true);
+      window.removeEventListener('resize', recompute);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open, onClose]);
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={onToggle}
+        disabled={busy}
+        className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+        title="Acciones"
+        aria-label="Acciones del movimiento"
+      >
+        {busy ? (
+          <RefreshCw className="h-4 w-4 animate-spin" />
+        ) : (
+          <MoreVertical className="h-4 w-4" />
+        )}
+      </button>
+      {open && pos &&
+        createPortal(
+          <div
+            ref={menuRef}
+            style={{
+              position: 'fixed',
+              top: pos.top,
+              right: pos.right,
+            }}
+            className="z-[100] min-w-[180px] bg-card border border-border rounded-lg shadow-lg overflow-hidden"
+          >
+            {canRevert && (
+              <button
+                type="button"
+                onClick={onRevert}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-foreground hover:bg-muted transition-colors"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Revertir
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onDelete}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Eliminar
+            </button>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }

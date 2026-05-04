@@ -210,6 +210,9 @@ export default function FormularioCuenta() {
 
   const isBankType = form.type === 'bank' || form.type === 'savings';
   const isCardType = form.type === 'card';
+  // Tipos que pueden tener datos de tarjeta asociados: tanto las tarjetas
+  // de crédito como las cuentas bancarias (que vienen con tarjeta de débito).
+  const supportsCardData = isCardType || isBankType;
 
   // Lista de monedas disponibles del config + fallback a PEN/USD
   const availableCurrencies = useMemo(() => {
@@ -232,7 +235,7 @@ export default function FormularioCuenta() {
    *  - sin número y sin original → null
    */
   const buildCardData = async (): Promise<EncryptedCardData | undefined | null> => {
-    if (!isCardType) return null; // null = limpiar campo
+    if (!supportsCardData) return null; // null = limpiar campo
     if (!usuario) return undefined;
 
     const newNumber = normalizeCardNumber(form.cardNumber);
@@ -517,10 +520,14 @@ export default function FormularioCuenta() {
           )}
         </InputGroup>
 
-        {/* Datos de tarjeta (solo si type='card') */}
-        {isCardType && (
+        {/* Datos de tarjeta (cards y banks: ambos suelen tener tarjeta asociada) */}
+        {supportsCardData && (
           <InputGroup
-            title="Datos de tarjeta (opcional)"
+            title={
+              isCardType
+                ? 'Datos de tarjeta (opcional)'
+                : 'Tarjeta de débito asociada (opcional)'
+            }
             description="Guarda los datos para tenerlos siempre a mano. El número se cifra antes de subirlo. NUNCA almacenamos el CVC."
           >
             <InputRow label="Número" icon={CreditCard} iconColor="bg-blue-500/10">
@@ -602,7 +609,7 @@ export default function FormularioCuenta() {
         )}
 
         {/* Disclaimer de seguridad para tarjetas */}
-        {isCardType && (
+        {supportsCardData && (
           <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3 flex items-start gap-2">
             <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
             <div className="text-xs text-blue-900 dark:text-blue-100 space-y-1">

@@ -12,7 +12,8 @@
     "types": [
       "vite/client",
       "@testing-library/jest-dom",
-      "vitest/globals"
+      "vitest/globals",
+      "node"
     ],
     "skipLibCheck": true,
     /* Bundler mode */

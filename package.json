@@ -31,7 +31,6 @@
     "check": "npm run type-check && npm run lint && npm run test:run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.68.0",
     "date-fns": "^4.1.0",
     "emoji-picker-react": "^4.15.1",
     "firebase": "^12.6.0",
@@ -42,8 +41,7 @@
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.9.6",
     "recharts": "^3.4.1",
-    "xlsx": "^0.18.5",
-    "zod": "^4.1.12"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
