@@ -1,20 +1,57 @@
+/**
+ * BudgetMonitor — alertas en tiempo real cuando un presupuesto se acerca al
+ * límite o lo excede.
+ *
+ * Modelo v2: presupuestos por (accountId, mes, bucket) donde
+ * bucket ∈ 'general' | <categoria> | 'efectivo'.
+ *
+ * El cálculo de gastado se hace localmente para evitar pull constante al backend:
+ *   - bucket general:    sum(gastos del mes con esa accountId)
+ *   - bucket categoria:  sum(gastos del mes con accountId + categoria)
+ *   - bucket efectivo:   sum(gastos del mes con accountId + metodoPago='efectivo')
+ */
+
 import { useEffect, useRef } from 'react';
 import { useGastos } from '@hooks/useGastos';
 import { usePresupuestos } from '@hooks/usePresupuestos';
 import { formatearMesKey, formatearMoneda } from '@utils/formatters';
 import { toast } from 'react-hot-toast';
-import { CATEGORIA_LABELS } from '@app-types';
+import { CATEGORIA_LABELS, BUCKET_EFECTIVO } from '@app-types';
+import type { Gasto } from '@app-types';
+
+function bucketLabel(bucket: string): string {
+  if (bucket === 'general') return 'Presupuesto General';
+  if (bucket === BUCKET_EFECTIVO) return 'Efectivo';
+  return CATEGORIA_LABELS[bucket as keyof typeof CATEGORIA_LABELS] || bucket;
+}
+
+function gastadoDelBucket(
+  gastos: Gasto[],
+  accountId: string,
+  bucket: string,
+  mesActual: string,
+): number {
+  return gastos
+    .filter((g) => {
+      if (g.accountId !== accountId) return false;
+      if (formatearMesKey(new Date(g.fecha)) !== mesActual) return false;
+      if (bucket === 'general') return true;
+      if (bucket === BUCKET_EFECTIVO) return g.metodoPago === 'efectivo';
+      return g.categoria === bucket;
+    })
+    .reduce((sum, g) => sum + g.monto, 0);
+}
 
 export default function BudgetMonitor() {
   const { gastos } = useGastos();
   const { presupuestos } = usePresupuestos();
-  
-  // Store notified states to avoid spamming
-  // Format: { [categoriaId]: { warning: boolean, exceeded: boolean } }
-  const notifiedRef = useRef<Record<string, { warning: boolean; exceeded: boolean }>>({});
+
+  // notifiedRef key: `${accountId}::${bucket}`
+  const notifiedRef = useRef<Record<string, { warning: boolean; exceeded: boolean }>>(
+    {},
+  );
 
   useEffect(() => {
-    // Request notification permission on mount
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
@@ -24,100 +61,68 @@ export default function BudgetMonitor() {
     if (gastos.length === 0 || presupuestos.length === 0) return;
 
     const mesActual = formatearMesKey(new Date());
-    
-    // Filter expenses for current month
-    const gastosMes = gastos.filter(g => {
-      const fechaGasto = new Date(g.fecha);
-      return formatearMesKey(fechaGasto) === mesActual;
-    });
 
-    // Calculate totals per category
-    const gastosPorCategoria = gastosMes.reduce((acc, gasto) => {
-      // Convert to main currency if needed (assuming PEN for simplicity or same currency)
-      // In a real app with multi-currency, we'd need conversion rates.
-      // For now, we sum by currency match or just sum raw values if simple.
-      // Let's assume we match budget currency.
-      
-      if (!acc[gasto.categoria]) {
-        acc[gasto.categoria] = { total: 0, moneda: gasto.moneda };
-      }
-      acc[gasto.categoria].total += gasto.monto;
-      return acc;
-    }, {} as Record<string, { total: number; moneda: string }>);
+    presupuestos.forEach((presupuesto) => {
+      if (presupuesto.mes !== mesActual) return;
 
-    // Check against budgets
-    presupuestos.forEach(presupuesto => {
-      const categoria = presupuesto.categoria;
-      const gastoActual = gastosPorCategoria[categoria]?.total || 0;
+      const key = `${presupuesto.accountId}::${presupuesto.bucket}`;
+      const gastoActual = gastadoDelBucket(
+        gastos,
+        presupuesto.accountId,
+        presupuesto.bucket,
+        mesActual,
+      );
       const limite = presupuesto.limite;
+      if (limite <= 0) return;
       const porcentaje = (gastoActual / limite) * 100;
 
-      // Initialize notification state for this category if not exists
-      if (!notifiedRef.current[categoria]) {
-        notifiedRef.current[categoria] = { warning: false, exceeded: false };
+      if (!notifiedRef.current[key]) {
+        notifiedRef.current[key] = { warning: false, exceeded: false };
       }
 
-      const label = categoria === 'general' ? 'Presupuesto General' : (CATEGORIA_LABELS[categoria as keyof typeof CATEGORIA_LABELS] || categoria);
+      const label = bucketLabel(presupuesto.bucket);
       const moneda = presupuesto.moneda;
 
-      // Check for Exceeded (> 100%)
       if (porcentaje >= 100) {
-        if (!notifiedRef.current[categoria].exceeded) {
-          const mensaje = `¡Alerta! Has excedido tu presupuesto de ${label}. (${formatearMoneda(gastoActual, moneda)} / ${formatearMoneda(limite, moneda)})`;
-          
-          // Toast
+        if (!notifiedRef.current[key].exceeded) {
+          const mensaje = `¡Alerta! Excediste el presupuesto de ${label}. (${formatearMoneda(gastoActual, moneda)} / ${formatearMoneda(limite, moneda)})`;
           toast.error(mensaje, { duration: 5000, icon: '🚨' });
-          
-          // PWA Notification
           enviarNotificacion('Presupuesto Excedido', mensaje);
-
-          notifiedRef.current[categoria].exceeded = true;
-          notifiedRef.current[categoria].warning = true; // Implicitly warned
+          notifiedRef.current[key].exceeded = true;
+          notifiedRef.current[key].warning = true;
         }
-      } 
-      // Check for Warning (>= 80%)
-      else if (porcentaje >= 80) {
-        if (!notifiedRef.current[categoria].warning) {
-          const mensaje = `Atención: Estás al ${porcentaje.toFixed(0)}% de tu presupuesto de ${label}.`;
-          
-          // Toast
+      } else if (porcentaje >= 80) {
+        if (!notifiedRef.current[key].warning) {
+          const mensaje = `Atención: Estás al ${porcentaje.toFixed(0)}% del presupuesto de ${label}.`;
           toast(mensaje, { icon: '⚠️', duration: 4000 });
-          
-          // PWA Notification
           enviarNotificacion('Presupuesto Ajustado', mensaje);
-
-          notifiedRef.current[categoria].warning = true;
+          notifiedRef.current[key].warning = true;
         }
-      }
-      // Reset if dropped below (e.g. edited expense)
-      else {
-        if (notifiedRef.current[categoria].warning || notifiedRef.current[categoria].exceeded) {
-           notifiedRef.current[categoria] = { warning: false, exceeded: false };
+      } else {
+        if (
+          notifiedRef.current[key].warning ||
+          notifiedRef.current[key].exceeded
+        ) {
+          notifiedRef.current[key] = { warning: false, exceeded: false };
         }
       }
     });
-
   }, [gastos, presupuestos]);
 
   const enviarNotificacion = (titulo: string, cuerpo: string) => {
     if ('Notification' in window && Notification.permission === 'granted') {
       try {
-        // Check if service worker is ready (for mobile PWA)
         if (navigator.serviceWorker.controller) {
-           navigator.serviceWorker.ready.then(registration => {
-             registration.showNotification(titulo, {
-               body: cuerpo,
-               icon: '/pwa-192x192.png', // Adjust path as needed
-               badge: '/pwa-192x192.png',
-               vibrate: [100, 50, 100]
-             } as NotificationOptions);
-           });
-        } else {
-          // Fallback to local notification
-          new Notification(titulo, {
-            body: cuerpo,
-            icon: '/pwa-192x192.png'
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(titulo, {
+              body: cuerpo,
+              icon: '/pwa-192x192.png',
+              badge: '/pwa-192x192.png',
+              vibrate: [100, 50, 100],
+            } as NotificationOptions);
           });
+        } else {
+          new Notification(titulo, { body: cuerpo, icon: '/pwa-192x192.png' });
         }
       } catch (e) {
         console.error('Error sending notification', e);
@@ -125,5 +130,5 @@ export default function BudgetMonitor() {
     }
   };
 
-  return null; // Invisible component
+  return null;
 }

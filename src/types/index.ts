@@ -169,6 +169,8 @@ export const SUBCATEGORIAS_PRESUPUESTO_GENERAL = [
 export interface Gasto {
   id: string;
   userId: string;
+  /** Cuenta de la que sale el dinero. Opcional durante migración (Fase 6). */
+  accountId?: string;
   fecha: Date;
   categoria: CategoriaGasto;
   subcategoria?: string;
@@ -192,6 +194,7 @@ export interface Gasto {
 
 export interface GastoFirestore {
   userId: string;
+  accountId?: string;
   fecha: Timestamp;
   categoria: CategoriaGasto;
   subcategoria?: string;
@@ -223,6 +226,7 @@ export type ReimbursementStatus = (typeof REIMBURSEMENT_STATUSES)[number];
 export interface GastoFormData {
   fecha: string;
   hora: string;
+  accountId?: string;
   categoria: CategoriaGasto;
   subcategoria?: string;
   monto: string;
@@ -255,29 +259,75 @@ export interface FiltrosGastos {
 // Presupuestos
 // ============================================================================
 
+/**
+ * Bucket especial "efectivo": dentro del presupuesto general de una cuenta,
+ * representa cuánto del total el usuario piensa retirar / gastar en efectivo.
+ * Un gasto en efectivo descuenta de SU CATEGORÍA (alimento, transporte, …) Y
+ * además de este bucket "efectivo" en paralelo.
+ */
+export const BUCKET_EFECTIVO = 'efectivo' as const;
+
+/**
+ * Tipo del bucket dentro del presupuesto de una cuenta.
+ * - 'general': el techo total de la cuenta para el mes.
+ * - 'efectivo': cuánto del general piensas mover a/gastar en efectivo.
+ * - <categoriaId>: una subasignación a una categoría real (string libre porque
+ *   las categorías son configurables por el usuario, no solo el enum por defecto).
+ *
+ * Validación: limiteGeneral >= Σ(limitesCategorias) + limiteEfectivo
+ */
+export type PresupuestoBucket = 'general' | typeof BUCKET_EFECTIVO | string;
+
 export interface Presupuesto {
   id: string;
   userId: string;
+  /** Cuenta a la que pertenece este presupuesto. */
+  accountId: string;
   mes: string; // formato: YYYY-MM
-  categoria: CategoriaGastoOGeneral;
-  subcategoria?: string;
+  bucket: PresupuestoBucket;
   limite: number;
   moneda: Moneda;
-  gastado: number;
+  /**
+   * Carry-over POSITIVO o NEGATIVO desde el mes anterior. Solo aplica al
+   * bucket 'general'. Se calcula lazy en el backend al consultar el mes.
+   */
+  rolloverEntrada?: number;
+  /** Calculado por el backend al consultar (no persistido). */
+  gastado?: number;
+  /** Calculado por el backend al consultar (no persistido). */
+  disponible?: number;
+  /** True cuando `gastado` supera el `limite + rollover`. */
+  excede?: boolean;
+  /** Porcentaje gastado respecto al techo (limite + rollover). */
+  porcentaje?: number;
   alertaEnviada80?: boolean;
   alertaEnviada100?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
+/**
+ * Estado puntual de un bucket. Lo devuelve el backend tras crear/editar/borrar
+ * un gasto, para que el frontend pueda mostrar inmediatamente alertas de
+ * sobregiro de la categoría sin volver a pedir el resumen completo.
+ */
+export interface BucketAlert {
+  bucket: string;
+  limite: number;
+  gastado: number;
+  disponible: number;
+  excede: boolean;
+  porcentaje: number;
+}
+
 export interface PresupuestoFirestore {
   userId: string;
+  accountId: string;
   mes: string;
-  categoria: CategoriaGastoOGeneral;
-  subcategoria?: string;
+  bucket: PresupuestoBucket;
   limite: number;
   moneda: Moneda;
-  gastado: number;
+  rolloverEntrada?: number;
   alertaEnviada80?: boolean;
   alertaEnviada100?: boolean;
   createdAt: Timestamp;
@@ -285,10 +335,51 @@ export interface PresupuestoFirestore {
 }
 
 export interface PresupuestoFormData {
+  accountId: string;
   mes: string;
-  categoria: CategoriaGastoOGeneral;
-  subcategoria?: string;
+  bucket: PresupuestoBucket;
   limite: string;
+}
+
+/**
+ * Snapshot del presupuesto de una cuenta para un mes específico.
+ *
+ * Modelo Opción B: el techo del mes es el saldo de la cuenta (`accountBalance`).
+ * El bucket `general` queda LEGACY (se sigue devolviendo si existe pero el
+ * frontend nuevo no lo crea).
+ */
+export interface PresupuestoMensualResumen {
+  accountId: string;
+  mes: string;
+  moneda: string;
+  /** Bucket general LEGACY. Solo aparece si existe en datos viejos. */
+  general?: Presupuesto;
+  /** Buckets de categorías (excluye 'efectivo'). */
+  categorias: Presupuesto[];
+  /** Bucket de efectivo. */
+  efectivo?: Presupuesto;
+  /** Total gastado en el mes (suma de gastos de la cuenta). */
+  totalGastado: number;
+  /** Total asignado en categorías + efectivo. */
+  totalAsignado: number;
+  /** Saldo actual de la cuenta = bankBalance + cashBalance. */
+  accountBalance: number;
+  /** True cuando totalAsignado > accountBalance. */
+  excedeAsignacion: boolean;
+  /** Disponible no asignado a ningún bucket. */
+  disponibleSinAsignar: number;
+}
+
+export interface CreatePresupuestoDto {
+  accountId: string;
+  mes: string;
+  bucket: PresupuestoBucket;
+  limite: number;
+  moneda?: Moneda;
+}
+
+export interface UpdatePresupuestoDto {
+  limite?: number;
 }
 
 export interface AlertaPresupuesto {
@@ -667,3 +758,264 @@ export type ErrorCode =
   | 'FIREBASE_ERROR'
   | 'IMPORT_ERROR'
   | 'UNKNOWN_ERROR';
+
+// ============================================================================
+// Cuentas (Multi-cuenta — Fase 2/3)
+// ============================================================================
+
+export const ACCOUNT_TYPES = ['bank', 'savings', 'wallet', 'card', 'other'] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+
+export const ACCOUNT_STATUSES = ['active', 'archived'] as const;
+export type AccountStatus = (typeof ACCOUNT_STATUSES)[number];
+
+export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+  bank: 'Banco',
+  savings: 'Ahorros',
+  wallet: 'Billetera digital',
+  card: 'Tarjeta',
+  other: 'Otro',
+};
+
+export const ACCOUNT_TYPE_ICONS: Record<AccountType, string> = {
+  bank: '🏦',
+  savings: '🐷',
+  wallet: '📱',
+  card: '💳',
+  other: '📦',
+};
+
+/**
+ * Lista sugerida de bancos peruanos. El campo `bank` admite texto libre,
+ * por lo que el usuario puede escribir cualquier otro.
+ */
+export const BANCOS_PERU = [
+  'BCP',
+  'BBVA',
+  'Interbank',
+  'Scotiabank',
+  'Banco de la Nación',
+  'BanBif',
+  'Pichincha',
+  'Banco Falabella',
+  'Banco Ripley',
+  'Banco GNB',
+  'ICBC',
+  'Citibank',
+  'Alfin',
+  'Mibanco',
+  'Compartamos',
+] as const;
+
+/**
+ * Cuenta del usuario. Tiene 2 sub-saldos:
+ *   - bankBalance: dinero en la cuenta bancaria/wallet/tarjeta.
+ *   - cashBalance: dinero ya retirado (en efectivo) que vino de esta cuenta.
+ *
+ * El saldo total disponible = bankBalance + cashBalance.
+ * El "Efectivo total" del usuario es la suma de cashBalance de todas sus cuentas.
+ */
+export interface Account {
+  id: string;
+  userId: string;
+  name: string;
+  type: AccountType;
+  bank?: string;
+  /** Código ISO de la moneda (PEN, USD, …). Coincide con `Moneda` por ahora. */
+  currency: string;
+  icon?: string;
+  color?: string;
+  initialBankBalance: number;
+  initialCashBalance: number;
+  bankBalance: number;
+  cashBalance: number;
+  /** Si suma al patrimonio total del Dashboard. */
+  includeInTotal: boolean;
+  isDefault: boolean;
+  status: AccountStatus;
+  /** Solo para type=card. Modelo simple: saldo puede ser negativo. */
+  creditLimit?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AccountFirestore {
+  userId: string;
+  name: string;
+  type: AccountType;
+  bank?: string;
+  currency: string;
+  icon?: string;
+  color?: string;
+  initialBankBalance: number;
+  initialCashBalance: number;
+  bankBalance: number;
+  cashBalance: number;
+  includeInTotal: boolean;
+  isDefault: boolean;
+  status: AccountStatus;
+  creditLimit?: number;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface CreateAccountDto {
+  name: string;
+  type: AccountType;
+  bank?: string;
+  currency: string;
+  icon?: string;
+  color?: string;
+  initialBankBalance?: number;
+  initialCashBalance?: number;
+  includeInTotal?: boolean;
+  isDefault?: boolean;
+  creditLimit?: number;
+}
+
+export type UpdateAccountDto = Partial<Omit<CreateAccountDto, 'currency'>> & {
+  status?: AccountStatus;
+};
+
+/** Saldo total = bankBalance + cashBalance. Helper centralizado. */
+export function getAccountTotalBalance(account: Pick<Account, 'bankBalance' | 'cashBalance'>): number {
+  return account.bankBalance + account.cashBalance;
+}
+
+// ============================================================================
+// Cash Movements (retiros / depósitos dentro de la misma cuenta)
+// ============================================================================
+
+export type CashMovementType = 'withdrawal' | 'deposit_cash' | 'income';
+
+export const CASH_MOVEMENT_LABELS: Record<CashMovementType, string> = {
+  withdrawal: 'Retiro al efectivo',
+  deposit_cash: 'Depósito de efectivo',
+  income: 'Ingreso externo',
+};
+
+/** Origen de un ingreso externo (solo aplica cuando type='income'). */
+export type IncomeSource =
+  | 'unspecified'
+  | 'salary'
+  | 'loan'
+  | 'debt'
+  | 'cts'
+  | 'afp'
+  | 'other';
+
+export const INCOME_SOURCES: readonly IncomeSource[] = [
+  'unspecified',
+  'salary',
+  'loan',
+  'debt',
+  'cts',
+  'afp',
+  'other',
+] as const;
+
+export const INCOME_SOURCE_LABELS: Record<IncomeSource, string> = {
+  unspecified: 'Sin especificar',
+  salary: 'Cuenta sueldo',
+  loan: 'Préstamo',
+  debt: 'Deuda',
+  cts: 'CTS',
+  afp: 'AFP',
+  other: 'Otros',
+};
+
+/** Sub-saldo destino del ingreso. Default: 'bank'. */
+export type IncomeDestination = 'bank' | 'cash';
+
+export interface CashMovement {
+  id: string;
+  userId: string;
+  accountId: string;
+  type: CashMovementType;
+  amount: number;
+  currency: string;
+  description?: string;
+  /** Solo presente cuando type='income'. */
+  source?: IncomeSource;
+  /** Solo presente cuando type='income'. Default 'bank'. */
+  destination?: IncomeDestination;
+  date: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CashMovementFirestore {
+  userId: string;
+  accountId: string;
+  type: CashMovementType;
+  amount: number;
+  currency: string;
+  description?: string;
+  source?: IncomeSource;
+  destination?: IncomeDestination;
+  date: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface CreateCashMovementDto {
+  amount: number;
+  description?: string;
+  /** ISO datetime. Default: ahora. */
+  date?: string;
+}
+
+export interface CreateIncomeDto extends CreateCashMovementDto {
+  source: IncomeSource;
+  destination?: IncomeDestination;
+}
+
+// ============================================================================
+// Transferencias entre cuentas
+// ============================================================================
+
+export interface Transfer {
+  id: string;
+  userId: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  amountConverted?: number;
+  exchangeRate?: number;
+  fromCurrency: string;
+  toCurrency: string;
+  fee?: number;
+  description?: string;
+  date: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TransferFirestore {
+  userId: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  amountConverted?: number;
+  exchangeRate?: number;
+  fromCurrency: string;
+  toCurrency: string;
+  fee?: number;
+  description?: string;
+  date: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface CreateTransferDto {
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  amountConverted?: number;
+  exchangeRate?: number;
+  fee?: number;
+  description?: string;
+  /** ISO datetime. Default: ahora. */
+  date?: string;
+}
+

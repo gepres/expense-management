@@ -2,19 +2,18 @@
  * Dashboard principal con estadísticas y resumen de gastos
  */
 
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useGastos } from '@hooks/useGastos';
-import { usePresupuestos } from '@hooks/usePresupuestos';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
+import { useAccountsContext } from '@context/AccountsContext';
 import {
   calcularTotalGastos,
   calcularGastosPorCategoria,
   agruparGastosPorMoneda,
 } from '@utils/calculations';
-import { formatearMoneda, formatearFecha } from '@utils/formatters';
-import { CATEGORIA_GENERAL } from '@app-types';
+import { formatearFecha } from '@utils/formatters';
 import {
   BarChart,
   Bar,
@@ -27,7 +26,8 @@ import {
 import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Target, Plus, Bot, ArrowRight, Crown } from 'lucide-react';
 import AIInsights from './AIInsights';
 import InstallPWA from '../common/InstallPWA';
-import PresupuestoEfectivoWidget from '../efectivo/PresupuestoEfectivoWidget';
+import CuentasWidget from '../cuentas/CuentasWidget';
+import PatrimonioWidget from '../cuentas/PatrimonioWidget';
 import CustomLoader from '../common/CustomLoader';
 
 // Función helper para obtener el icono de la categoría
@@ -56,78 +56,105 @@ const getCategoryIcon = (categoria: string, className?: string) => {
   }
 };
 
+// Símbolo de moneda corto para el monto principal de cada card.
+function currencyPrefix(currency: string): string {
+  if (currency === 'PEN') return 'S/';
+  if (currency === 'USD') return '$';
+  return currency;
+}
+
+function formatMoney(value: number, currency: string): string {
+  const sign = value < 0 ? '-' : '';
+  const abs = Math.abs(value).toLocaleString('es-PE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${sign}${currencyPrefix(currency)} ${abs}`;
+}
+
 
 export default function Dashboard() {
   const { usuario, isPro } = useAuth();
-  const { gastos, estado, cargarGastos } = useGastos();
-  const { presupuestos, estado: estadoPresupuestos, cargarPresupuestos } = usePresupuestos();
+  const { gastos, estado } = useGastos();
+  const { patrimonioPorMoneda, activeAccounts, estado: estadoCuentas } = useAccountsContext();
   const { getCategoryLabel, getPaymentMethodLabel } = useConfig();
-
-
 
   const [mesActual] = useState(() => {
     const fecha = new Date();
     return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  useEffect(() => {
-    cargarGastos();
-    cargarPresupuestos(mesActual);
-  }, [cargarGastos, cargarPresupuestos, mesActual]);
-
-  // Filtrar gastos del mes actual
-  const gastosDelMes = gastos.filter((gasto) => {
-    const fechaGasto = new Date(gasto.fecha);
-    const mesGasto = `${fechaGasto.getFullYear()}-${String(fechaGasto.getMonth() + 1).padStart(2, '0')}`;
-    return mesGasto === mesActual;
-  });
-
-  // Separar presupuestos generales de presupuestos por categoría
-  const presupuestosGenerales = presupuestos.filter((p) => p.categoria === CATEGORIA_GENERAL);
-  const presupuestosCategorias = presupuestos.filter((p) => p.categoria !== CATEGORIA_GENERAL);
-
-  // Calcular totales por moneda
-  const gastosAgrupados = agruparGastosPorMoneda(gastosDelMes);
-  const totalGastosPEN = calcularTotalGastos(gastosAgrupados.PEN);
-  const totalGastosUSD = calcularTotalGastos(gastosAgrupados.USD);
-  const totalGastosDelMes = totalGastosPEN + totalGastosUSD; // Simplificado
-
-  // Calcular presupuesto total
-  const limiteTotalGeneralPEN = presupuestosGenerales
-    .filter((p) => p.moneda === 'PEN')
-    .reduce((total, p) => total + p.limite, 0);
-
-  const limiteTotalGeneralUSD = presupuestosGenerales
-    .filter((p) => p.moneda === 'USD')
-    .reduce((total, p) => total + p.limite, 0);
-
-  const limitePresupuestoGeneral = limiteTotalGeneralPEN + limiteTotalGeneralUSD;
-  const totalPresupuestosCategorias = presupuestosCategorias.reduce((total, p) => total + p.limite, 0);
-
-  const tienePresupuestoGeneral = presupuestosGenerales.length > 0;
-  const presupuestoTotalReferencia = tienePresupuestoGeneral ? limitePresupuestoGeneral : totalPresupuestosCategorias;
-  const presupuestoRestante = presupuestoTotalReferencia - totalGastosDelMes;
-
-  const porcentajeGastado = presupuestoTotalReferencia > 0
-    ? (totalGastosDelMes / presupuestoTotalReferencia) * 100
-    : 0;
-
-  // Datos para gráficos
-  const gastosPorCategoria = calcularGastosPorCategoria(gastosDelMes);
-  const datosGraficoBarras = Object.entries(gastosPorCategoria).map(
-    ([categoria, total]) => ({
-      categoria: getCategoryLabel(categoria),
-      total,
-    })
+  // Gastos del mes actual
+  const gastosDelMes = useMemo(
+    () =>
+      gastos.filter((g) => {
+        const f = new Date(g.fecha);
+        const mes = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}`;
+        return mes === mesActual;
+      }),
+    [gastos, mesActual],
   );
 
+  // ===========================================================================
+  // OPCIÓN B: cuenta = presupuesto.
+  //   Presupuesto disponible(moneda) = patrimonio(moneda)
+  //   Gastado(moneda)                = Σ gastos del mes en esa moneda
+  //   Disponible(moneda)             = patrimonio(moneda) − gastado(moneda)
+  //
+  // No mezclar monedas. Cada card muestra la moneda principal en grande +
+  // las demás como pills.
+  // ===========================================================================
+
+  const gastosPorMoneda = useMemo(() => {
+    const agr = agruparGastosPorMoneda(gastosDelMes);
+    const out: Record<string, number> = {};
+    for (const [moneda, lista] of Object.entries(agr)) {
+      out[moneda] = calcularTotalGastos(lista);
+    }
+    return out;
+  }, [gastosDelMes]);
+
+  // Lista unificada de monedas (las que tienen patrimonio O gastos en el mes)
+  const monedasActivas = useMemo(() => {
+    const set = new Set<string>([
+      ...Object.keys(patrimonioPorMoneda),
+      ...Object.keys(gastosPorMoneda).filter((m) => gastosPorMoneda[m] > 0),
+    ]);
+    return Array.from(set).sort((a) => (a === 'PEN' ? -1 : 1));
+  }, [patrimonioPorMoneda, gastosPorMoneda]);
+
+  const monedaPrincipal = monedasActivas[0] ?? 'PEN';
+
+  const presupuestoPrincipal = patrimonioPorMoneda[monedaPrincipal] ?? 0;
+  const gastosPrincipal = gastosPorMoneda[monedaPrincipal] ?? 0;
+  const disponiblePrincipal = presupuestoPrincipal - gastosPrincipal;
+
+  const porcentajeGastado = presupuestoPrincipal > 0
+    ? (gastosPrincipal / presupuestoPrincipal) * 100
+    : 0;
+
+  // Para mostrar pills de monedas secundarias en cada card.
+  const monedasSecundarias = monedasActivas.slice(1);
+
+  // Datos para gráficos (en moneda principal — el chart tampoco debe mezclar)
+  const gastosDelMesPrincipal = useMemo(
+    () => gastosDelMes.filter((g) => g.moneda === monedaPrincipal),
+    [gastosDelMes, monedaPrincipal],
+  );
+  const gastosPorCategoria = calcularGastosPorCategoria(gastosDelMesPrincipal);
+  const datosGraficoBarras = Object.entries(gastosPorCategoria)
+    .filter(([, total]) => total > 0)
+    .map(([categoria, total]) => ({
+      categoria: getCategoryLabel(categoria),
+      total,
+    }));
 
   // Obtener últimos 5 gastos
   const ultimosGastos = [...gastos]
     .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
     .slice(0, 5);
 
-  if (estado.estado === 'loading' || estadoPresupuestos.estado === 'loading') {
+  if (estado.estado === 'loading' || estadoCuentas.estado === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
@@ -139,6 +166,7 @@ export default function Dashboard() {
   }
 
   const [year, month] = mesActual.split('-').map(Number);
+  const sinCuentas = activeAccounts.length === 0;
 
   return (
     <div className="space-y-6 pb-8">
@@ -181,7 +209,7 @@ export default function Dashboard() {
 
       {/* Tarjetas de estadísticas principales */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Total Gastos */}
+        {/* Gastos del Mes */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <TrendingDown className="h-24 w-24 text-red-500 transform rotate-12 translate-x-4 -translate-y-4" />
@@ -194,16 +222,21 @@ export default function Dashboard() {
               <p className="text-sm font-medium text-muted-foreground">Gastos del Mes</p>
             </div>
             <p className="text-3xl font-bold text-foreground tracking-tight">
-              {formatearMoneda(totalGastosDelMes)}
+              {formatMoney(gastosPrincipal, monedaPrincipal)}
             </p>
-            <div className="mt-3 flex items-center gap-3 text-xs font-medium text-muted-foreground">
-              <span className="bg-background/50 px-2 py-1 rounded border border-border">S/ {totalGastosPEN.toFixed(2)}</span>
-              <span className="bg-background/50 px-2 py-1 rounded border border-border">$ {totalGastosUSD.toFixed(2)}</span>
-            </div>
+            {monedasSecundarias.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
+                {monedasSecundarias.map((m) => (
+                  <span key={m} className="bg-background/50 px-2 py-1 rounded border border-border">
+                    {formatMoney(gastosPorMoneda[m] ?? 0, m)}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Presupuesto */}
+        {/* Presupuesto = Saldo de cuentas (Opción B: cuenta = presupuesto) */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Wallet className="h-24 w-24 text-blue-500 transform -rotate-12 translate-x-4 -translate-y-4" />
@@ -213,28 +246,42 @@ export default function Dashboard() {
               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                 <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {tienePresupuestoGeneral ? 'Presupuesto General' : 'Presupuesto Categorías'}
-              </p>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Presupuesto del Mes</p>
+                <p className="text-[10px] text-muted-foreground/80">Saldo de tus cuentas activas</p>
+              </div>
             </div>
             <p className="text-3xl font-bold text-foreground tracking-tight">
-              {formatearMoneda(presupuestoTotalReferencia)}
+              {formatMoney(presupuestoPrincipal, monedaPrincipal)}
             </p>
-            <div className="mt-3 w-full bg-muted rounded-full h-1.5 overflow-hidden">
-              <div 
-                className={`h-full rounded-full ${
-                  porcentajeGastado > 100 ? 'bg-red-500' : porcentajeGastado > 80 ? 'bg-yellow-500' : 'bg-blue-500'
-                }`}
-                style={{ width: `${Math.min(porcentajeGastado, 100)}%` }}
-              />
-            </div>
-            <p className="mt-1.5 text-xs text-muted-foreground text-right">
-              {porcentajeGastado.toFixed(1)}% usado
-            </p>
+            {presupuestoPrincipal > 0 && (
+              <>
+                <div className="mt-3 w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${
+                      porcentajeGastado > 100 ? 'bg-red-500' : porcentajeGastado > 80 ? 'bg-yellow-500' : 'bg-blue-500'
+                    }`}
+                    style={{ width: `${Math.min(porcentajeGastado, 100)}%` }}
+                  />
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground text-right">
+                  {porcentajeGastado.toFixed(1)}% gastado
+                </p>
+              </>
+            )}
+            {monedasSecundarias.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
+                {monedasSecundarias.map((m) => (
+                  <span key={m} className="bg-background/50 px-2 py-1 rounded border border-border">
+                    {formatMoney(patrimonioPorMoneda[m] ?? 0, m)}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Restante */}
+        {/* Disponible = Presupuesto − Gastos */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Target className="h-24 w-24 text-green-500 transform rotate-6 translate-x-4 -translate-y-4" />
@@ -244,16 +291,42 @@ export default function Dashboard() {
               <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
                 <Target className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
-              <p className="text-sm font-medium text-muted-foreground">Disponible</p>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Disponible</p>
+                <p className="text-[10px] text-muted-foreground/80">Saldo − gastos del mes</p>
+              </div>
             </div>
             <p className={`text-3xl font-bold tracking-tight ${
-              presupuestoRestante < 0 ? 'text-red-500' : 'text-green-600 dark:text-green-400'
+              disponiblePrincipal < 0 ? 'text-red-500' : 'text-green-600 dark:text-green-400'
             }`}>
-              {formatearMoneda(presupuestoRestante)}
+              {formatMoney(disponiblePrincipal, monedaPrincipal)}
             </p>
             <p className="mt-3 text-xs text-muted-foreground">
-              {presupuestoRestante >= 0 ? '¡Vas bien este mes!' : 'Has excedido tu presupuesto'}
+              {sinCuentas
+                ? 'Crea una cuenta para empezar'
+                : disponiblePrincipal >= 0
+                  ? '¡Vas bien este mes!'
+                  : 'Has excedido tu saldo disponible'}
             </p>
+            {monedasSecundarias.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2 text-xs font-medium">
+                {monedasSecundarias.map((m) => {
+                  const disp = (patrimonioPorMoneda[m] ?? 0) - (gastosPorMoneda[m] ?? 0);
+                  return (
+                    <span
+                      key={m}
+                      className={`px-2 py-1 rounded border ${
+                        disp < 0
+                          ? 'border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10'
+                          : 'border-border bg-background/50 text-muted-foreground'
+                      }`}
+                    >
+                      {formatMoney(disp, m)}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -265,6 +338,11 @@ export default function Dashboard() {
           <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-foreground">Gastos por Categoría</h2>
+              {monedasActivas.length > 1 && (
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                  {monedaPrincipal}
+                </span>
+              )}
             </div>
             {datosGraficoBarras.length > 0 ? (
               <div className="h-[300px] w-full">
@@ -284,7 +362,7 @@ export default function Dashboard() {
                       fontSize={11} 
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(value) => `$${value}`}
+                      tickFormatter={(value) => `${currencyPrefix(monedaPrincipal)}${value}`}
                     />
                     <Tooltip
                       cursor={{ fill: 'hsl(var(--muted)/0.5)' }}
@@ -294,7 +372,7 @@ export default function Dashboard() {
                         borderRadius: '8px',
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                       }}
-                      formatter={(value: number) => [formatearMoneda(value), 'Total']}
+                      formatter={(value: number) => [formatMoney(value, monedaPrincipal), 'Total']}
                     />
                     <Bar 
                       dataKey="total" 
@@ -316,8 +394,11 @@ export default function Dashboard() {
 
         {/* Columna Derecha: Últimos Gastos (1/3 ancho en desktop) */}
         <div className="space-y-6">
-          {/* Widget de Presupuesto en Efectivo */}
-          <PresupuestoEfectivoWidget />
+          {/* Widget de Patrimonio total */}
+          <PatrimonioWidget />
+
+          {/* Widget de Cuentas (multi-cuenta) */}
+          <CuentasWidget />
 
           <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-border flex items-center justify-between bg-muted/20">
@@ -344,7 +425,7 @@ export default function Dashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-sm text-foreground">
-                        {formatearMoneda(gasto.monto, gasto.moneda)}
+                        {formatMoney(gasto.monto, gasto.moneda)}
                       </p>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
                         {getPaymentMethodLabel(gasto.metodoPago)}

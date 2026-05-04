@@ -1,171 +1,220 @@
 /**
- * Hook personalizado para gestionar presupuestos
+ * Hook de presupuestos v2 — multi-cuenta con buckets y rollover.
+ *
+ * - LECTURA: onSnapshot directo a Firestore para todos los presupuestos del usuario.
+ * - MUTATIONS: vía backend (validación de asignación + rollover lazy).
+ * - RESUMEN MENSUAL: pull on-demand via `obtenerResumen(accountId, mes)`.
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { presupuestosService } from '@services/firebase';
-import type { Presupuesto, Estado } from '@app-types';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  Timestamp,
+} from 'firebase/firestore';
+import type { Unsubscribe } from 'firebase/firestore';
+import { db } from '@services/firebase';
+import { PresupuestosService } from '@services/presupuestos';
 import { useAuth } from '@context/AuthContext';
-import { formatearMesKey } from '@utils/formatters';
+import { isNetworkError } from '@utils/api-errors';
 import toast from 'react-hot-toast';
+import type {
+  Presupuesto,
+  PresupuestoFirestore,
+  CreatePresupuestoDto,
+  UpdatePresupuestoDto,
+  PresupuestoMensualResumen,
+  Estado,
+} from '@app-types';
 
 interface UsePresupuestosReturn {
   presupuestos: Presupuesto[];
   estado: Estado<Presupuesto[]>;
-  cargarPresupuestos: (mes?: string) => Promise<void>;
-  crear: (
-    presupuesto: Omit<Presupuesto, 'id' | 'createdAt' | 'updatedAt'>
-  ) => Promise<Presupuesto | null>;
-  actualizar: (id: string, presupuesto: Partial<Presupuesto>) => Promise<void>;
+  /** Presupuestos del mes activo (no incluye gastado/disponible). */
+  presupuestosDelMes: (mes: string, accountId?: string) => Presupuesto[];
+  crear: (dto: CreatePresupuestoDto) => Promise<Presupuesto | null>;
+  actualizar: (id: string, dto: UpdatePresupuestoDto) => Promise<Presupuesto | null>;
   eliminar: (id: string) => Promise<void>;
-  obtenerPorMes: (mes: string) => Promise<Presupuesto[]>;
-  recargar: () => Promise<void>;
+  /**
+   * Snapshot mensual de una cuenta con `gastado`, `disponible` y rollover
+   * calculados en el backend.
+   */
+  obtenerResumen: (
+    accountId: string,
+    mes: string,
+  ) => Promise<PresupuestoMensualResumen | null>;
+  /** True cuando la última llamada al backend falló por red caída. */
+  backendOffline: boolean;
 }
 
-export function usePresupuestos(mesInicial?: string): UsePresupuestosReturn {
+function timestampToDate(ts: Timestamp | Date | undefined): Date {
+  if (!ts) return new Date();
+  if (ts instanceof Date) return ts;
+  if (typeof (ts as Timestamp).toDate === 'function') return (ts as Timestamp).toDate();
+  return new Date();
+}
+
+function firestoreToPresupuesto(id: string, data: PresupuestoFirestore): Presupuesto {
+  return {
+    id,
+    userId: data.userId,
+    accountId: data.accountId,
+    mes: data.mes,
+    bucket: data.bucket,
+    limite: data.limite,
+    moneda: data.moneda,
+    rolloverEntrada: data.rolloverEntrada,
+    alertaEnviada80: data.alertaEnviada80,
+    alertaEnviada100: data.alertaEnviada100,
+    createdAt: timestampToDate(data.createdAt),
+    updatedAt: timestampToDate(data.updatedAt),
+  };
+}
+
+export function usePresupuestos(): UsePresupuestosReturn {
   const { usuario } = useAuth();
-  const [mesActual, setMesActual] = useState(mesInicial || formatearMesKey(new Date()));
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
   const [estado, setEstado] = useState<Estado<Presupuesto[]>>({
     data: null,
     estado: 'idle',
     error: null,
   });
+  const [backendOffline, setBackendOffline] = useState(false);
 
   /**
-   * Cargar presupuestos de un mes (por defecto el mes actual)
+   * Centraliza el handling de errores de mutations/queries: si es de red,
+   * marca offline (sin spamear toast); si es del API, dispara toast con el
+   * mensaje específico.
    */
-  const cargarPresupuestos = useCallback(async (mes?: string) => {
-    const mesACargar = mes || mesActual;
-
-    // Actualizar el mes actual si se proporciona uno nuevo
-    if (mes && mes !== mesActual) {
-      setMesActual(mes);
+  const handleApiError = useCallback((error: unknown, fallbackMsg: string) => {
+    if (isNetworkError(error)) {
+      setBackendOffline(true);
+      return;
     }
+    setBackendOffline(false);
+    const msg = error instanceof Error ? error.message : fallbackMsg;
+    toast.error(msg);
+  }, []);
 
+  // Realtime listener
+  useEffect(() => {
     if (!usuario) {
       setPresupuestos([]);
       setEstado({ data: [], estado: 'success', error: null });
       return;
     }
 
-    try {
-      setEstado((prev) => ({ ...prev, estado: 'loading' }));
-      const presupuestosData = await presupuestosService.obtenerPorMes(
-        usuario.id,
-        mesACargar
-      );
-      setPresupuestos(presupuestosData);
-      setEstado({ data: presupuestosData, estado: 'success', error: null });
-    } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : 'Error al cargar presupuestos';
-      setEstado({ data: null, estado: 'error', error: errorMsg });
-      toast.error(errorMsg);
-    }
-  }, [usuario, mesActual]);
+    setEstado((prev) => ({ ...prev, estado: 'loading' }));
 
-  useEffect(() => {
-    cargarPresupuestos();
-  }, [cargarPresupuestos]);
+    const q = query(
+      collection(db, 'presupuestos'),
+      where('userId', '==', usuario.id),
+    );
 
-  /**
-   * Crear un nuevo presupuesto
-   */
-  const crear = async (
-    presupuestoData: Omit<Presupuesto, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<Presupuesto | null> => {
-    if (!usuario) {
-      toast.error('Debes iniciar sesión');
-      return null;
-    }
+    const unsub: Unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items = snapshot.docs.map((doc) =>
+          firestoreToPresupuesto(doc.id, doc.data() as PresupuestoFirestore),
+        );
+        setPresupuestos(items);
+        setEstado({ data: items, estado: 'success', error: null });
+      },
+      (error) => {
+        console.error('[usePresupuestos] Listener error:', error);
+        setEstado({ data: null, estado: 'error', error: error.message });
+      },
+    );
 
-    try {
-      const nuevoPresupuesto = await presupuestosService.crear(presupuestoData);
-      setPresupuestos((prev) => [...prev, nuevoPresupuesto]);
-      toast.success('Presupuesto creado exitosamente');
-      return nuevoPresupuesto;
-    } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : 'Error al crear presupuesto';
-      toast.error(errorMsg);
-      return null;
-    }
-  };
+    return () => unsub();
+  }, [usuario]);
 
-  /**
-   * Actualizar un presupuesto existente
-   */
-  const actualizar = async (
-    id: string,
-    presupuestoData: Partial<Presupuesto>
-  ): Promise<void> => {
-    try {
-      await presupuestosService.actualizar(id, presupuestoData);
-      setPresupuestos((prev) =>
-        prev.map((presupuesto) =>
-          presupuesto.id === id
-            ? { ...presupuesto, ...presupuestoData, updatedAt: new Date() }
-            : presupuesto
-        )
-      );
-      toast.success('Presupuesto actualizado exitosamente');
-    } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : 'Error al actualizar presupuesto';
-      toast.error(errorMsg);
-      throw error;
-    }
-  };
+  // Filtrado local por mes y opcional cuenta
+  const presupuestosDelMes = useCallback(
+    (mes: string, accountId?: string) =>
+      presupuestos.filter(
+        (p) => p.mes === mes && (!accountId || p.accountId === accountId),
+      ),
+    [presupuestos],
+  );
 
-  /**
-   * Eliminar un presupuesto
-   */
-  const eliminar = async (id: string): Promise<void> => {
-    try {
-      await presupuestosService.eliminar(id);
-      setPresupuestos((prev) => prev.filter((presupuesto) => presupuesto.id !== id));
-      toast.success('Presupuesto eliminado exitosamente');
-    } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : 'Error al eliminar presupuesto';
-      toast.error(errorMsg);
-      throw error;
-    }
-  };
+  // Mutations
+  const crear = useCallback(
+    async (dto: CreatePresupuestoDto): Promise<Presupuesto | null> => {
+      try {
+        const created = await PresupuestosService.create(dto);
+        setBackendOffline(false);
+        toast.success('Presupuesto creado');
+        return created;
+      } catch (error) {
+        handleApiError(error, 'Error al crear presupuesto');
+        return null;
+      }
+    },
+    [handleApiError],
+  );
 
-  /**
-   * Obtener presupuestos de un mes específico
-   */
-  const obtenerPorMes = async (mes: string): Promise<Presupuesto[]> => {
-    if (!usuario) return [];
+  const actualizar = useCallback(
+    async (id: string, dto: UpdatePresupuestoDto): Promise<Presupuesto | null> => {
+      try {
+        const updated = await PresupuestosService.update(id, dto);
+        setBackendOffline(false);
+        toast.success('Presupuesto actualizado');
+        return updated;
+      } catch (error) {
+        handleApiError(error, 'Error al actualizar presupuesto');
+        return null;
+      }
+    },
+    [handleApiError],
+  );
 
-    try {
-      return await presupuestosService.obtenerPorMes(usuario.id, mes);
-    } catch (error) {
-      const errorMsg =
-        error instanceof Error ? error.message : 'Error al obtener presupuestos';
-      toast.error(errorMsg);
-      return [];
-    }
-  };
+  const eliminar = useCallback(
+    async (id: string): Promise<void> => {
+      try {
+        await PresupuestosService.remove(id);
+        setBackendOffline(false);
+        toast.success('Presupuesto eliminado');
+      } catch (error) {
+        handleApiError(error, 'Error al eliminar');
+        throw error;
+      }
+    },
+    [handleApiError],
+  );
 
-  /**
-   * Recargar presupuestos
-   */
-  const recargar = async (): Promise<void> => {
-    await cargarPresupuestos();
-  };
+  const obtenerResumen = useCallback(
+    async (accountId: string, mes: string): Promise<PresupuestoMensualResumen | null> => {
+      try {
+        const resumen = await PresupuestosService.getResumen(accountId, mes);
+        setBackendOffline(false);
+        return resumen;
+      } catch (error) {
+        // Para queries silenciosas (lectura) no mostramos toast: el banner
+        // y el badge `backendOffline` son suficientes.
+        if (isNetworkError(error)) {
+          setBackendOffline(true);
+        } else {
+          const msg = error instanceof Error ? error.message : 'Error al obtener resumen';
+          toast.error(msg);
+        }
+        return null;
+      }
+    },
+    [],
+  );
 
   return {
     presupuestos,
     estado,
-    cargarPresupuestos,
+    presupuestosDelMes,
     crear,
     actualizar,
     eliminar,
-    obtenerPorMes,
-    recargar,
+    obtenerResumen,
+    backendOffline,
   };
 }
 

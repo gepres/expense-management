@@ -239,6 +239,41 @@ service cloud.firestore {
     }
 
     // ========================================================================
+    // ACCOUNTS — cuentas multi-cuenta del usuario (Fase 2)
+    // ========================================================================
+
+    match /accounts/{accountId} {
+      allow read: if ownsResource();
+      allow create: if ownsRequest();
+      allow update: if ownsResource() && ownsRequest();
+      allow delete: if ownsResource();
+    }
+
+    // ========================================================================
+    // TRANSFERS — transferencias entre cuentas. Inmutables desde el cliente.
+    // ========================================================================
+
+    match /transfers/{transferId} {
+      allow read: if ownsResource();
+      allow create: if ownsRequest();
+      // Inmutables: para corregir hay que delete + create
+      allow update: if false;
+      allow delete: if ownsResource();
+    }
+
+    // ========================================================================
+    // CASH MOVEMENTS — retiros / depósitos dentro de una misma cuenta.
+    // bankBalance ↔ cashBalance. Inmutables desde el cliente.
+    // ========================================================================
+
+    match /cash-movements/{movementId} {
+      allow read: if ownsResource();
+      allow create: if ownsRequest();
+      allow update: if false;
+      allow delete: if ownsResource();
+    }
+
+    // ========================================================================
     // WHATSAPP QUEUE — solo Cloud Functions (Twilio webhook)
     // Ningún cliente debe leer ni escribir
     // ========================================================================

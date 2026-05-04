@@ -297,19 +297,27 @@ export function generarRecomendaciones(
   const recomendaciones: Recomendacion[] = [];
   const estadisticas = calcularEstadisticasPeriodo(gastos);
 
-  // Verificar presupuestos excedidos o cerca del límite
+  // Verificar presupuestos excedidos o cerca del límite.
+  // El backend calcula `gastado` al consultar el resumen mensual; para
+  // presupuestos sin esa info, lo asumimos 0 y omitimos las alertas.
   presupuestos.forEach((presupuesto) => {
-    const porcentaje = (presupuesto.gastado / presupuesto.limite) * 100;
+    const gastado = presupuesto.gastado ?? 0;
+    if (presupuesto.limite <= 0) return;
+    const porcentaje = (gastado / presupuesto.limite) * 100;
+    const bucketLabel = presupuesto.bucket === 'general' ? 'general' : presupuesto.bucket;
 
     if (porcentaje >= 100) {
       recomendaciones.push({
         id: `presupuesto-${presupuesto.id}-excedido`,
         tipo: 'presupuesto',
         prioridad: 'alta',
-        titulo: `Presupuesto excedido en ${presupuesto.categoria}`,
+        titulo: `Presupuesto excedido en ${bucketLabel}`,
         descripcion: `Has excedido tu presupuesto en un ${(porcentaje - 100).toFixed(1)}%. Considera reducir gastos en esta categoría.`,
-        categoria: presupuesto.categoria === 'general' ? undefined : (presupuesto.categoria as CategoriaGasto),
-        ahorroPotencial: presupuesto.gastado - presupuesto.limite,
+        categoria:
+          presupuesto.bucket === 'general' || presupuesto.bucket === 'efectivo'
+            ? undefined
+            : (presupuesto.bucket as CategoriaGasto),
+        ahorroPotencial: gastado - presupuesto.limite,
         accion: 'Revisar gastos recientes y eliminar gastos innecesarios',
       });
     } else if (porcentaje >= 80) {
@@ -317,9 +325,12 @@ export function generarRecomendaciones(
         id: `presupuesto-${presupuesto.id}-cerca`,
         tipo: 'presupuesto',
         prioridad: 'media',
-        titulo: `Cerca del límite en ${presupuesto.categoria}`,
-        descripcion: `Has usado el ${porcentaje.toFixed(1)}% de tu presupuesto. Quedan ${(presupuesto.limite - presupuesto.gastado).toFixed(2)} disponibles.`,
-        categoria: presupuesto.categoria === 'general' ? undefined : (presupuesto.categoria as CategoriaGasto),
+        titulo: `Cerca del límite en ${bucketLabel}`,
+        descripcion: `Has usado el ${porcentaje.toFixed(1)}% de tu presupuesto. Quedan ${(presupuesto.limite - gastado).toFixed(2)} disponibles.`,
+        categoria:
+          presupuesto.bucket === 'general' || presupuesto.bucket === 'efectivo'
+            ? undefined
+            : (presupuesto.bucket as CategoriaGasto),
         accion: 'Moderar gastos hasta fin de mes',
       });
     }
@@ -404,8 +415,8 @@ export function debeEnviarAlerta(presupuesto: Presupuesto): {
   tipo: '80' | '100' | null;
 } {
   const porcentaje = calcularPorcentajePresupuesto(
-    presupuesto.gastado,
-    presupuesto.limite
+    presupuesto.gastado ?? 0,
+    presupuesto.limite,
   );
 
   if (porcentaje >= 100 && !presupuesto.alertaEnviada100) {

@@ -9,7 +9,7 @@ import { useConfig } from '@context/ConfigContext';
 import { formatearMoneda, formatearFecha } from '@utils/formatters';
 import { calcularTotalGastos, agruparGastosPorMoneda } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
-import { Plus, FileText, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Download, Search, Filter, Calendar, CreditCard, TrendingUp, Lightbulb, ChevronRight, Trash2, AlertTriangle, FileSpreadsheet, FileJson } from 'lucide-react';
+import { Plus, FileText, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Download, Search, Filter, Calendar, CreditCard, TrendingUp, Lightbulb, ChevronRight, Trash2, AlertTriangle, FileSpreadsheet, FileJson, CalendarSearch } from 'lucide-react';
 import CustomLoader from '@components/common/CustomLoader';
 import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
 import { ExpensesService } from '../../services/expenses';
@@ -102,6 +102,27 @@ export default function ListaGastos() {
       USD: calcularTotalGastos(agrupados.USD),
     };
   }, [gastosFiltrados]);
+
+  // Si el mes seleccionado no tiene gastos pero existen en otros meses,
+  // sugerir saltar al mes más reciente que sí tenga.
+  const sugerenciaMesConGastos = useMemo(() => {
+    if (gastosFiltrados.length > 0 || gastos.length === 0) return null;
+    const mesesConGastos = new Set<string>();
+    for (const g of gastos) {
+      const f = new Date(g.fecha);
+      mesesConGastos.add(
+        `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}`,
+      );
+    }
+    const masReciente = Array.from(mesesConGastos).sort().reverse()[0];
+    if (!masReciente || masReciente === mesActual) return null;
+    return masReciente;
+  }, [gastos, gastosFiltrados, mesActual]);
+
+  const formatearMesLabel = (mesKey: string): string => {
+    const [y, m] = mesKey.split('-').map(Number);
+    return new Date(y, m - 1).toLocaleString('es', { month: 'long', year: 'numeric' });
+  };
 
   // Manejar eliminación
   const handleEliminar = async (id: string) => {
@@ -349,6 +370,33 @@ export default function ListaGastos() {
           </div>
         )}
       </div>
+
+      {/* Sugerencia: hay gastos pero en otro mes */}
+      {sugerenciaMesConGastos && (
+        <div className="rounded-xl border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-start gap-3 flex-1">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/40 rounded-lg shrink-0">
+              <CalendarSearch className="h-5 w-5 text-blue-700 dark:text-blue-300" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                No hay gastos en {formatearMesLabel(mesActual)}
+              </p>
+              <p className="text-xs text-blue-800 dark:text-blue-200 mt-0.5">
+                Tienes gastos registrados en {formatearMesLabel(sugerenciaMesConGastos)}.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMesActual(sugerenciaMesConGastos)}
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+          >
+            Ver {formatearMesLabel(sugerenciaMesConGastos)}
+            <ChevronRight className="h-3 w-3" />
+          </button>
+        </div>
+      )}
 
       {/* Lista de gastos (Vista Desktop) */}
       <div className="hidden md:block bg-card border border-border rounded-lg overflow-hidden shadow-sm">

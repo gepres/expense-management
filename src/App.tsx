@@ -10,7 +10,7 @@ import { ThemeProvider, useTheme } from '@context/ThemeContext';
 import { ConfigProvider } from '@context/ConfigContext';
 import { PreferencesProvider } from '@context/PreferencesContext';
 import { SharedExpensesProvider } from '@context/SharedExpensesContext';
-import { PresupuestoEfectivoProvider } from '@context/PresupuestoEfectivoContext';
+import { AccountsProvider } from '@context/AccountsContext';
 import ErrorAlert from '@components/common/ErrorAlert';
 import CustomLoader from '@components/common/CustomLoader';
 
@@ -36,9 +36,10 @@ const JoinGroupPage = lazy(() => import('@components/compartidos/JoinGroupPage')
 const ShoppingListView = lazy(() => import('@/modules/shopping-list/ShoppingListView'));
 const ShoppingListDetail = lazy(() => import('@/modules/shopping-list/ShoppingListDetail'));
 
-// Movimientos y Efectivo
-const FormularioMovimiento = lazy(() => import('@components/movimientos/FormularioMovimiento'));
-const HistorialEfectivo = lazy(() => import('@components/efectivo/HistorialEfectivo'));
+// Cuentas (multi-cuenta)
+const ListaCuentas = lazy(() => import('@components/cuentas/ListaCuentas'));
+const FormularioCuenta = lazy(() => import('@components/cuentas/FormularioCuenta'));
+const DetalleCuenta = lazy(() => import('@components/cuentas/DetalleCuenta'));
 
 // Documentación
 const Documentacion = lazy(() => import('@/pages/Documentacion'));
@@ -155,9 +156,11 @@ function AppRoutes() {
           <Route path="compartidos" element={<SharedGroupsList />} />
           <Route path="compartidos/:id" element={<SharedGroupDetail />} />
 
-          {/* Movimientos y Efectivo */}
-          <Route path="movimientos/nuevo" element={<FormularioMovimiento />} />
-          <Route path="efectivo/historial" element={<HistorialEfectivo />} />
+          {/* Cuentas (multi-cuenta) */}
+          <Route path="cuentas" element={<ListaCuentas />} />
+          <Route path="cuentas/nueva" element={<FormularioCuenta />} />
+          <Route path="cuentas/editar/:id" element={<FormularioCuenta />} />
+          <Route path="cuentas/:id" element={<DetalleCuenta />} />
 
           {/* Shopping List */}
           <Route path="compras" element={<ShoppingListView />} />
@@ -236,7 +239,7 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <PresupuestoEfectivoProvider>
+          <AccountsProvider>
             <ConfigProvider>
               <PreferencesProvider>
                 <SharedExpensesProvider>
@@ -245,7 +248,7 @@ function App() {
                 </SharedExpensesProvider>
               </PreferencesProvider>
             </ConfigProvider>
-          </PresupuestoEfectivoProvider>
+          </AccountsProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

@@ -19,7 +19,15 @@
       "Bash(node -e \"const r = require\\('D:/PROYECTOS/gepres/gastos-backend/backups/firestore-2026-04-26-054232/receipts.json'\\); console.log\\('Total:', r.length\\); console.log\\('Sample fields:', Object.keys\\(r[0]?.data || {}\\).join\\(', '\\)\\);\")",
       "Bash(node *)",
       "Bash(firebase --version)",
-      "Bash(firebase deploy *)"
+      "Bash(firebase deploy *)",
+      "Bash(npx tsc *)",
+      "Bash(awk 'NR<=859 || NR>=1133' D:/PROYECTOS/gepres/gastos/src/services/firebase.ts)",
+      "Bash(awk 'NR<=695 || NR>=785' D:/PROYECTOS/gepres/gastos/src/services/firebase.ts)",
+      "Bash(awk 'NR<=251 || NR>=345' D:/PROYECTOS/gepres/gastos/src/services/firebase.ts)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(awk 'NR<=249 || NR==272 || \\(NR>=273 && NR<=600\\) || NR>=675' D:/PROYECTOS/gepres/gastos/src/services/firebase.ts)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/api/health)",
+      "Bash(echo \"exit=$?\")"
     ],
     "deny": [],
     "ask": []

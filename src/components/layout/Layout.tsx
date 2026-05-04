@@ -7,7 +7,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
-import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, ShoppingBag, BanknoteArrowDown, Crown } from 'lucide-react';
+import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, ShoppingBag, BanknoteArrowDown, Crown, CreditCard } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import BudgetMonitor from '../common/BudgetMonitor';
 import NotificationsPanel from '../compartidos/NotificationsPanel';
@@ -22,6 +22,7 @@ export default function Layout() {
   const [menuUsuarioAbierto, setMenuUsuarioAbierto] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   const handleLogout = async (): Promise<void> => {
     try {
@@ -33,14 +34,20 @@ export default function Layout() {
     }
   };
 
+  // Nav primario (siempre visible en desktop)
   const desktopLinks = [
     { to: '/', label: 'Dashboard', icon: BarChart3 },
+    { to: '/cuentas', label: 'Cuentas', icon: CreditCard },
     { to: '/gastos', label: 'Gastos', icon: TrendingDown },
+    { to: '/presupuestos', label: 'Presupuestos', icon: Target },
+    { to: '/asistente', label: 'Asistente IA', icon: Bot },
+  ];
+
+  // Nav secundario (en dropdown "Más" del desktop)
+  const desktopMoreLinks = [
     { to: '/compras', label: 'Compras', icon: ShoppingBag },
     { to: '/compartidos', label: 'Compartidos', icon: Users },
-    { to: '/presupuestos', label: 'Presupuestos', icon: Target },
     { to: '/importar', label: 'Importar', icon: Upload },
-    { to: '/asistente', label: 'Asistente IA', icon: Bot },
   ];
 
   const mobileLinks = [
@@ -87,6 +94,53 @@ export default function Layout() {
                   </NavLink>
                 );
               })}
+
+              {/* Dropdown "Más" para opciones secundarias */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setMoreMenuOpen((v) => !v)}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 text-foreground hover:bg-accent hover:text-accent-foreground ${
+                    moreMenuOpen ? 'bg-accent' : ''
+                  }`}
+                  aria-haspopup="true"
+                  aria-expanded={moreMenuOpen}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                  Más
+                </button>
+
+                {moreMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setMoreMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-52 bg-card border border-border rounded-md shadow-lg z-20 py-1">
+                      {desktopMoreLinks.map((link) => {
+                        const Icon = link.icon;
+                        return (
+                          <NavLink
+                            key={link.to}
+                            to={link.to}
+                            onClick={() => setMoreMenuOpen(false)}
+                            className={({ isActive }) =>
+                              `flex items-center gap-2 px-4 py-2 text-sm transition-colors ${
+                                isActive
+                                  ? 'bg-primary/10 text-primary font-medium'
+                                  : 'text-foreground hover:bg-accent'
+                              }`
+                            }
+                          >
+                            <Icon className="h-4 w-4" />
+                            {link.label}
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
             </nav>
 
             {/* Actions - Desktop */}

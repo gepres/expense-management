@@ -1,958 +1,749 @@
 /**
- * Vista de presupuestos con gestión completa
+ * Vista de Presupuestos v2 — multi-cuenta con buckets y rollover.
+ *
+ * Modelo:
+ *   Cuenta (BCP Soles, presupuesto general 1000)
+ *     ├── Categoria Alimentación: 500
+ *     ├── Categoria Transporte:   200
+ *     └── Bucket Efectivo:        100
+ *
+ * Validación: limiteGeneral >= Σ(categorias) + efectivo.
+ * Rollover: el sobrante (positivo o negativo) del general del mes M se
+ * acumula en el general del mes M+1 como `rolloverEntrada`.
  */
 
-import { useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { usePresupuestos } from '@hooks/usePresupuestos';
-import { useGastos } from '@hooks/useGastos';
-import { useAuth } from '@context/AuthContext';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAccountsContext } from '@context/AccountsContext';
 import { useConfig } from '@context/ConfigContext';
-import { usePresupuestoEfectivo } from '@context/PresupuestoEfectivoContext';
+import { usePresupuestos } from '@hooks/usePresupuestos';
 import {
-  CATEGORIA_GENERAL,
-  SUBCATEGORIAS_PRESUPUESTO_GENERAL,
-  MONEDA_SIMBOLOS,
+  BUCKET_EFECTIVO,
+  CATEGORIA_LABELS,
+  type Account,
   type CategoriaGasto,
-  type CategoriaGastoOGeneral,
-  type Moneda,
   type Presupuesto,
+  type PresupuestoBucket,
+  type PresupuestoMensualResumen,
 } from '@app-types';
-import { formatearMoneda, parsearMesKey } from '@utils/formatters';
-import { calcularGastosPorCategoria } from '@utils/calculations';
-import { toast } from 'react-hot-toast';
-import { Plus, Target, Wallet, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Tag, Coins, DollarSign, AlertTriangle, ArrowRightLeft, TrendingUp, Sparkles } from 'lucide-react';
-import CustomLoader from '@components/common/CustomLoader';
+import {
+  Plus,
+  Target,
+  Wallet,
+  CreditCard,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  Edit2,
+  Trash2,
+  RefreshCw,
+} from 'lucide-react';
 import Modal, { ModalFooterActions } from '@components/common/Modal';
-import { ContainerLoadingButton } from '../common/Button';
+import { Input, Select, InputGroup, InputRow } from '@components/common/Input';
+import Button from '@components/common/Button';
+import AccountIcon from '@components/cuentas/AccountIcon';
+import CustomLoader from '@components/common/CustomLoader';
+import ConfirmationModal from '@components/common/ConfirmationModal';
+import BackendOfflineBanner from '@components/common/BackendOfflineBanner';
 
-interface FormPresupuesto {
-  categoria: CategoriaGastoOGeneral;
-  subcategoria: string;
+interface FormState {
+  bucket: PresupuestoBucket;
   limite: string;
-  moneda: Moneda;
+}
+
+const INITIAL_FORM: FormState = { bucket: 'general', limite: '' };
+
+function bucketLabel(bucket: string): string {
+  if (bucket === 'general') return 'Presupuesto General';
+  if (bucket === BUCKET_EFECTIVO) return 'Efectivo';
+  return CATEGORIA_LABELS[bucket as CategoriaGasto] ?? bucket;
+}
+
+function formatBalance(value: number, currency: string): string {
+  const sign = value < 0 ? '-' : '';
+  const abs = Math.abs(value).toLocaleString('es-PE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${sign}${currency} ${abs}`;
+}
+
+function progressColor(porcentaje: number): string {
+  if (porcentaje >= 100) return 'bg-red-500';
+  if (porcentaje >= 80) return 'bg-amber-500';
+  return 'bg-emerald-500';
 }
 
 export default function ListaPresupuestos() {
-  const navigate = useNavigate();
-  const { usuario } = useAuth();
-  const { presupuestos, estado, cargarPresupuestos, crear, actualizar, eliminar } = usePresupuestos();
-  const { gastos, cargarGastos } = useGastos();
-  const { presupuestosEfectivo } = usePresupuestoEfectivo();
-  const { categories, currencies, getCategoryLabel } = useConfig();
+  const { activeAccounts, defaultAccount, estado: estadoCuentas } = useAccountsContext();
+  const { categories } = useConfig();
+  const {
+    presupuestos,
+    estado,
+    crear,
+    actualizar,
+    eliminar,
+    obtenerResumen,
+    backendOffline,
+  } = usePresupuestos();
 
   const [mesActual, setMesActual] = useState(() => {
-    const fecha = new Date();
-    return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  const [mostrarModal, setMostrarModal] = useState(false);
-  const [presupuestoEditando, setPresupuestoEditando] = useState<Presupuesto | null>(null);
-  const [presupuestoAEliminar, setPresupuestoAEliminar] = useState<string | null>(null);
-  const [cargando, setCargando] = useState(false);
-  const [eliminando, setEliminando] = useState(false);
+  const [accountId, setAccountId] = useState<string>('');
+  const [resumen, setResumen] = useState<PresupuestoMensualResumen | null>(null);
+  const [loadingResumen, setLoadingResumen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Presupuesto | null>(null);
+  const [form, setForm] = useState<FormState>(INITIAL_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Presupuesto | null>(null);
 
-  const [formData, setFormData] = useState<FormPresupuesto>({
-    categoria: 'alimentacion',
-    subcategoria: '',
-    limite: '',
-    moneda: 'PEN',
-  });
-
+  // Pre-seleccionar la cuenta default cuando cargan
   useEffect(() => {
-    cargarPresupuestos(mesActual);
-    cargarGastos();
-  }, [mesActual, cargarPresupuestos, cargarGastos]);
-
-  // Calcular gastos por categoría del mes actual
-  const gastosPorCategoria = useMemo(() => {
-    const gastosDelMes = gastos.filter((gasto) => {
-      const fechaGasto = new Date(gasto.fecha);
-      const mesGasto = `${fechaGasto.getFullYear()}-${String(fechaGasto.getMonth() + 1).padStart(2, '0')}`;
-      return mesGasto === mesActual;
-    });
-    return calcularGastosPorCategoria(gastosDelMes);
-  }, [gastos, mesActual]);
-
-  // Separar presupuestos generales de presupuestos por categoría
-  const { presupuestosGenerales, presupuestosCategorias } = useMemo(() => {
-    const generales = presupuestos.filter((p) => p.categoria === CATEGORIA_GENERAL);
-    const categorias = presupuestos.filter((p) => p.categoria !== CATEGORIA_GENERAL);
-    return { presupuestosGenerales: generales, presupuestosCategorias: categorias };
-  }, [presupuestos]);
-
-  // Calcular totales asignados y no asignados (por moneda)
-  const totales = useMemo(() => {
-    const totalAsignadoPEN = presupuestosCategorias
-      .filter((p) => p.moneda === 'PEN')
-      .reduce((sum, p) => sum + p.limite, 0);
-
-    const totalAsignadoUSD = presupuestosCategorias
-      .filter((p) => p.moneda === 'USD')
-      .reduce((sum, p) => sum + p.limite, 0);
-
-    // Sumar todos los presupuestos generales por moneda
-    const limiteTotalPEN = presupuestosGenerales
-      .filter((p) => p.moneda === 'PEN')
-      .reduce((sum, p) => sum + p.limite, 0);
-
-    const limiteTotalUSD = presupuestosGenerales
-      .filter((p) => p.moneda === 'USD')
-      .reduce((sum, p) => sum + p.limite, 0);
-
-    return {
-      limiteTotalPEN,
-      limiteTotalUSD,
-      asignadoPEN: totalAsignadoPEN,
-      asignadoUSD: totalAsignadoUSD,
-      noAsignadoPEN: limiteTotalPEN - totalAsignadoPEN,
-      noAsignadoUSD: limiteTotalUSD - totalAsignadoUSD,
-    };
-  }, [presupuestosCategorias, presupuestosGenerales]);
-
-  // Abrir modal para crear nuevo presupuesto
-  const handleNuevo = () => {
-    setPresupuestoEditando(null);
-    setFormData({
-      categoria: 'alimentacion',
-      subcategoria: '',
-      limite: '',
-      moneda: 'PEN',
-    });
-    setMostrarModal(true);
-  };
-
-  // Abrir modal para editar presupuesto
-  const handleEditar = (presupuesto: Presupuesto) => {
-    setPresupuestoEditando(presupuesto);
-    setFormData({
-      categoria: presupuesto.categoria,
-      subcategoria: presupuesto.subcategoria || '',
-      limite: presupuesto.limite.toString(),
-      moneda: presupuesto.moneda,
-    });
-    setMostrarModal(true);
-  };
-
-  // Manejar cambios en el formulario
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-
-    // Si cambia la categoría, resetear subcategoría
-    if (name === 'categoria') {
-      setFormData((prev) => ({ ...prev, [name]: value as CategoriaGastoOGeneral, subcategoria: '' }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+    if (!accountId && activeAccounts.length > 0) {
+      setAccountId(defaultAccount?.id ?? activeAccounts[0].id);
     }
-  };
+  }, [accountId, activeAccounts, defaultAccount]);
 
-  // Validar formulario
-  const validarFormulario = (): boolean => {
-    if (!formData.limite || parseFloat(formData.limite) <= 0) {
-      toast.error('El límite debe ser mayor a 0');
-      return false;
-    }
+  const account: Account | undefined = useMemo(
+    () => activeAccounts.find((a) => a.id === accountId),
+    [activeAccounts, accountId],
+  );
 
-    // Solo validar duplicados para categorías (no para presupuesto general)
-    if (formData.categoria !== CATEGORIA_GENERAL) {
-      const existePresupuesto = presupuestos.some(
-        (p) =>
-          p.categoria === formData.categoria &&
-          p.moneda === formData.moneda &&
-          (!presupuestoEditando || p.id !== presupuestoEditando.id)
-      );
+  // Disponible máximo a asignar al bucket actual (modal):
+  //   = saldo cuenta − (otras asignaciones)
+  // Si estamos editando, excluimos el limite actual del bucket que editamos
+  // para que el usuario pueda modificarlo libremente.
+  const disponibleMax = useMemo(() => {
+    if (!resumen) return null;
+    const reservadoOtros = editing
+      ? resumen.totalAsignado - editing.limite
+      : resumen.totalAsignado;
+    return resumen.accountBalance - reservadoOtros;
+  }, [resumen, editing]);
 
-      if (existePresupuesto) {
-        const currencyObj = currencies.find(c => c.codigoISO === formData.moneda);
-        const currencyLabel = currencyObj ? currencyObj.nombre : formData.moneda;
-        toast.error(
-          `Ya existe un presupuesto para ${getCategoryLabel(formData.categoria)} en ${currencyLabel}`
-        );
-        return false;
-      }
-    }
+  const limiteIngresado = parseFloat(form.limite || '0');
+  const excedeMax =
+    disponibleMax !== null && limiteIngresado > 0 && limiteIngresado > disponibleMax;
 
-    return true;
-  };
-
-  // Guardar presupuesto
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-
-    if (!validarFormulario()) return;
-    if (!usuario) {
-      toast.error('Debes iniciar sesión');
+  // Pull resumen del mes cada vez que cambia cuenta o mes (o cuando cambian
+  // los presupuestos, para refrescar tras crear/editar/borrar).
+  const refreshResumen = async () => {
+    if (!accountId) {
+      setResumen(null);
       return;
     }
-
-    setCargando(true);
-
+    setLoadingResumen(true);
     try {
-      const limite = parseFloat(formData.limite);
-      // Para presupuesto general, gastado es 0; para categorías, usar gastos reales
-      const gastado = formData.categoria === CATEGORIA_GENERAL
-        ? 0
-        : (gastosPorCategoria[formData.categoria as CategoriaGasto] || 0);
+      const data = await obtenerResumen(accountId, mesActual);
+      setResumen(data);
+    } finally {
+      setLoadingResumen(false);
+    }
+  };
 
-      if (presupuestoEditando) {
-        // Actualizar presupuesto existente
-        const updateData: any = {
-          limite,
-          moneda: formData.moneda,
-        };
+  useEffect(() => {
+    void refreshResumen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountId, mesActual, presupuestos]);
 
-        // Solo agregar subcategoría si existe
-        if (formData.subcategoria) {
-          updateData.subcategoria = formData.subcategoria;
-        }
+  // Buckets ya en uso para esta cuenta + mes (para evitar duplicados al crear)
+  const bucketsUsados = useMemo(() => {
+    return new Set(
+      presupuestos
+        .filter((p) => p.accountId === accountId && p.mes === mesActual)
+        .map((p) => p.bucket),
+    );
+  }, [presupuestos, accountId, mesActual]);
 
-        await actualizar(presupuestoEditando.id, updateData);
-      } else {
-        // Crear nuevo presupuesto
-        const createData: any = {
-          userId: usuario.id,
-          mes: mesActual,
-          categoria: formData.categoria,
-          limite,
-          moneda: formData.moneda,
-          gastado,
-        };
-
-        // Solo agregar subcategoría si existe
-        if (formData.subcategoria) {
-          createData.subcategoria = formData.subcategoria;
-        }
-
-        await crear(createData);
+  // Modelo Opción B: el bucket 'general' ya no se ofrece (la cuenta ES el
+  // presupuesto general). El bucket 'efectivo' se administra desde la vista
+  // de cuentas (Retirar/Depositar). Esta vista solo gestiona sub-reservas
+  // por CATEGORÍA del usuario.
+  const bucketsDisponibles = useMemo(() => {
+    const disponibles: { value: PresupuestoBucket; label: string }[] = [];
+    for (const cat of categories) {
+      if (!bucketsUsados.has(cat.id)) {
+        disponibles.push({ value: cat.id, label: cat.nombre });
       }
-
-      setMostrarModal(false);
-      setPresupuestoEditando(null);
-    } catch (error) {
-      console.error('Error al guardar presupuesto:', error);
-    } finally {
-      setCargando(false);
     }
+    return disponibles;
+  }, [bucketsUsados, categories]);
+
+  const handleNuevo = () => {
+    setEditing(null);
+    const primer = bucketsDisponibles[0]?.value;
+    if (!primer) return;
+    setForm({ bucket: primer, limite: '' });
+    setModalOpen(true);
   };
 
-  // Eliminar presupuesto
-  const handleEliminar = async (id: string) => {
-    setEliminando(true);
+  const handleEditar = (p: Presupuesto) => {
+    setEditing(p);
+    setForm({ bucket: p.bucket, limite: String(p.limite) });
+    setModalOpen(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!accountId) return;
+    const limiteNum = parseFloat(form.limite);
+    if (!isFinite(limiteNum) || limiteNum < 0) return;
+
+    setSubmitting(true);
     try {
-      await eliminar(id);
-      setPresupuestoAEliminar(null);
-    } catch (error) {
-      console.error('Error al eliminar presupuesto:', error);
+      if (editing) {
+        await actualizar(editing.id, { limite: limiteNum });
+      } else {
+        await crear({
+          accountId,
+          mes: mesActual,
+          bucket: form.bucket,
+          limite: limiteNum,
+        });
+      }
+      setModalOpen(false);
+      setEditing(null);
+      setForm(INITIAL_FORM);
+      void refreshResumen();
     } finally {
-      setEliminando(false);
+      setSubmitting(false);
     }
   };
 
-  // Calcular porcentaje gastado
-  const calcularPorcentaje = (gastado: number, limite: number): number => {
-    if (limite === 0) return 0;
-    return (gastado / limite) * 100;
-  };
-
-  // Obtener color según porcentaje
-  const obtenerColor = (porcentaje: number): string => {
-    if (porcentaje >= 100) return 'bg-destructive';
-    if (porcentaje >= 80) return 'bg-yellow-500';
-    return 'bg-primary';
-  };
-
-  // Obtener icono de categoría
-  const obtenerIconoCategoria = (categoria: CategoriaGastoOGeneral, className: string = "h-5 w-5") => {
-    const iconProps = { className };
-
-    switch (categoria) {
-      case 'alimentacion':
-        return <UtensilsCrossed {...iconProps} />;
-      case 'transporte':
-        return <Car {...iconProps} />;
-      case 'salud':
-        return <Pill {...iconProps} />;
-      case 'entretenimiento':
-        return <Film {...iconProps} />;
-      case 'compras':
-        return <ShoppingCart {...iconProps} />;
-      case 'educacion':
-        return <BookOpen {...iconProps} />;
-      case 'vivienda':
-        return <Home {...iconProps} />;
-      case 'servicios':
-        return <Wrench {...iconProps} />;
-      case 'general':
-        return <Wallet {...iconProps} />;
-      default:
-        return <Package {...iconProps} />;
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    try {
+      await eliminar(confirmDelete.id);
+      setConfirmDelete(null);
+      void refreshResumen();
+    } catch {
+      // toast ya emitido
     }
   };
 
-  if (estado.estado === 'loading') {
+  if (estadoCuentas.estado === 'loading' && activeAccounts.length === 0) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <div className="text-center">
-          <CustomLoader />
-          <p className="text-muted-foreground mt-4">Cargando presupuestos...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-[40vh]">
+        <CustomLoader />
+      </div>
+    );
+  }
+
+  if (activeAccounts.length === 0) {
+    return (
+      <div className="bg-card border border-dashed border-border rounded-xl p-10 text-center">
+        <CreditCard className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
+        <p className="font-medium text-foreground">No tienes cuentas activas</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Los presupuestos se asignan por cuenta. Crea una primero.
+        </p>
+        <Link to="/cuentas/nueva" className="inline-block mt-4">
+          <Button variant="primary" icon={Plus}>
+            Crear cuenta
+          </Button>
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Presupuestos</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
+            <Target className="h-7 w-7 text-primary" />
+            Presupuestos
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {parsearMesKey(mesActual)} • {presupuestos.length}{' '}
-            {presupuestos.length === 1 ? 'presupuesto' : 'presupuestos'}
+            El saldo de cada cuenta es tu presupuesto del mes. Asigna sub-reservas por categoría.
           </p>
         </div>
-        
-        {/* Desktop Button */}
-        <button
+        <Button
+          variant="primary"
+          icon={Plus}
           onClick={handleNuevo}
-          className="hidden sm:inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2.5 px-5 rounded-xl transition-all shadow-sm hover:shadow-md"
+          disabled={!accountId || bucketsDisponibles.length === 0}
         >
-          <Plus className="h-5 w-5" />
-          <span>Nuevo Presupuesto</span>
-        </button>
+          Nuevo
+        </Button>
       </div>
 
-      {/* Mobile FABs */}
-      <div className="sm:hidden fixed bottom-20 right-4 z-30 flex flex-col gap-3">
-        {/* Add Income FAB (Blue) */}
-        <button
-          onClick={() => {
-            setPresupuestoEditando(null);
-            setFormData({
-              categoria: CATEGORIA_GENERAL,
-              subcategoria: '',
-              limite: '',
-              moneda: 'PEN',
-            });
-            setMostrarModal(true);
-          }}
-          className="h-14 w-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-        >
-          <Wallet className="h-7 w-7" />
-        </button>
-
-        {/* New Budget FAB (Primary) */}
-        <button
-          onClick={handleNuevo}
-          className="h-14 w-14 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
-        >
-          <Plus className="h-7 w-7" />
-        </button>
-      </div>
-
-      {/* Banner de Movimientos de Efectivo */}
-      <div className="bg-card border border-border rounded-xl shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-        {/* Icono de fondo decorativo */}
-        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-          <Wallet className="h-32 w-32 text-emerald-500 transform rotate-12 translate-x-8 -translate-y-8" />
-        </div>
-
-        <div className="relative z-10 p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="flex-1">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-1.5 bg-emerald-100 dark:bg-emerald-900/30 px-3 py-1 rounded-full mb-3">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Gestiona tu efectivo</span>
-              </div>
-
-              {/* Título */}
-              <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2 flex items-center gap-2">
-                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
-                  <ArrowRightLeft className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                Movimientos de Efectivo
-              </h3>
-
-              {/* Descripción */}
-              <p className="text-muted-foreground text-sm sm:text-base mb-4 max-w-2xl">
-                Registra retiros de banco, transferencias y lleva el control de tu dinero en efectivo.
-                <span className="hidden sm:inline"> Cada vez que pagas con efectivo, se descuenta automáticamente.</span>
-              </p>
-
-              {/* Saldos actuales (si existen) */}
-              {(presupuestosEfectivo.PEN || presupuestosEfectivo.USD) && (
-                <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg border border-border">
-                    <Coins className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-sm font-semibold text-foreground">
-                      {MONEDA_SIMBOLOS.PEN} {presupuestosEfectivo.PEN?.saldoActual.toFixed(2) || '0.00'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-lg border border-border">
-                    <Coins className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-sm font-semibold text-foreground">
-                      {MONEDA_SIMBOLOS.USD} {presupuestosEfectivo.USD?.saldoActual.toFixed(2) || '0.00'}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Botones de acción */}
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => navigate('/movimientos/nuevo')}
-                  className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-5 py-2.5 rounded-xl shadow-sm hover:shadow-md transition-all"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Nuevo Movimiento</span>
-                </button>
-
-                <button
-                  onClick={() => navigate('/efectivo/historial')}
-                  className="inline-flex items-center gap-2 bg-muted hover:bg-muted/80 text-foreground font-medium px-5 py-2.5 rounded-xl border border-border transition-all"
-                >
-                  <TrendingUp className="w-5 h-5" />
-                  <span className="hidden sm:inline">Ver Historial</span>
-                  <span className="sm:hidden">Historial</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Icono decorativo (solo desktop) */}
-            <div className="hidden lg:flex items-center justify-center w-32 h-32 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl group-hover:scale-105 transition-transform">
-              <Wallet className="w-16 h-16 text-emerald-600 dark:text-emerald-400" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Selector de mes */}
-      <div className="bg-card border border-border rounded-lg p-4">
-        <label htmlFor="mes" className="block text-sm font-medium text-foreground mb-2">
-          Seleccionar Mes
-        </label>
-        <input
-          type="month"
-          id="mes"
-          value={mesActual}
-          onChange={(e) => setMesActual(e.target.value)}
-          className="px-4 py-2 rounded-md border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+      {/* Banner cuando backend está caído */}
+      {backendOffline && (
+        <BackendOfflineBanner
+          context="No se pudo cargar el resumen mensual."
+          onRetry={() => void refreshResumen()}
+          retrying={loadingResumen}
         />
+      )}
+
+      {/* Selectores: cuenta + mes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="bg-card border border-border rounded-xl p-3">
+          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+            Cuenta
+          </label>
+          <select
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          >
+            {activeAccounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name} ({a.currency})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="bg-card border border-border rounded-xl p-3">
+          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+            Mes
+          </label>
+          <input
+            type="month"
+            value={mesActual}
+            onChange={(e) => setMesActual(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary"
+          />
+        </div>
       </div>
 
-      {/* Presupuestos Generales */}
-      {presupuestosGenerales.length > 0 ? (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-6 shadow-md">
-          
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="h-14 w-14 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                <Wallet className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-foreground">
-                  Presupuestos Generales
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {presupuestosGenerales.length} {presupuestosGenerales.length === 1 ? 'ingreso' : 'ingresos'}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setPresupuestoEditando(null);
-                setFormData({
-                  categoria: CATEGORIA_GENERAL,
-                  subcategoria: '',
-                  limite: '',
-                  moneda: 'PEN',
-                });
-                setMostrarModal(true);
-              }}
-              className="hidden sm:inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors"
-            >
-              <Plus className="h-5 w-5" />
-              <span>Agregar Ingreso</span>
-            </button>
-          </div>
-
-          {/* Lista de presupuestos generales */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-            {presupuestosGenerales.map((presupuesto) => (
-              <div
-                key={presupuesto.id}
-                className="bg-white/50 dark:bg-black/20 rounded-lg p-4 flex items-center justify-between"
-              >
-                <div className="flex-1">
-                  <p className="text-sm text-muted-foreground mb-1">
-                    {presupuesto.subcategoria || 'Sin especificar'}
-                  </p>
-                  <p className="text-xl font-bold text-foreground">
-                    {formatearMoneda(presupuesto.limite, presupuesto.moneda)}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEditar(presupuesto)}
-                    className="p-1.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-400 transition-colors"
-                    title="Editar"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => setPresupuestoAEliminar(presupuesto.id)}
-                    className="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900 text-red-600 dark:text-red-400 transition-colors"
-                    title="Eliminar"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Resumen de totales por moneda */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Totales PEN */}
-            {totales.limiteTotalPEN > 0 && (
-              <div className="bg-white/70 dark:bg-black/30 rounded-lg p-4 border-2 border-blue-400 dark:border-blue-600">
-                <p className="text-xs text-muted-foreground mb-2">TOTALES EN SOLES (S/)</p>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Límite Total</span>
-                    <span className="text-lg font-bold text-foreground">
-                      {formatearMoneda(totales.limiteTotalPEN, 'PEN')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Asignado</span>
-                    <span className="text-lg font-semibold text-blue-600">
-                      {formatearMoneda(totales.asignadoPEN, 'PEN')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-blue-300 dark:border-blue-700">
-                    <span className="text-sm font-medium text-foreground">No Asignado</span>
-                    <span className={`text-lg font-bold ${
-                      totales.noAsignadoPEN < 0 ? 'text-destructive' : 'text-primary'
-                    }`}>
-                      {formatearMoneda(totales.noAsignadoPEN, 'PEN')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Totales USD */}
-            {totales.limiteTotalUSD > 0 && (
-              <div className="bg-white/70 dark:bg-black/30 rounded-lg p-4 border-2 border-blue-400 dark:border-blue-600">
-                <p className="text-xs text-muted-foreground mb-2">TOTALES EN DÓLARES ($)</p>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Límite Total</span>
-                    <span className="text-lg font-bold text-foreground">
-                      {formatearMoneda(totales.limiteTotalUSD, 'USD')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Asignado</span>
-                    <span className="text-lg font-semibold text-blue-600">
-                      {formatearMoneda(totales.asignadoUSD, 'USD')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-blue-300 dark:border-blue-700">
-                    <span className="text-sm font-medium text-foreground">No Asignado</span>
-                    <span className={`text-lg font-bold ${
-                      totales.noAsignadoUSD < 0 ? 'text-destructive' : 'text-primary'
-                    }`}>
-                      {formatearMoneda(totales.noAsignadoUSD, 'USD')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Advertencia si se excede */}
-          {(totales.noAsignadoPEN < 0 || totales.noAsignadoUSD < 0) && (
-            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 mt-4">
-              <p className="text-sm text-destructive font-medium">
-                ⚠️ Has asignado más presupuesto del disponible en los presupuestos generales
-              </p>
-            </div>
-          )}
+      {/* Resumen mensual */}
+      {loadingResumen ? (
+        <div className="flex items-center justify-center py-12">
+          <CustomLoader />
         </div>
+      ) : resumen && account ? (
+        <ResumenSection
+          account={account}
+          resumen={resumen}
+          onEdit={handleEditar}
+          onDelete={(p) => setConfirmDelete(p)}
+          onRefresh={refreshResumen}
+        />
       ) : (
-        <div className="bg-card border-2 border-dashed border-border rounded-lg p-6 text-center">
-          <Wallet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-sm font-medium text-foreground mb-1">
-            No hay presupuestos generales
-          </p>
-          <p className="text-xs text-muted-foreground mb-3">
-            Crea presupuestos generales para controlar el total mensual por origen de ingresos
-          </p>
-          <button
-            onClick={() => {
-              setPresupuestoEditando(null);
-              setFormData({
-                categoria: CATEGORIA_GENERAL,
-                subcategoria: '',
-                limite: '',
-                moneda: 'PEN',
-              });
-              setMostrarModal(true);
-            }}
-            className="text-sm bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 px-4 rounded-md transition-colors"
-          >
-            Crear Presupuesto General
-          </button>
+        <div className="text-center py-8 text-muted-foreground text-sm">
+          {estado.estado === 'loading'
+            ? 'Cargando…'
+            : 'Selecciona una cuenta para ver su presupuesto'}
         </div>
       )}
 
-      {/* Título de presupuestos por categoría */}
-      {presupuestosCategorias.length > 0 && (
-        <div>
-          <h2 className="text-xl font-bold text-foreground">Presupuestos por Categoría</h2>
-          <p className="text-sm text-muted-foreground">
-            {presupuestosCategorias.length} {presupuestosCategorias.length === 1 ? 'categoría' : 'categorías'}
-          </p>
-        </div>
-      )}
-
-      {/* Lista de presupuestos por categoría */}
-      {presupuestosCategorias.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {presupuestosCategorias.map((presupuesto) => {
-            const gastado = presupuesto.categoria === 'general' ? 0 : (gastosPorCategoria[presupuesto.categoria as CategoriaGasto] || 0);
-            const porcentaje = calcularPorcentaje(gastado, presupuesto.limite);
-            const restante = presupuesto.limite - gastado;
-
-            return (
-              <div
-                key={presupuesto.id}
-                className="bg-card border border-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
-              >
-                {/* Header de la tarjeta */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      {obtenerIconoCategoria(presupuesto.categoria, "h-6 w-6 text-primary")}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-foreground">
-                        {presupuesto.categoria === CATEGORIA_GENERAL
-                          ? 'Presupuesto General'
-                          : getCategoryLabel(presupuesto.categoria)}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {currencies.find(c => c.codigoISO === presupuesto.moneda)?.nombre || presupuesto.moneda}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleEditar(presupuesto)}
-                      className="p-1.5 rounded hover:bg-primary/10 text-primary transition-colors"
-                      title="Editar"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => setPresupuestoAEliminar(presupuesto.id)}
-                      className="p-1.5 rounded hover:bg-destructive/10 text-destructive transition-colors"
-                      title="Eliminar"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Montos */}
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Gastado</span>
-                    <span className="text-lg font-bold text-foreground">
-                      {formatearMoneda(gastado, presupuesto.moneda)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Límite</span>
-                    <span className="text-lg font-semibold text-muted-foreground">
-                      {formatearMoneda(presupuesto.limite, presupuesto.moneda)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-border">
-                    <span className="text-sm font-medium text-foreground">Restante</span>
-                    <span
-                      className={`text-lg font-bold ${
-                        restante < 0 ? 'text-destructive' : 'text-primary'
-                      }`}
-                    >
-                      {formatearMoneda(restante, presupuesto.moneda)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Barra de progreso */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-foreground">Progreso</span>
-                    <span
-                      className={`text-sm font-bold ${
-                        porcentaje >= 100
-                          ? 'text-destructive'
-                          : porcentaje >= 80
-                          ? 'text-yellow-500'
-                          : 'text-primary'
-                      }`}
-                    >
-                      {porcentaje.toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${obtenerColor(
-                        porcentaje
-                      )}`}
-                      style={{ width: `${Math.min(porcentaje, 100)}%` }}
-                    />
-                  </div>
-                  {porcentaje >= 100 && (
-                    <p className="text-xs text-destructive font-medium">
-                      ⚠️ Has excedido el presupuesto
-                    </p>
-                  )}
-                  {porcentaje >= 80 && porcentaje < 100 && (
-                    <p className="text-xs text-yellow-600 font-medium">
-                      ⚠️ Cerca del límite del presupuesto
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="bg-card border border-border rounded-lg p-12 text-center">
-          <Target className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-          <p className="text-lg font-medium text-foreground mb-2">
-            No hay presupuestos por categoría
-          </p>
-          <p className="text-sm text-muted-foreground mb-4">
-            Crea presupuestos para categorías específicas
-          </p>
-          <button
-            onClick={handleNuevo}
-            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 px-4 rounded-md transition-colors"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Crear Presupuesto por Categoría</span>
-          </button>
-        </div>
-      )}
-
-      {/* Modal de formulario - iOS Style */}
+      {/* Modal crear/editar */}
       <Modal
-        isOpen={mostrarModal}
+        isOpen={modalOpen}
         onClose={() => {
-          setMostrarModal(false);
-          setPresupuestoEditando(null);
+          setModalOpen(false);
+          setEditing(null);
+          setForm(INITIAL_FORM);
         }}
-        title={presupuestoEditando ? 'Editar Presupuesto' :
-               formData.categoria === CATEGORIA_GENERAL ? 'Agregar Ingreso' : 'Nuevo Presupuesto'}
+        title={editing ? 'Editar presupuesto' : 'Nuevo presupuesto'}
+        subtitle={
+          account
+            ? `${account.name} · ${mesActual}`
+            : undefined
+        }
         size="md"
         footer={
           <ModalFooterActions
             onCancel={() => {
-              setMostrarModal(false);
-              setPresupuestoEditando(null);
+              setModalOpen(false);
+              setEditing(null);
             }}
-            onConfirm={() => handleSubmit()}
-            cancelText="Cancelar"
-            // confirmText={cargando ? 'Guardando...' : presupuestoEditando ? 'Actualizar' : 'Crear'}
-            confirmText={<ContainerLoadingButton isLoading={cargando} loadingText={presupuestoEditando ? 'Actualizando...' : 'Guardando...'} text={presupuestoEditando ? 'Actualizar' : 'Crear'} />}
-            disabled={cargando}
+            onConfirm={handleSubmit}
+            confirmText={
+              submitting ? 'Guardando...' : editing ? 'Guardar' : 'Crear'
+            }
+            disabled={submitting || !form.limite}
           />
         }
       >
-        <form className="space-y-3" onSubmit={(e) => handleSubmit(e)}>
-              {/* Categoría */}
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
-                <div className="p-3 flex items-center gap-3">
-                  <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
-                    <Tag className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-[10px] text-muted-foreground block mb-0.5">
-                      Categoría <span className="text-destructive">*</span>
-                    </label>
-                    <select
-                      id="categoria"
-                      name="categoria"
-                      value={formData.categoria}
-                      onChange={handleChange}
-                      className="bg-transparent text-sm w-full focus:outline-none font-medium appearance-none disabled:opacity-50"
-                      disabled={cargando || !!presupuestoEditando}
-                    >
-                      <option value={CATEGORIA_GENERAL}>
-                        Presupuesto General
-                      </option>
-                      <option disabled>──────────</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+        <InputGroup>
+          <InputRow label="Categoría">
+            {editing ? (
+              <span className="text-sm font-medium text-foreground">
+                {bucketLabel(editing.bucket)}
+              </span>
+            ) : bucketsDisponibles.length === 0 ? (
+              <span className="text-sm text-muted-foreground">
+                Todas las categorías ya tienen presupuesto este mes.
+              </span>
+            ) : (
+              <Select
+                variant="ios"
+                value={form.bucket}
+                onChange={(e) =>
+                  setForm({ ...form, bucket: e.target.value as PresupuestoBucket })
+                }
+              >
+                {bucketsDisponibles.map((b) => (
+                  <option key={b.value} value={b.value}>
+                    {b.label}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </InputRow>
+          <InputRow label={`Límite${account ? ` (${account.currency})` : ''}`}>
+            <Input
+              variant="ios"
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.limite}
+              onChange={(e) => setForm({ ...form, limite: e.target.value })}
+              placeholder="0.00"
+              required
+            />
+          </InputRow>
+        </InputGroup>
+
+        {/* Panel de "máximo asignable" (Opción B) */}
+        {resumen && account && disponibleMax !== null && (
+          <div
+            className={`mt-3 p-3 rounded-lg border ${
+              excedeMax
+                ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700'
+                : 'bg-muted/40 border-border'
+            }`}
+          >
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <p className="text-muted-foreground">Saldo cuenta</p>
+                <p className="font-bold text-foreground">
+                  {formatBalance(resumen.accountBalance, account.currency)}
+                </p>
               </div>
-
-              {/* Subcategoría - Solo para presupuesto general */}
-              {formData.categoria === CATEGORIA_GENERAL && (
-                <div className="bg-card border border-blue-200 dark:border-blue-900 rounded-xl overflow-hidden animate-in slide-in-from-top-2 duration-200">
-                  <div className="p-3 flex items-center gap-3 bg-blue-500/5">
-                    <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600 dark:text-blue-400">
-                      <Wallet className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-[10px] text-muted-foreground block mb-0.5">
-                        Tipo de Ingreso
-                      </label>
-                      <select
-                        id="subcategoria"
-                        name="subcategoria"
-                        value={formData.subcategoria}
-                        onChange={handleChange}
-                        className="bg-transparent text-sm w-full focus:outline-none font-medium appearance-none disabled:opacity-50"
-                        disabled={cargando}
-                      >
-                        <option value="">Sin especificar</option>
-                        {SUBCATEGORIAS_PRESUPUESTO_GENERAL.map((sub) => (
-                          <option key={sub} value={sub}>
-                            {sub}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Moneda y Límite */}
-              <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-                <div className="p-3 flex items-center gap-3">
-                  <div className="p-1.5 bg-orange-500/10 rounded-lg text-orange-600 dark:text-orange-400">
-                    <Coins className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-[10px] text-muted-foreground block mb-0.5">
-                      Moneda <span className="text-destructive">*</span>
-                    </label>
-                    <select
-                      id="moneda"
-                      name="moneda"
-                      value={formData.moneda}
-                      onChange={handleChange}
-                      className="bg-transparent text-sm w-full focus:outline-none font-medium appearance-none disabled:opacity-50"
-                      disabled={cargando || !!presupuestoEditando}
-                    >
-                      {currencies.map((currency) => (
-                        <option key={currency.id} value={currency.codigoISO}>
-                          {currency.simbolo} {currency.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="p-3 flex items-center gap-3">
-                  <div className="p-1.5 bg-green-500/10 rounded-lg text-green-600 dark:text-green-400">
-                    <DollarSign className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="text-[10px] text-muted-foreground block mb-0.5">
-                      {formData.categoria === CATEGORIA_GENERAL ? 'Monto' : 'Límite'} <span className="text-destructive">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      id="limite"
-                      name="limite"
-                      value={formData.limite}
-                      onChange={handleChange}
-                      step="0.01"
-                      min="0"
-                      placeholder="0.00"
-                      className="bg-transparent text-sm w-full focus:outline-none font-medium disabled:opacity-50"
-                      disabled={cargando}
-                      required
-                      autoFocus
-                    />
-                  </div>
-                </div>
+              <div>
+                <p className="text-muted-foreground">Ya asignado</p>
+                <p className="font-bold text-foreground">
+                  {formatBalance(
+                    editing
+                      ? resumen.totalAsignado - editing.limite
+                      : resumen.totalAsignado,
+                    account.currency,
+                  )}
+                </p>
               </div>
-
-        </form>
+              <div>
+                <p className="text-muted-foreground">Máx. asignable</p>
+                <p
+                  className={`font-bold ${
+                    disponibleMax < 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'
+                  }`}
+                >
+                  {formatBalance(disponibleMax, account.currency)}
+                </p>
+              </div>
+            </div>
+            {excedeMax && (
+              <p className="text-[11px] text-amber-900 dark:text-amber-100 mt-2 flex items-start gap-1">
+                <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
+                Estás asignando{' '}
+                {formatBalance(limiteIngresado - disponibleMax, account.currency)}{' '}
+                más que el saldo disponible. Podés continuar pero conviene ajustar.
+              </p>
+            )}
+          </div>
+        )}
       </Modal>
 
-      {/* Modal de confirmación de eliminación */}
-      <Modal
-        isOpen={!!presupuestoAEliminar}
-        onClose={() => !eliminando && setPresupuestoAEliminar(null)}
-        title="¿Eliminar presupuesto?"
-        size="sm"
-        footer={
-          <ModalFooterActions
-            onCancel={() => setPresupuestoAEliminar(null)}
-            onConfirm={() => presupuestoAEliminar && handleEliminar(presupuestoAEliminar)}
-            cancelText="Cancelar"
-            confirmText={<ContainerLoadingButton isLoading={eliminando} loadingText="Eliminando..." text="Eliminar" />}
-            confirmVariant="destructive"
-            disabled={eliminando}
-          />
+      <ConfirmationModal
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={handleDelete}
+        title="¿Eliminar este presupuesto?"
+        description={
+          confirmDelete
+            ? `Vas a eliminar el presupuesto de "${bucketLabel(confirmDelete.bucket)}" del mes ${confirmDelete.mes}.`
+            : ''
         }
-      >
-        <div className="space-y-4">
-          <div className="flex items-center justify-center">
-            <div className="p-4 bg-destructive/10 rounded-full">
-              <AlertTriangle className="h-12 w-12 text-destructive" />
-            </div>
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+        isDestructive
+      />
+    </div>
+  );
+}
+
+// ============================================================================
+// Sub-componente: ResumenSection (cabecera + categorías + efectivo)
+// ============================================================================
+
+interface ResumenSectionProps {
+  account: Account;
+  resumen: PresupuestoMensualResumen;
+  onEdit: (p: Presupuesto) => void;
+  onDelete: (p: Presupuesto) => void;
+  onRefresh: () => void;
+}
+
+function ResumenSection({
+  account,
+  resumen,
+  onEdit,
+  onDelete,
+  onRefresh,
+}: ResumenSectionProps) {
+  const moneda = resumen.moneda;
+  const general = resumen.general; // legacy
+  const efectivo = resumen.efectivo;
+  const categorias = resumen.categorias;
+  const accountBalance = resumen.accountBalance;
+  const disponibleReal = accountBalance - resumen.totalGastado;
+  const porcentajeGastado = accountBalance > 0 ? (resumen.totalGastado / accountBalance) * 100 : 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Cabecera "cuenta = presupuesto" — Opción B */}
+      <div className="bg-gradient-to-br from-primary/5 to-transparent border border-primary/30 rounded-xl p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <AccountIcon account={account} size="md" />
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-foreground text-lg truncate">{account.name}</p>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
+              Saldo de la cuenta = Presupuesto del mes
+            </p>
           </div>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              Esta acción no se puede deshacer. El presupuesto será eliminado permanentemente.
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="p-2 rounded-md hover:bg-muted text-muted-foreground"
+            title="Refrescar"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Saldo</p>
+            <p className="text-xl font-bold text-foreground mt-0.5">
+              {formatBalance(accountBalance, moneda)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Gastado mes</p>
+            <p className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+              {formatBalance(resumen.totalGastado, moneda)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground tracking-wider">Disponible</p>
+            <p
+              className={`text-xl font-bold mt-0.5 ${
+                disponibleReal < 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'
+              }`}
+            >
+              {formatBalance(disponibleReal, moneda)}
             </p>
           </div>
         </div>
-      </Modal>
+
+        <div className="mt-3 h-2 bg-muted rounded-full overflow-hidden">
+          <div
+            className={`h-full transition-all ${progressColor(porcentajeGastado)}`}
+            style={{ width: `${Math.min(porcentajeGastado, 100)}%` }}
+          />
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1 text-right">
+          {porcentajeGastado.toFixed(1)}% del saldo gastado este mes
+        </p>
+      </div>
+
+      {/* Aviso amber si totalAsignado > saldo cuenta (no bloquea) */}
+      {resumen.excedeAsignacion && (
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-900 dark:text-amber-100">
+            La suma de tus asignaciones (
+            <strong>{formatBalance(resumen.totalAsignado, moneda)}</strong>) excede el saldo de la cuenta (
+            <strong>{formatBalance(accountBalance, moneda)}</strong>). Podés seguir, pero conviene ajustar.
+          </p>
+        </div>
+      )}
+
+      {/* Disponible sin asignar (info) */}
+      {!resumen.excedeAsignacion && resumen.disponibleSinAsignar !== accountBalance && (
+        <div className="text-xs text-muted-foreground px-1">
+          Sin asignar a categorías:{' '}
+          <strong className={resumen.disponibleSinAsignar < 0 ? 'text-destructive' : 'text-foreground'}>
+            {formatBalance(resumen.disponibleSinAsignar, moneda)}
+          </strong>
+        </div>
+      )}
+
+      {/* Bucket general LEGACY (read-only banner) */}
+      {general && (
+        <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-3">
+          <p className="text-xs text-amber-900 dark:text-amber-100 mb-2 font-medium">
+            ⚠️ Tienes un presupuesto "General" antiguo (modelo viejo). Podés borrarlo —
+            ahora el saldo de la cuenta cumple ese rol.
+          </p>
+          <BucketCard
+            presupuesto={general}
+            onEdit={() => onEdit(general)}
+            onDelete={() => onDelete(general)}
+          />
+        </div>
+      )}
+
+      {/* Bucket efectivo */}
+      {efectivo ? (
+        <BucketCard
+          presupuesto={efectivo}
+          onEdit={() => onEdit(efectivo)}
+          onDelete={() => onDelete(efectivo)}
+          icon={<Wallet className="h-4 w-4" />}
+        />
+      ) : null}
+
+      {/* Categorías */}
+      {categorias.length > 0 ? (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+            Sub-reservas por categoría
+          </p>
+          {categorias.map((p) => (
+            <BucketCard
+              key={p.id}
+              presupuesto={p}
+              onEdit={() => onEdit(p)}
+              onDelete={() => onDelete(p)}
+            />
+          ))}
+        </div>
+      ) : (
+        !efectivo &&
+        !general && (
+          <div className="bg-card border border-dashed border-border rounded-xl p-6 text-center">
+            <Target className="h-10 w-10 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="font-medium text-foreground">Sin sub-reservas asignadas</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Crea una para limitar tus gastos por categoría (opcional).
+            </p>
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// Sub-componente: BucketCard
+// ============================================================================
+
+interface BucketCardProps {
+  presupuesto: Presupuesto;
+  isHero?: boolean;
+  icon?: React.ReactNode;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function BucketCard({ presupuesto, isHero, icon, onEdit, onDelete }: BucketCardProps) {
+  const gastado = presupuesto.gastado ?? 0;
+  const rollover = presupuesto.rolloverEntrada ?? 0;
+  const techoEfectivo = presupuesto.limite + rollover;
+  const disponible = techoEfectivo - gastado;
+  const porcentaje = techoEfectivo > 0 ? (gastado / techoEfectivo) * 100 : 0;
+  const moneda = presupuesto.moneda;
+
+  return (
+    <div
+      className={`bg-card border rounded-xl p-4 ${
+        isHero
+          ? 'border-primary/30 bg-gradient-to-br from-primary/5 to-transparent'
+          : 'border-border'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        {icon && (
+          <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg text-emerald-600 dark:text-emerald-400">
+            {icon}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <h3
+              className={`font-bold text-foreground truncate ${
+                isHero ? 'text-lg' : 'text-base'
+              }`}
+            >
+              {bucketLabel(presupuesto.bucket)}
+            </h3>
+            <div className="flex gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={onEdit}
+                className="p-1.5 rounded-md hover:bg-muted text-muted-foreground"
+                title="Editar"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={onDelete}
+                className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                title="Eliminar"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Info de rollover (solo bucket general) */}
+          {rollover !== 0 && presupuesto.bucket === 'general' && (
+            <p
+              className={`text-xs mt-1 flex items-center gap-1 ${
+                rollover > 0 ? 'text-emerald-600' : 'text-destructive'
+              }`}
+            >
+              {rollover > 0 ? (
+                <TrendingUp className="h-3 w-3" />
+              ) : (
+                <TrendingDown className="h-3 w-3" />
+              )}
+              Rollover del mes anterior: {rollover > 0 ? '+' : ''}
+              {formatBalance(rollover, moneda)}
+            </p>
+          )}
+
+          {/* Montos */}
+          <div className="mt-2 flex items-baseline justify-between gap-2">
+            <p className={`font-bold ${isHero ? 'text-2xl' : 'text-lg'} text-foreground`}>
+              {formatBalance(gastado, moneda)}
+              <span className="text-sm font-normal text-muted-foreground">
+                {' '}
+                / {formatBalance(techoEfectivo, moneda)}
+              </span>
+            </p>
+            <p
+              className={`text-sm font-bold ${
+                disponible < 0 ? 'text-destructive' : 'text-emerald-600'
+              }`}
+            >
+              {disponible >= 0 ? 'queda ' : 'excede '}
+              {formatBalance(Math.abs(disponible), moneda)}
+            </p>
+          </div>
+
+          {/* Barra de progreso */}
+          <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className={`h-full transition-all ${progressColor(porcentaje)}`}
+              style={{ width: `${Math.min(porcentaje, 100)}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1 text-right">
+            {porcentaje.toFixed(1)}% usado
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

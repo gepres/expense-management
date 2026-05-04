@@ -2,23 +2,31 @@
  * Formulario para crear y editar gastos
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import { usePreferences } from '@context/PreferencesContext';
+import { useAccountsContext } from '@context/AccountsContext';
 import { useGastos } from '@hooks/useGastos';
-import { usePresupuestoEfectivo } from '@context/PresupuestoEfectivoContext';
 import { type GastoFormData, type CategoriaGasto, type MetodoPago, type Moneda } from '@app-types';
 import { toast } from 'react-hot-toast';
 import { scanReceipt, validateImageFormat } from '@services/receipts';
 import { useVoiceInput } from '@hooks/useVoiceInput';
 import { VoiceService } from '@services/voice';
 import CustomLoader from '@components/common/CustomLoader';
-import { Image, Upload, Lightbulb, Check, Plus, Mic, MicOff, ChevronDown, ChevronUp, Calendar, Clock, CreditCard, Repeat, AlignLeft, CircleDollarSign, Zap, Receipt, Tag, Coins, FileText, Hash, RefreshCw, Building2, Calculator, Percent, Crown } from 'lucide-react';
+import SelectorCuenta from '@components/cuentas/SelectorCuenta';
+import { Image, Upload, Lightbulb, Check, Plus, Mic, MicOff, ChevronDown, ChevronUp, Calendar, Clock, CreditCard, Repeat, AlignLeft, CircleDollarSign, Zap, Receipt, Tag, Coins, FileText, Hash, RefreshCw, Building2, Calculator, Percent, Crown, Wallet } from 'lucide-react';
 // import Button from '../common/Button';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { obtenerFechaLocalISO } from '@utils/formatters';
+
+// Memoria de la última cuenta usada por método de pago, persistida por usuario.
+function lastAccountStorageKey(userId: string, isCash: boolean): string {
+  return isCash
+    ? `gasto:lastCashSourceAccount:${userId}`
+    : `gasto:lastAccount:${userId}`;
+}
 
 export default function FormularioGasto() {
   const navigate = useNavigate();
@@ -26,7 +34,7 @@ export default function FormularioGasto() {
   const { id } = useParams<{ id: string }>();
   const { usuario, isPro } = useAuth();
   const { crear, actualizar, obtenerPorId } = useGastos();
-  const { descontar: descontarEfectivo, recargar: recargarEfectivo } = usePresupuestoEfectivo();
+  const { activeAccounts, defaultAccount } = useAccountsContext();
   const {
     categories,
     paymentMethods,
@@ -43,6 +51,7 @@ export default function FormularioGasto() {
   const [formData, setFormData] = useState<GastoFormData>({
     fecha: obtenerFechaLocalISO(),
     hora: new Date().toTimeString().slice(0, 5), // HH:MM actual
+    accountId: '',
     categoria: 'alimentacion',
     subcategoria: '',
     monto: '',
@@ -59,6 +68,68 @@ export default function FormularioGasto() {
     subtotal: '',
     reimbursementStatus: 'pending',
   });
+
+  // Pre-selección inteligente de la cuenta:
+  //   1. Si el usuario eligió antes una cuenta para este metodoPago, usarla.
+  //   2. Si no, usar la cuenta default.
+  //   3. Si no hay default, la primera activa.
+  // Solo aplica cuando NO estamos editando un gasto existente.
+  useEffect(() => {
+    if (esEdicion || !usuario) return;
+    if (formData.accountId) return; // ya seleccionada manualmente
+    if (activeAccounts.length === 0) return;
+
+    const isCash = formData.metodoPago === 'efectivo';
+    const memoryKey = lastAccountStorageKey(usuario.id, isCash);
+    const lastUsed = localStorage.getItem(memoryKey);
+
+    let candidateId: string | undefined;
+    if (lastUsed && activeAccounts.some((a) => a.id === lastUsed)) {
+      candidateId = lastUsed;
+    } else if (defaultAccount) {
+      candidateId = defaultAccount.id;
+    } else {
+      candidateId = activeAccounts[0]?.id;
+    }
+
+    if (candidateId) {
+      setFormData((prev) => ({
+        ...prev,
+        accountId: candidateId,
+        moneda: activeAccounts.find((a) => a.id === candidateId)?.currency as Moneda ?? prev.moneda,
+      }));
+    }
+  }, [esEdicion, usuario, activeAccounts, defaultAccount, formData.metodoPago, formData.accountId]);
+
+  // Cuando el usuario cambia el método de pago entre efectivo/no-efectivo,
+  // re-evaluamos la cuenta sugerida (puede tener una preferida distinta).
+  const previousMetodoPago = useRef(formData.metodoPago);
+  useEffect(() => {
+    if (esEdicion || !usuario) return;
+    if (formData.metodoPago === previousMetodoPago.current) return;
+
+    const wasCash = previousMetodoPago.current === 'efectivo';
+    const isCashNow = formData.metodoPago === 'efectivo';
+    previousMetodoPago.current = formData.metodoPago;
+
+    if (wasCash !== isCashNow) {
+      // Cambió la "categoría" de método (efectivo vs no-efectivo) → re-sugerir cuenta
+      const memoryKey = lastAccountStorageKey(usuario.id, isCashNow);
+      const lastUsed = localStorage.getItem(memoryKey);
+      if (lastUsed && activeAccounts.some((a) => a.id === lastUsed)) {
+        setFormData((prev) => ({
+          ...prev,
+          accountId: lastUsed,
+          moneda: activeAccounts.find((a) => a.id === lastUsed)?.currency as Moneda ?? prev.moneda,
+        }));
+      }
+    }
+  }, [formData.metodoPago, esEdicion, usuario, activeAccounts]);
+
+  const cuentaSeleccionada = useMemo(
+    () => activeAccounts.find((a) => a.id === formData.accountId),
+    [activeAccounts, formData.accountId],
+  );
 
   const [errores, setErrores] = useState<Partial<Record<keyof GastoFormData, string>>>({});
   const [cargando, setCargando] = useState(false);
@@ -108,6 +179,7 @@ export default function FormularioGasto() {
           setFormData({
             fecha: obtenerFechaLocalISO(fechaGasto),
             hora: fechaGasto.toTimeString().slice(0, 5),
+            accountId: gasto.accountId || '',
             categoria: gasto.categoria,
             subcategoria: gasto.subcategoria || '',
             monto: gasto.monto.toString(),
@@ -485,6 +557,13 @@ export default function FormularioGasto() {
       nuevosErrores.metodoPago = 'El método de pago es requerido';
     }
 
+    // Cuenta requerida
+    if (!formData.accountId) {
+      nuevosErrores.accountId = 'Selecciona la cuenta de la que sale el dinero';
+    } else if (cuentaSeleccionada && cuentaSeleccionada.currency !== formData.moneda) {
+      nuevosErrores.accountId = `La cuenta es en ${cuentaSeleccionada.currency} pero el gasto es en ${formData.moneda}`;
+    }
+
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
@@ -519,6 +598,7 @@ export default function FormularioGasto() {
       // IMPORTANTE: No incluir campos undefined - Firestore los rechaza
       const gastoData: any = {
         userId: usuario.id,
+        accountId: formData.accountId,
         fecha: fechaHora,
         categoria: formData.categoria,
         monto: parseFloat(formData.monto),
@@ -573,20 +653,21 @@ export default function FormularioGasto() {
       console.log('📋 FormData actual:', formData);
 
       if (esEdicion && id) {
-        // Actualizar gasto existente
+        // Actualizar gasto existente (el backend ajusta saldos atómicamente)
         await actualizar(id, gastoData);
         toast.success('Gasto actualizado exitosamente');
       } else {
-        // Crear nuevo gasto
+        // Crear nuevo gasto. El backend descuenta atómicamente del bankBalance
+        // o cashBalance de la cuenta según `metodoPago`.
         await crear(gastoData);
 
-        // Si el método de pago es efectivo, descontar del presupuesto en efectivo
-        if (formData.metodoPago === 'efectivo') {
-          const descuentoExitoso = await descontarEfectivo(parseFloat(formData.monto), formData.moneda);
-          if (descuentoExitoso) {
-            // Recargar presupuesto en efectivo para actualizar todos los componentes
-            await recargarEfectivo();
-          }
+        // Recordar la cuenta usada para futuros gastos del mismo "tipo" (efectivo / no-efectivo)
+        if (usuario && formData.accountId) {
+          const isCash = formData.metodoPago === 'efectivo';
+          localStorage.setItem(
+            lastAccountStorageKey(usuario.id, isCash),
+            formData.accountId,
+          );
         }
 
         // Si viene de una lista de compras, actualizar su estado localmente (simulación de backend)
@@ -958,6 +1039,32 @@ export default function FormularioGasto() {
                         </button>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Selector de cuenta (obligatorio) */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                      <Wallet className="h-3.5 w-3.5" />
+                      {formData.metodoPago === 'efectivo'
+                        ? '¿De qué cuenta sale este efectivo?'
+                        : 'Cuenta'}
+                    </label>
+                    <SelectorCuenta
+                      value={formData.accountId}
+                      onChange={(accountId, account) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          accountId,
+                          moneda: account.currency as Moneda,
+                        }));
+                        if (errores.accountId) {
+                          setErrores((prev) => ({ ...prev, accountId: undefined }));
+                        }
+                      }}
+                      currency={formData.moneda}
+                      error={errores.accountId}
+                      required
+                    />
                   </div>
 
                   <div className="space-y-1.5">
@@ -1344,6 +1451,35 @@ export default function FormularioGasto() {
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Cuenta (obligatoria) */}
+              <div className="p-3 flex items-center gap-3 border-t border-border">
+                <div className="p-1.5 bg-cyan-500/10 rounded-lg text-cyan-600 dark:text-cyan-400">
+                  <Wallet className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="text-[10px] text-muted-foreground block mb-0.5">
+                    {formData.metodoPago === 'efectivo'
+                      ? '¿De qué cuenta sale este efectivo? *'
+                      : 'Cuenta *'}
+                  </label>
+                  <SelectorCuenta
+                    value={formData.accountId}
+                    onChange={(accountId, account) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        accountId,
+                        moneda: account.currency as Moneda,
+                      }));
+                      if (errores.accountId) {
+                        setErrores((prev) => ({ ...prev, accountId: undefined }));
+                      }
+                    }}
+                    currency={formData.moneda}
+                    error={errores.accountId}
+                  />
                 </div>
               </div>
 

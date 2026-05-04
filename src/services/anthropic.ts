@@ -57,10 +57,16 @@ function generarContextoUsuario(contexto: ContextoUsuario): string {
   // Presupuestos
   if (presupuestos.length > 0) {
     texto += '### Presupuestos Activos:\n';
-    presupuestos.forEach(p => {
-      const porcentaje = (p.gastado / p.limite) * 100;
-      const categoriaLabel = p.categoria === 'general' ? 'General' : CATEGORIA_LABELS[p.categoria as CategoriaGasto];
-      texto += `- ${categoriaLabel}: ${formatearMoneda(p.gastado)} / ${formatearMoneda(p.limite)} (${porcentaje.toFixed(1)}%)\n`;
+    presupuestos.forEach((p) => {
+      const gastado = p.gastado ?? 0;
+      const porcentaje = p.limite > 0 ? (gastado / p.limite) * 100 : 0;
+      const bucketLabel =
+        p.bucket === 'general'
+          ? 'General'
+          : p.bucket === 'efectivo'
+          ? 'Efectivo'
+          : (CATEGORIA_LABELS[p.bucket as CategoriaGasto] ?? p.bucket);
+      texto += `- ${bucketLabel}: ${formatearMoneda(gastado)} / ${formatearMoneda(p.limite)} (${porcentaje.toFixed(1)}%)\n`;
     });
     texto += '\n';
   }
