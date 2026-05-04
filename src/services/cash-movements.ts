@@ -49,14 +49,13 @@ async function fetchWithAuth<T>(
   return response.json() as Promise<T>;
 }
 
-function deserialize(
-  raw: CashMovement & { date: string; createdAt: string; updatedAt: string },
-): CashMovement {
+function deserialize(raw: any): CashMovement {
   return {
     ...raw,
     date: new Date(raw.date),
     createdAt: new Date(raw.createdAt),
     updatedAt: new Date(raw.updatedAt),
+    revertedAt: raw.revertedAt ? new Date(raw.revertedAt) : undefined,
   };
 }
 
@@ -117,6 +116,20 @@ export const CashMovementsService = {
     const raw = await fetchWithAuth<
       CashMovement & { date: string; createdAt: string; updatedAt: string }
     >(`/cash-movements/${id}`);
+    return deserialize(raw);
+  },
+
+  /**
+   * Revierte un movimiento (crea un contra-asiento). El backend marca el
+   * original con `revertedBy` y devuelve el nuevo registro tipo 'reversal'.
+   * Solo se puede revertir una vez.
+   */
+  async revert(id: string): Promise<CashMovement> {
+    const raw = await fetchWithAuth<
+      CashMovement & { date: string; createdAt: string; updatedAt: string }
+    >(`/cash-movements/${id}/revert`, {
+      method: 'POST',
+    });
     return deserialize(raw);
   },
 

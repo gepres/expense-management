@@ -20,14 +20,21 @@ import {
   EyeOff,
   Building2,
   Banknote,
+  CreditCard,
+  Copy,
+  Check,
 } from 'lucide-react';
+import { useAuth } from '@context/AuthContext';
 import { useAccountsContext } from '@context/AccountsContext';
 import AccountIcon from './AccountIcon';
 import TransferModal from './TransferModal';
 import IncomeModal from './IncomeModal';
 import Button from '@components/common/Button';
 import CustomLoader from '@components/common/CustomLoader';
-import { ACCOUNT_TYPE_LABELS, getAccountTotalBalance } from '@app-types';
+import Modal, { ModalButton } from '@components/common/Modal';
+import { ACCOUNT_TYPE_LABELS, getAccountTotalBalance, type Account } from '@app-types';
+import { decryptCardField, maskCardNumber } from '@utils/card-crypto';
+import toast from 'react-hot-toast';
 
 function formatBalance(value: number, currency: string): string {
   const sign = value < 0 ? '-' : '';
@@ -47,12 +54,18 @@ export default function ListaCuentas() {
     defaultAccount,
     actualizar,
   } = useAccountsContext();
+  const { usuario } = useAuth();
 
   const [showArchived, setShowArchived] = useState(false);
   const [search, setSearch] = useState('');
   const [transferOpen, setTransferOpen] = useState(false);
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [togglingDefault, setTogglingDefault] = useState<string | null>(null);
+  // Estado del modal "Datos de tarjeta": cuenta seleccionada + número descifrado.
+  const [cardModalAccount, setCardModalAccount] = useState<Account | null>(null);
+  const [revealedCardNumber, setRevealedCardNumber] = useState<string | null>(null);
+  const [decryptingCard, setDecryptingCard] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const handleToggleDefault = async (
     e: React.MouseEvent,
@@ -69,6 +82,57 @@ export default function ListaCuentas() {
     } finally {
       setTogglingDefault(null);
     }
+  };
+
+  const handleOpenCardModal = (e: React.MouseEvent, acc: Account) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCardModalAccount(acc);
+    setRevealedCardNumber(null);
+  };
+
+  const handleRevealAndCopy = async (
+    field: 'number' | 'holder' | 'exp',
+  ): Promise<void> => {
+    if (!cardModalAccount?.cardData || !usuario) return;
+    let value: string | null = null;
+    try {
+      if (field === 'number') {
+        if (!revealedCardNumber) {
+          setDecryptingCard(true);
+          const plain = await decryptCardField(
+            cardModalAccount.cardData.cardNumberEnc,
+            usuario.id,
+          );
+          setRevealedCardNumber(plain);
+          value = plain;
+        } else {
+          value = revealedCardNumber;
+        }
+      } else if (field === 'holder') {
+        value = cardModalAccount.cardData.holderName;
+      } else if (field === 'exp') {
+        const m = String(cardModalAccount.cardData.expMonth).padStart(2, '0');
+        value = `${m}/${cardModalAccount.cardData.expYear}`;
+      }
+      if (value) {
+        await navigator.clipboard.writeText(value);
+        setCopiedField(field);
+        toast.success('Copiado al portapapeles');
+        setTimeout(() => setCopiedField(null), 1500);
+      }
+    } catch (err) {
+      console.error('Decrypt/copy failed:', err);
+      toast.error('Error al copiar (portapapeles bloqueado o clave inválida)');
+    } finally {
+      setDecryptingCard(false);
+    }
+  };
+
+  const closeCardModal = () => {
+    setCardModalAccount(null);
+    setRevealedCardNumber(null);
+    setCopiedField(null);
   };
 
   const archivedAccounts = useMemo(
@@ -284,6 +348,18 @@ export default function ListaCuentas() {
                             {ACCOUNT_TYPE_LABELS[acc.type]}
                             {acc.bank ? ` · ${acc.bank}` : ''}
                           </p>
+                          {acc.type === 'card' && acc.cardData && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleOpenCardModal(e, acc)}
+                              className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                              title="Ver y copiar datos de tarjeta"
+                            >
+                              <CreditCard className="h-3 w-3" />
+                              {maskCardNumber(acc.cardData.cardLast4)}
+                              <Copy className="h-2.5 w-2.5" />
+                            </button>
+                          )}
                           <p
                             className={`mt-2 text-xl font-bold ${
                               positive ? 'text-foreground' : 'text-destructive'
@@ -328,6 +404,100 @@ export default function ListaCuentas() {
         onClose={() => setIncomeOpen(false)}
         initialAccountId={defaultAccount?.id}
       />
+
+      {/* Modal: gestor de datos de tarjeta */}
+      <Modal
+        isOpen={!!cardModalAccount}
+        onClose={closeCardModal}
+        title={cardModalAccount?.name ?? ''}
+        subtitle="Datos de tarjeta"
+        size="md"
+      >
+        {cardModalAccount?.cardData && (
+          <div className="space-y-4">
+            <div className="rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 dark:from-slate-800 dark:to-black text-white p-5 shadow-lg">
+              <div className="flex items-start justify-between mb-6">
+                <CreditCard className="h-7 w-7 opacity-80" />
+                <span className="text-xs uppercase tracking-wider opacity-80">
+                  {cardModalAccount.cardData.brand ?? 'card'}
+                </span>
+              </div>
+              <p className="text-2xl font-mono tracking-widest mb-3">
+                {revealedCardNumber
+                  ? revealedCardNumber.replace(/(.{4})/g, '$1 ').trim()
+                  : maskCardNumber(cardModalAccount.cardData.cardLast4)}
+              </p>
+              <div className="flex items-end justify-between text-sm">
+                <div>
+                  <p className="text-[10px] uppercase opacity-70 tracking-wider">Titular</p>
+                  <p className="font-medium">{cardModalAccount.cardData.holderName}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase opacity-70 tracking-wider">Vence</p>
+                  <p className="font-medium">
+                    {String(cardModalAccount.cardData.expMonth).padStart(2, '0')}/
+                    {String(cardModalAccount.cardData.expYear).slice(-2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Botones de copia */}
+            <div className="space-y-2">
+              <ModalButton
+                variant="primary"
+                onClick={() => void handleRevealAndCopy('number')}
+                disabled={decryptingCard}
+                className="!justify-start !text-left flex items-center gap-2"
+              >
+                {copiedField === 'number' ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {revealedCardNumber
+                  ? copiedField === 'number'
+                    ? 'Número copiado'
+                    : 'Copiar número'
+                  : decryptingCard
+                  ? 'Descifrando...'
+                  : 'Revelar y copiar número'}
+              </ModalButton>
+
+              <ModalButton
+                variant="secondary"
+                onClick={() => void handleRevealAndCopy('holder')}
+                className="!justify-start !text-left flex items-center gap-2"
+              >
+                {copiedField === 'holder' ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {copiedField === 'holder' ? 'Titular copiado' : 'Copiar titular'}
+              </ModalButton>
+
+              <ModalButton
+                variant="secondary"
+                onClick={() => void handleRevealAndCopy('exp')}
+                className="!justify-start !text-left flex items-center gap-2"
+              >
+                {copiedField === 'exp' ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {copiedField === 'exp' ? 'Vencimiento copiado' : 'Copiar vencimiento'}
+              </ModalButton>
+            </div>
+
+            <div className="text-[11px] text-muted-foreground border-t border-border pt-3">
+              ⓘ El CVC nunca se almacena. Si lo necesitás, sacalo de tu plástico
+              o de tu app del banco.
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

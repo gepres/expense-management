@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export interface ModalProps {
@@ -120,9 +121,12 @@ export default function Modal({
     }
   };
 
-  return (
+  // Renderizar a body via portal: garantiza que el modal se vea por encima de
+  // cualquier elemento `fixed` (footers, toolbars) sin importar el stacking
+  // context del componente padre.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center !mt-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center !mt-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={handleBackdropClick}
       style={{
         opacity: isDragging ? 1 - dragOffset / 300 : 1,
@@ -197,7 +201,8 @@ export default function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

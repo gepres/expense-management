@@ -21,7 +21,14 @@ import {
   Save,
   AlertTriangle,
   ChevronLeft,
+  CreditCard,
+  Calendar,
+  User,
+  Shield,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
+import { useAuth } from '@context/AuthContext';
 import { useAccountsContext } from '@context/AccountsContext';
 import { useConfig } from '@context/ConfigContext';
 import {
@@ -31,8 +38,17 @@ import {
   BANCOS_PERU,
   type AccountType,
   type CreateAccountDto,
+  type EncryptedCardData,
   type UpdateAccountDto,
 } from '@app-types';
+import {
+  decryptCardField,
+  detectCardBrand,
+  encryptCardField,
+  isCardExpired,
+  maskCardNumber,
+  normalizeCardNumber,
+} from '@utils/card-crypto';
 import { Input, Select, InputGroup, InputRow, Switch } from '@components/common/Input';
 import Button from '@components/common/Button';
 import CustomLoader from '@components/common/CustomLoader';
@@ -65,6 +81,11 @@ interface FormState {
   includeInTotal: boolean;
   isDefault: boolean;
   creditLimit: string;
+  // --- Datos de tarjeta (solo type='card') ---
+  cardNumber: string;
+  cardHolder: string;
+  cardExpMonth: string;
+  cardExpYear: string;
 }
 
 const INITIAL: FormState = {
@@ -80,6 +101,10 @@ const INITIAL: FormState = {
   includeInTotal: true,
   isDefault: false,
   creditLimit: '',
+  cardNumber: '',
+  cardHolder: '',
+  cardExpMonth: '',
+  cardExpYear: '',
 };
 
 export default function FormularioCuenta() {
@@ -90,11 +115,18 @@ export default function FormularioCuenta() {
   const { obtenerPorId, crear, actualizar, accounts, estado } = useAccountsContext();
   const { currencies } = useConfig();
   const { temaEfectivo } = useTheme();
+  const { usuario } = useAuth();
 
   const [form, setForm] = useState<FormState>(INITIAL);
   const [loading, setLoading] = useState(false);
   const [loadingDoc, setLoadingDoc] = useState(isEdit);
   const [showEmoji, setShowEmoji] = useState(false);
+  // Cuando el usuario abre la sección de tarjeta en modo edición, descifra
+  // el número original (UX: poder editarlo). Si decide cambiarlo, se vuelve
+  // a cifrar al guardar.
+  const [revealCard, setRevealCard] = useState(false);
+  const [originalCardData, setOriginalCardData] = useState<EncryptedCardData | null>(null);
+  const [cardError, setCardError] = useState<string | null>(null);
   // Flag para auto-seleccionar isDefault solo una vez en modo creación.
   const [defaultAutoSeeded, setDefaultAutoSeeded] = useState(false);
 
@@ -125,9 +157,44 @@ export default function FormularioCuenta() {
       includeInTotal: acc.includeInTotal,
       isDefault: acc.isDefault,
       creditLimit: acc.creditLimit !== undefined ? String(acc.creditLimit) : '',
+      // Solo cargamos los campos NO sensibles al editar. El número se mantiene
+      // cifrado hasta que el usuario haga click en "Revelar" o decida cambiarlo.
+      cardNumber: '',
+      cardHolder: acc.cardData?.holderName ?? '',
+      cardExpMonth: acc.cardData ? String(acc.cardData.expMonth) : '',
+      cardExpYear: acc.cardData ? String(acc.cardData.expYear) : '',
     });
+    setOriginalCardData(acc.cardData ?? null);
     setLoadingDoc(false);
   }, [id, obtenerPorId, accounts, navigate]);
+
+  /**
+   * Revela el número de tarjeta original (descifrándolo) para que el usuario
+   * pueda verlo o editarlo. Si la clave fallara, mostramos error.
+   */
+  const handleRevealCard = async () => {
+    if (!originalCardData || !usuario) return;
+    if (revealCard) {
+      // Toggle off: ocultar
+      setRevealCard(false);
+      setForm((prev) => ({ ...prev, cardNumber: '' }));
+      return;
+    }
+    setCardError(null);
+    try {
+      const plain = await decryptCardField(
+        originalCardData.cardNumberEnc,
+        usuario.id,
+      );
+      setForm((prev) => ({ ...prev, cardNumber: plain }));
+      setRevealCard(true);
+    } catch (err) {
+      console.error('Decrypt failed:', err);
+      setCardError(
+        'No se pudo descifrar el número. La clave no coincide o el dato está corrupto.',
+      );
+    }
+  };
 
   // Modo creación: si es la PRIMERA cuenta del usuario, isDefault arranca en
   // true. Si ya existen cuentas, queda false (el usuario decide explicitamente).
@@ -157,8 +224,79 @@ export default function FormularioCuenta() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  /**
+   * Resuelve los datos de tarjeta a persistir según el estado del form:
+   *  - type !== 'card' → null (no se guarda nada)
+   *  - sin número nuevo y existe original → mantener original (refresca holder/exp)
+   *  - con número nuevo → cifrar y reemplazar
+   *  - sin número y sin original → null
+   */
+  const buildCardData = async (): Promise<EncryptedCardData | undefined | null> => {
+    if (!isCardType) return null; // null = limpiar campo
+    if (!usuario) return undefined;
+
+    const newNumber = normalizeCardNumber(form.cardNumber);
+    const expMonth = parseInt(form.cardExpMonth, 10);
+    const expYear = parseInt(form.cardExpYear, 10);
+    const holder = form.cardHolder.trim();
+
+    // Si no hay número nuevo y no había datos originales → no guardamos tarjeta
+    if (!newNumber && !originalCardData) return undefined;
+
+    // Caso edición: usuario solo modificó holder/exp pero no tocó el número
+    if (!newNumber && originalCardData) {
+      if (!holder) {
+        setCardError('Falta el nombre del titular');
+        throw new Error('card validation');
+      }
+      if (!expMonth || !expYear) {
+        setCardError('Falta fecha de vencimiento');
+        throw new Error('card validation');
+      }
+      return {
+        ...originalCardData,
+        holderName: holder,
+        expMonth,
+        expYear,
+      };
+    }
+
+    // Hay número nuevo: validar y cifrar
+    if (newNumber.length < 13 || newNumber.length > 19 || !/^\d+$/.test(newNumber)) {
+      setCardError('Número de tarjeta inválido (13–19 dígitos)');
+      throw new Error('card validation');
+    }
+    if (!holder) {
+      setCardError('Falta el nombre del titular');
+      throw new Error('card validation');
+    }
+    if (!expMonth || expMonth < 1 || expMonth > 12) {
+      setCardError('Mes de vencimiento inválido (1–12)');
+      throw new Error('card validation');
+    }
+    if (!expYear || expYear < new Date().getFullYear()) {
+      setCardError('Año de vencimiento inválido');
+      throw new Error('card validation');
+    }
+    if (isCardExpired(expMonth, expYear)) {
+      setCardError('La tarjeta está vencida');
+      throw new Error('card validation');
+    }
+
+    const cardNumberEnc = await encryptCardField(newNumber, usuario.id);
+    return {
+      cardNumberEnc,
+      cardLast4: newNumber.slice(-4),
+      holderName: holder,
+      expMonth,
+      expYear,
+      brand: detectCardBrand(newNumber),
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCardError(null);
 
     if (!form.name.trim()) {
       toast.error('El nombre es obligatorio');
@@ -172,6 +310,8 @@ export default function FormularioCuenta() {
     setLoading(true);
 
     try {
+      const cardData = await buildCardData();
+
       if (isEdit && id) {
         const dto: UpdateAccountDto = {
           name: form.name.trim(),
@@ -183,6 +323,7 @@ export default function FormularioCuenta() {
           isDefault: form.isDefault,
           creditLimit: isCardType && form.creditLimit ? parseFloat(form.creditLimit) : undefined,
         };
+        if (cardData !== undefined) dto.cardData = cardData ?? undefined;
         const result = await actualizar(id, dto);
         if (result) {
           toast.success('Cuenta actualizada');
@@ -203,10 +344,17 @@ export default function FormularioCuenta() {
           creditLimit:
             isCardType && form.creditLimit ? parseFloat(form.creditLimit) : undefined,
         };
+        if (cardData) dto.cardData = cardData;
         const result = await crear(dto);
         if (result) {
           navigate(`/cuentas/${result.id}`);
         }
+      }
+    } catch (err) {
+      // Validation card errors ya muestran cardError. Otros errores → toast.
+      if (!(err instanceof Error && err.message === 'card validation')) {
+        const msg = err instanceof Error ? err.message : 'Error al guardar';
+        toast.error(msg);
       }
     } finally {
       setLoading(false);
@@ -368,6 +516,113 @@ export default function FormularioCuenta() {
             </InputRow>
           )}
         </InputGroup>
+
+        {/* Datos de tarjeta (solo si type='card') */}
+        {isCardType && (
+          <InputGroup
+            title="Datos de tarjeta (opcional)"
+            description="Guarda los datos para tenerlos siempre a mano. El número se cifra antes de subirlo. NUNCA almacenamos el CVC."
+          >
+            <InputRow label="Número" icon={CreditCard} iconColor="bg-blue-500/10">
+              <div className="flex items-center gap-2 w-full">
+                <Input
+                  variant="ios"
+                  type={revealCard || !originalCardData ? 'text' : 'password'}
+                  inputMode="numeric"
+                  value={
+                    !originalCardData || revealCard || form.cardNumber
+                      ? form.cardNumber
+                      : maskCardNumber(originalCardData.cardLast4)
+                  }
+                  onChange={(e) =>
+                    update('cardNumber', e.target.value.replace(/[^\d\s-]/g, ''))
+                  }
+                  placeholder="•••• •••• •••• ••••"
+                  maxLength={23}
+                  autoComplete="off"
+                  readOnly={!!originalCardData && !revealCard}
+                />
+                {originalCardData && (
+                  <button
+                    type="button"
+                    onClick={handleRevealCard}
+                    className="p-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                    title={revealCard ? 'Ocultar' : 'Revelar y editar'}
+                  >
+                    {revealCard ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                )}
+              </div>
+            </InputRow>
+
+            <InputRow label="Titular" icon={User} iconColor="bg-purple-500/10">
+              <Input
+                variant="ios"
+                type="text"
+                value={form.cardHolder}
+                onChange={(e) => update('cardHolder', e.target.value.toUpperCase())}
+                placeholder="JUAN PEREZ"
+                maxLength={50}
+                autoComplete="cc-name"
+              />
+            </InputRow>
+
+            <InputRow label="Vencimiento" icon={Calendar} iconColor="bg-orange-500/10">
+              <div className="flex items-center gap-2 w-full">
+                <Input
+                  variant="ios"
+                  type="number"
+                  min="1"
+                  max="12"
+                  value={form.cardExpMonth}
+                  onChange={(e) => update('cardExpMonth', e.target.value)}
+                  placeholder="MM"
+                  className="w-16"
+                  autoComplete="cc-exp-month"
+                />
+                <span className="text-muted-foreground">/</span>
+                <Input
+                  variant="ios"
+                  type="number"
+                  min={new Date().getFullYear()}
+                  max="2099"
+                  value={form.cardExpYear}
+                  onChange={(e) => update('cardExpYear', e.target.value)}
+                  placeholder="AAAA"
+                  className="w-24"
+                  autoComplete="cc-exp-year"
+                />
+              </div>
+            </InputRow>
+          </InputGroup>
+        )}
+
+        {/* Disclaimer de seguridad para tarjetas */}
+        {isCardType && (
+          <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3 flex items-start gap-2">
+            <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+            <div className="text-xs text-blue-900 dark:text-blue-100 space-y-1">
+              <p className="font-semibold">Cómo protegemos tus datos</p>
+              <ul className="list-disc ml-4 space-y-0.5">
+                <li>El número se cifra con AES-GCM antes de subirlo (PBKDF2 250k iteraciones).</li>
+                <li>Nunca pedimos ni almacenamos el CVC.</li>
+                <li>Solo verás los últimos 4 dígitos en listados.</li>
+                <li>El número completo solo se descifra en este dispositivo cuando lo pidas.</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {cardError && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>{cardError}</span>
+          </div>
+        )}
 
         {/* Apariencia */}
         <InputGroup title="Apariencia">

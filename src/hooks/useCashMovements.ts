@@ -34,6 +34,7 @@ interface UseCashMovementsReturn {
   retirar: (accountId: string, dto: CreateCashMovementDto) => Promise<CashMovement | null>;
   depositar: (accountId: string, dto: CreateCashMovementDto) => Promise<CashMovement | null>;
   ingresar: (accountId: string, dto: CreateIncomeDto) => Promise<CashMovement | null>;
+  revertir: (id: string) => Promise<CashMovement | null>;
   eliminar: (id: string) => Promise<void>;
   obtenerPorCuenta: (accountId: string) => CashMovement[];
 }
@@ -59,6 +60,9 @@ function firestoreToCashMovement(
     description: data.description,
     source: data.source,
     destination: data.destination,
+    revertsMovementId: data.revertsMovementId,
+    revertedBy: data.revertedBy,
+    revertedAt: data.revertedAt ? timestampToDate(data.revertedAt) : undefined,
     date: timestampToDate(data.date),
     createdAt: timestampToDate(data.createdAt),
     updatedAt: timestampToDate(data.updatedAt),
@@ -152,12 +156,24 @@ export function useCashMovements(): UseCashMovementsReturn {
     [],
   );
 
+  const revertir = useCallback(async (id: string) => {
+    try {
+      const result = await CashMovementsService.revert(id);
+      toast.success('Movimiento revertido');
+      return result;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error al revertir';
+      toast.error(msg);
+      return null;
+    }
+  }, []);
+
   const eliminar = useCallback(async (id: string) => {
     try {
       await CashMovementsService.remove(id);
-      toast.success('Movimiento revertido');
+      toast.success('Movimiento eliminado');
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Error al revertir';
+      const msg = error instanceof Error ? error.message : 'Error al eliminar';
       toast.error(msg);
       throw error;
     }
@@ -174,6 +190,7 @@ export function useCashMovements(): UseCashMovementsReturn {
     retirar,
     depositar,
     ingresar,
+    revertir,
     eliminar,
     obtenerPorCuenta,
   };

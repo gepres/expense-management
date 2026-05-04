@@ -120,37 +120,12 @@ service cloud.firestore {
     }
 
     // ========================================================================
-    // PRESUPUESTOS EFECTIVO (legacy — se borrará después de migración multi-cuenta)
+    // LEGACY: presupuestosEfectivo, movimientos, abonosEfectivo
     // ========================================================================
-
-    match /presupuestosEfectivo/{id} {
-      allow read: if ownsResource();
-      allow create: if ownsRequest();
-      allow update: if ownsResource() && ownsRequest();
-      allow delete: if ownsResource();
-    }
-
-    // ========================================================================
-    // MOVIMIENTOS (legacy — migrarán a 'transfers' en Fase 5)
-    // ========================================================================
-
-    match /movimientos/{id} {
-      allow read: if ownsResource();
-      allow create: if ownsRequest();
-      allow update: if ownsResource() && ownsRequest();
-      allow delete: if ownsResource();
-    }
-
-    // ========================================================================
-    // ABONOS EFECTIVO (legacy)
-    // ========================================================================
-
-    match /abonosEfectivo/{id} {
-      allow read: if ownsResource();
-      allow create: if ownsRequest();
-      allow update: if ownsResource() && ownsRequest();
-      allow delete: if ownsResource();
-    }
+    // Eliminadas en Fase 6.7 (modelo Opción B).
+    // Si quedan datos antiguos, el cleanup ocurre solo via backend al borrar
+    // la cuenta del usuario (users.service.ts). El fallback al final niega
+    // todo acceso desde clientes.
 
     // ========================================================================
     // RECEIPTS

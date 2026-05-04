@@ -11,7 +11,6 @@ import { useAccountsContext } from '@context/AccountsContext';
 import {
   calcularTotalGastos,
   calcularGastosPorCategoria,
-  agruparGastosPorMoneda,
 } from '@utils/calculations';
 import { formatearFecha } from '@utils/formatters';
 import {
@@ -23,7 +22,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Target, Plus, Bot, ArrowRight, Crown } from 'lucide-react';
+import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Target, Plus, Bot, ArrowRight, Crown, Banknote, Star } from 'lucide-react';
 import AIInsights from './AIInsights';
 import InstallPWA from '../common/InstallPWA';
 import CuentasWidget from '../cuentas/CuentasWidget';
@@ -76,7 +75,11 @@ function formatMoney(value: number, currency: string): string {
 export default function Dashboard() {
   const { usuario, isPro } = useAuth();
   const { gastos, estado } = useGastos();
-  const { patrimonioPorMoneda, activeAccounts, estado: estadoCuentas } = useAccountsContext();
+  const {
+    activeAccounts,
+    defaultAccount,
+    estado: estadoCuentas,
+  } = useAccountsContext();
   const { getCategoryLabel, getPaymentMethodLabel } = useConfig();
 
   const [mesActual] = useState(() => {
@@ -96,52 +99,53 @@ export default function Dashboard() {
   );
 
   // ===========================================================================
-  // OPCIÓN B: cuenta = presupuesto.
-  //   Presupuesto disponible(moneda) = patrimonio(moneda)
-  //   Gastado(moneda)                = Σ gastos del mes en esa moneda
-  //   Disponible(moneda)             = patrimonio(moneda) − gastado(moneda)
-  //
-  // No mezclar monedas. Cada card muestra la moneda principal en grande +
-  // las demás como pills.
+  // OPCIÓN B con foco en la cuenta default:
+  //   - Card "Presupuesto del Mes": SOLO la cuenta default (su saldo)
+  //   - Card "Gastos del Mes": SOLO gastos de esa cuenta
+  //   - Card "Efectivo en Bolsillo": SUMA de cashBalance de TODAS las cuentas
+  //     activas (alerta cuando es bajo o negativo)
   // ===========================================================================
 
-  const gastosPorMoneda = useMemo(() => {
-    const agr = agruparGastosPorMoneda(gastosDelMes);
-    const out: Record<string, number> = {};
-    for (const [moneda, lista] of Object.entries(agr)) {
-      out[moneda] = calcularTotalGastos(lista);
-    }
-    return out;
-  }, [gastosDelMes]);
-
-  // Lista unificada de monedas (las que tienen patrimonio O gastos en el mes)
-  const monedasActivas = useMemo(() => {
-    const set = new Set<string>([
-      ...Object.keys(patrimonioPorMoneda),
-      ...Object.keys(gastosPorMoneda).filter((m) => gastosPorMoneda[m] > 0),
-    ]);
-    return Array.from(set).sort((a) => (a === 'PEN' ? -1 : 1));
-  }, [patrimonioPorMoneda, gastosPorMoneda]);
-
-  const monedaPrincipal = monedasActivas[0] ?? 'PEN';
-
-  const presupuestoPrincipal = patrimonioPorMoneda[monedaPrincipal] ?? 0;
-  const gastosPrincipal = gastosPorMoneda[monedaPrincipal] ?? 0;
-  const disponiblePrincipal = presupuestoPrincipal - gastosPrincipal;
-
-  const porcentajeGastado = presupuestoPrincipal > 0
-    ? (gastosPrincipal / presupuestoPrincipal) * 100
+  // Cuenta foco: la default; si no existe, la primera activa.
+  const cuentaFoco = defaultAccount ?? activeAccounts[0] ?? null;
+  const monedaFoco = cuentaFoco?.currency ?? 'PEN';
+  const presupuestoFoco = cuentaFoco
+    ? cuentaFoco.bankBalance + cuentaFoco.cashBalance
     : 0;
 
-  // Para mostrar pills de monedas secundarias en cada card.
-  const monedasSecundarias = monedasActivas.slice(1);
-
-  // Datos para gráficos (en moneda principal — el chart tampoco debe mezclar)
-  const gastosDelMesPrincipal = useMemo(
-    () => gastosDelMes.filter((g) => g.moneda === monedaPrincipal),
-    [gastosDelMes, monedaPrincipal],
+  // Gastos del mes filtrados a la cuenta foco.
+  const gastosCuentaFoco = useMemo(
+    () => (cuentaFoco ? gastosDelMes.filter((g) => g.accountId === cuentaFoco.id) : []),
+    [gastosDelMes, cuentaFoco],
   );
-  const gastosPorCategoria = calcularGastosPorCategoria(gastosDelMesPrincipal);
+  const gastadoFoco = calcularTotalGastos(gastosCuentaFoco);
+  const disponibleFoco = presupuestoFoco - gastadoFoco;
+  const porcentajeGastado = presupuestoFoco > 0
+    ? (gastadoFoco / presupuestoFoco) * 100
+    : 0;
+
+  // Efectivo en bolsillo = suma de cashBalance por moneda de cuentas activas.
+  const efectivoPorMoneda = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const a of activeAccounts) {
+      out[a.currency] = (out[a.currency] ?? 0) + a.cashBalance;
+    }
+    return out;
+  }, [activeAccounts]);
+  const efectivoFoco = efectivoPorMoneda[monedaFoco] ?? 0;
+  const monedasEfectivoExtra = Object.keys(efectivoPorMoneda)
+    .filter((m) => m !== monedaFoco && efectivoPorMoneda[m] !== 0)
+    .sort();
+
+  // Umbral para alertar "poco efectivo" en mobile.
+  const efectivoBajo = efectivoFoco > 0 && efectivoFoco < 50;
+  const efectivoCritico = efectivoFoco <= 0 && activeAccounts.length > 0;
+
+  // El chart de categorías refleja la cuenta foco (consistente con los cards).
+  const monedaPrincipal = monedaFoco;
+
+  // Datos para gráficos: gastos de la cuenta foco (consistente con cards).
+  const gastosPorCategoria = calcularGastosPorCategoria(gastosCuentaFoco);
   const datosGraficoBarras = Object.entries(gastosPorCategoria)
     .filter(([, total]) => total > 0)
     .map(([categoria, total]) => ({
@@ -166,7 +170,6 @@ export default function Dashboard() {
   }
 
   const [year, month] = mesActual.split('-').map(Number);
-  const sinCuentas = activeAccounts.length === 0;
 
   return (
     <div className="space-y-6 pb-8">
@@ -209,7 +212,7 @@ export default function Dashboard() {
 
       {/* Tarjetas de estadísticas principales */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Gastos del Mes */}
+        {/* Gastos del Mes (cuenta default) */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <TrendingDown className="h-24 w-24 text-red-500 transform rotate-12 translate-x-4 -translate-y-4" />
@@ -219,24 +222,22 @@ export default function Dashboard() {
               <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
                 <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
               </div>
-              <p className="text-sm font-medium text-muted-foreground">Gastos del Mes</p>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Gastos del Mes</p>
+                {cuentaFoco && (
+                  <p className="text-[10px] text-muted-foreground/80 truncate">
+                    {cuentaFoco.name}
+                  </p>
+                )}
+              </div>
             </div>
             <p className="text-3xl font-bold text-foreground tracking-tight">
-              {formatMoney(gastosPrincipal, monedaPrincipal)}
+              {formatMoney(gastadoFoco, monedaFoco)}
             </p>
-            {monedasSecundarias.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
-                {monedasSecundarias.map((m) => (
-                  <span key={m} className="bg-background/50 px-2 py-1 rounded border border-border">
-                    {formatMoney(gastosPorMoneda[m] ?? 0, m)}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Presupuesto = Saldo de cuentas (Opción B: cuenta = presupuesto) */}
+        {/* Presupuesto del Mes = saldo de la cuenta DEFAULT */}
         <div className="bg-card border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Wallet className="h-24 w-24 text-blue-500 transform -rotate-12 translate-x-4 -translate-y-4" />
@@ -246,15 +247,24 @@ export default function Dashboard() {
               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                 <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-muted-foreground">Presupuesto del Mes</p>
-                <p className="text-[10px] text-muted-foreground/80">Saldo de tus cuentas activas</p>
+                <p className="text-[10px] text-muted-foreground/80 truncate inline-flex items-center gap-1">
+                  {cuentaFoco ? (
+                    <>
+                      <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                      {cuentaFoco.name} · {monedaFoco}
+                    </>
+                  ) : (
+                    'Sin cuenta default'
+                  )}
+                </p>
               </div>
             </div>
             <p className="text-3xl font-bold text-foreground tracking-tight">
-              {formatMoney(presupuestoPrincipal, monedaPrincipal)}
+              {formatMoney(presupuestoFoco, monedaFoco)}
             </p>
-            {presupuestoPrincipal > 0 && (
+            {presupuestoFoco > 0 && (
               <>
                 <div className="mt-3 w-full bg-muted rounded-full h-1.5 overflow-hidden">
                   <div
@@ -265,66 +275,75 @@ export default function Dashboard() {
                   />
                 </div>
                 <p className="mt-1.5 text-xs text-muted-foreground text-right">
-                  {porcentajeGastado.toFixed(1)}% gastado
+                  {porcentajeGastado.toFixed(1)}% gastado · disponible {formatMoney(disponibleFoco, monedaFoco)}
                 </p>
               </>
             )}
-            {monedasSecundarias.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
-                {monedasSecundarias.map((m) => (
-                  <span key={m} className="bg-background/50 px-2 py-1 rounded border border-border">
-                    {formatMoney(patrimonioPorMoneda[m] ?? 0, m)}
-                  </span>
-                ))}
-              </div>
+            {!cuentaFoco && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Marca una cuenta como predeterminada para ver su presupuesto.
+              </p>
             )}
           </div>
         </div>
 
-        {/* Disponible = Presupuesto − Gastos */}
-        <div className="bg-card border border-border rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
+        {/* Efectivo en Bolsillo (suma cashBalance de cuentas activas) */}
+        <div
+          className={`border rounded-xl p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition-all ${
+            efectivoCritico
+              ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700'
+              : 'bg-card border-border'
+          }`}
+        >
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Target className="h-24 w-24 text-green-500 transform rotate-6 translate-x-4 -translate-y-4" />
+            <Banknote className="h-24 w-24 text-emerald-500 transform rotate-6 translate-x-4 -translate-y-4" />
           </div>
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <Target className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className={`p-2 rounded-lg ${
+                efectivoCritico
+                  ? 'bg-amber-200 dark:bg-amber-900/50'
+                  : 'bg-emerald-100 dark:bg-emerald-900/30'
+              }`}>
+                <Banknote className={`h-5 w-5 ${
+                  efectivoCritico
+                    ? 'text-amber-700 dark:text-amber-300'
+                    : 'text-emerald-600 dark:text-emerald-400'
+                }`} />
               </div>
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Disponible</p>
-                <p className="text-[10px] text-muted-foreground/80">Saldo − gastos del mes</p>
+                <p className="text-sm font-medium text-muted-foreground">Efectivo en bolsillo</p>
+                <p className="text-[10px] text-muted-foreground/80">Suma de todas tus cuentas</p>
               </div>
             </div>
             <p className={`text-3xl font-bold tracking-tight ${
-              disponiblePrincipal < 0 ? 'text-red-500' : 'text-green-600 dark:text-green-400'
+              efectivoFoco < 0
+                ? 'text-red-500'
+                : efectivoCritico || efectivoBajo
+                  ? 'text-amber-700 dark:text-amber-300'
+                  : 'text-emerald-600 dark:text-emerald-400'
             }`}>
-              {formatMoney(disponiblePrincipal, monedaPrincipal)}
+              {formatMoney(efectivoFoco, monedaFoco)}
             </p>
             <p className="mt-3 text-xs text-muted-foreground">
-              {sinCuentas
+              {activeAccounts.length === 0
                 ? 'Crea una cuenta para empezar'
-                : disponiblePrincipal >= 0
-                  ? '¡Vas bien este mes!'
-                  : 'Has excedido tu saldo disponible'}
+                : efectivoCritico
+                  ? '⚠️ No tienes efectivo. Considera retirar de tu cuenta bancaria.'
+                  : efectivoBajo
+                    ? '💡 Te queda poco efectivo en mano.'
+                    : 'Disponible para gastos en efectivo.'}
             </p>
-            {monedasSecundarias.length > 0 && (
+            {monedasEfectivoExtra.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2 text-xs font-medium">
-                {monedasSecundarias.map((m) => {
-                  const disp = (patrimonioPorMoneda[m] ?? 0) - (gastosPorMoneda[m] ?? 0);
-                  return (
-                    <span
-                      key={m}
-                      className={`px-2 py-1 rounded border ${
-                        disp < 0
-                          ? 'border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10'
-                          : 'border-border bg-background/50 text-muted-foreground'
-                      }`}
-                    >
-                      {formatMoney(disp, m)}
-                    </span>
-                  );
-                })}
+                {monedasEfectivoExtra.map((m) => (
+                  <span
+                    key={m}
+                    className="px-2 py-1 rounded border border-border bg-background/50 text-muted-foreground"
+                  >
+                    {formatMoney(efectivoPorMoneda[m], m)}
+                  </span>
+                ))}
               </div>
             )}
           </div>
@@ -338,9 +357,10 @@ export default function Dashboard() {
           <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-foreground">Gastos por Categoría</h2>
-              {monedasActivas.length > 1 && (
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                  {monedaPrincipal}
+              {cuentaFoco && (
+                <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded inline-flex items-center gap-1">
+                  <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
+                  {cuentaFoco.name}
                 </span>
               )}
             </div>

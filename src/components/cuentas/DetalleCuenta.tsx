@@ -15,7 +15,6 @@ import {
   ArrowRightLeft,
   ArrowDownToLine,
   ArrowUpFromLine,
-  RefreshCw,
   Archive,
   ArchiveRestore,
   Trash2,
@@ -27,7 +26,10 @@ import {
   ExternalLink,
   Building2,
   Banknote,
-  Info,
+  MoreVertical,
+  RotateCcw,
+  CheckCircle2,
+  RefreshCw,
 } from 'lucide-react';
 import { useAccountsContext } from '@context/AccountsContext';
 import { useGastos } from '@hooks/useGastos';
@@ -54,12 +56,19 @@ interface UnifiedRow {
     | 'transfer_out'
     | 'withdrawal'
     | 'deposit_cash'
-    | 'income';
+    | 'income'
+    | 'reversal';
   concept: string;
   amount: number;
   /** Para enlaces a la cuenta contraparte de la transfer. */
   counterpartyAccountId?: string;
   link?: string;
+  /** Id del cash-movement original (para llamar revertir/eliminar). */
+  cashMovementId?: string;
+  /** True si el movimiento ya fue revertido (no se puede revertir de nuevo). */
+  alreadyReverted?: boolean;
+  /** True si este row ES un reversal. */
+  isReversal?: boolean;
 }
 
 function formatBalance(value: number, currency: string): string {
@@ -80,19 +89,24 @@ export default function DetalleCuenta() {
     archivar,
     actualizar,
     eliminar,
-    recalcular,
   } = useAccountsContext();
   const { gastos } = useGastos();
   const { transfers } = useTransfers();
-  const { movements: cashMovements } = useCashMovements();
+  const {
+    movements: cashMovements,
+    revertir,
+    eliminar: eliminarMovement,
+  } = useCashMovements();
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawType, setWithdrawType] = useState<CashMovementType>('withdrawal');
   const [incomeOpen, setIncomeOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [recalculating, setRecalculating] = useState(false);
-  const [showRecalculateInfo, setShowRecalculateInfo] = useState(false);
+  // Estados de acciones del historial: id del movimiento en proceso.
+  const [actionsOpenForRow, setActionsOpenForRow] = useState<string | null>(null);
+  const [busyActionMovementId, setBusyActionMovementId] = useState<string | null>(null);
+  const [confirmDeleteMovementId, setConfirmDeleteMovementId] = useState<string | null>(null);
 
   const account = id ? obtenerPorId(id) : undefined;
 
@@ -149,6 +163,8 @@ export default function DetalleCuenta() {
     //     redistribuyen entre bank/cash). Mostramos el monto real pero no
     //     suma al neto del historial.
     //   - income: SI aumenta el saldo total. Va con signo positivo.
+    //   - reversal: contra-asiento, su amount se muestra negativo respecto
+    //     del original.
     for (const cm of cashMovements) {
       if (cm.accountId !== account.id) continue;
       const conceptDefault =
@@ -156,28 +172,24 @@ export default function DetalleCuenta() {
           ? 'Retiro al efectivo'
           : cm.type === 'deposit_cash'
           ? 'Depósito de efectivo'
+          : cm.type === 'reversal'
+          ? cm.description ?? 'Reverso'
           : 'Ingreso externo';
       out.push({
         id: `cm_${cm.id}`,
         date: cm.date,
         type: cm.type,
         concept: cm.description || conceptDefault,
-        amount: cm.type === 'income' ? cm.amount : cm.amount, // income suma; los demás son visuales
+        amount: cm.amount,
+        cashMovementId: cm.id,
+        alreadyReverted: !!cm.revertedBy,
+        isReversal: cm.type === 'reversal',
       });
     }
 
     return out.sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [account, gastos, transfers, cashMovements]);
 
-  const handleRecalculate = async () => {
-    if (!account) return;
-    setRecalculating(true);
-    try {
-      await recalcular(account.id);
-    } finally {
-      setRecalculating(false);
-    }
-  };
 
   const handleToggleArchive = async () => {
     if (!account) return;
@@ -185,6 +197,30 @@ export default function DetalleCuenta() {
       await actualizar(account.id, { status: 'active' });
     } else {
       await archivar(account.id);
+    }
+  };
+
+  const handleRevertMovement = async (movementId: string) => {
+    if (busyActionMovementId) return;
+    setBusyActionMovementId(movementId);
+    setActionsOpenForRow(null);
+    try {
+      await revertir(movementId);
+    } finally {
+      setBusyActionMovementId(null);
+    }
+  };
+
+  const handleDeleteMovement = async () => {
+    if (!confirmDeleteMovementId) return;
+    setBusyActionMovementId(confirmDeleteMovementId);
+    try {
+      await eliminarMovement(confirmDeleteMovementId);
+      setConfirmDeleteMovementId(null);
+    } catch {
+      // toast ya emitido
+    } finally {
+      setBusyActionMovementId(null);
     }
   };
 
@@ -341,26 +377,9 @@ export default function DetalleCuenta() {
               Editar
             </Button>
           </Link>
-          <div className="relative">
-            <Button
-              variant="secondary"
-              icon={RefreshCw}
-              onClick={handleRecalculate}
-              loading={recalculating}
-              fullWidth
-              title="Recalcula el saldo desde cero sumando todos los movimientos"
-            >
-              Recalcular
-            </Button>
-            <button
-              type="button"
-              onClick={() => setShowRecalculateInfo((v) => !v)}
-              className="absolute -top-1 -right-1 p-1 rounded-full bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
-              aria-label="¿Qué hace este botón?"
-            >
-              <Info className="h-3 w-3" />
-            </button>
-          </div>
+          {/* Botón Recalcular desactivado: el saldo se mantiene consistente
+              automáticamente vía transacciones backend. Solo necesario para
+              casos de migración o inconsistencia detectada (no UI actualmente). */}
           <Button
             variant={account.status === 'archived' ? 'success' : 'secondary'}
             icon={account.status === 'archived' ? ArchiveRestore : Archive}
@@ -370,36 +389,6 @@ export default function DetalleCuenta() {
           </Button>
         </div>
 
-        {showRecalculateInfo && (
-          <div className="mt-4 rounded-lg border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 p-4 text-sm">
-            <div className="flex items-start gap-2">
-              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-              <div className="flex-1">
-                <p className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                  ¿Qué hace "Recalcular"?
-                </p>
-                <p className="text-blue-800 dark:text-blue-200">
-                  Reconstruye el saldo de la cuenta desde cero sumando el saldo
-                  inicial + ingresos + transferencias recibidas − gastos −
-                  transferencias enviadas. El resultado <strong>sobrescribe</strong>{' '}
-                  los campos <code className="px-1 bg-blue-100 dark:bg-blue-900/40 rounded">bankBalance</code>{' '}
-                  y <code className="px-1 bg-blue-100 dark:bg-blue-900/40 rounded">cashBalance</code>{' '}
-                  de la cuenta.
-                </p>
-                <p className="text-blue-800 dark:text-blue-200 mt-2 font-medium">¿Cuándo usarlo?</p>
-                <ul className="text-blue-800 dark:text-blue-200 list-disc ml-5 mt-1 space-y-0.5">
-                  <li>El saldo no cuadra con el historial de movimientos.</li>
-                  <li>Importaste gastos masivamente desde Excel.</li>
-                  <li>Editaste o borraste un gasto antiguo y dudas del saldo.</li>
-                  <li>Después de migrar datos o restaurar un backup.</li>
-                </ul>
-                <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
-                  ⚠️ La operación es segura (solo lee y suma) pero requiere conexión al backend.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Distribución del mes (cuenta = presupuesto) */}
@@ -455,7 +444,17 @@ export default function DetalleCuenta() {
                 withdrawal: 'Retiro al efectivo',
                 deposit_cash: 'Depósito de efectivo',
                 income: 'Ingreso externo',
+                reversal: 'Reverso',
               } as const)[row.type];
+
+              // Solo movimientos de cash (income, withdrawal, deposit_cash,
+              // reversal) tienen acciones revertir/eliminar. Gastos y
+              // transfers se editan/eliminan en sus vistas propias.
+              const showCashActions = !!row.cashMovementId;
+              const canRevert =
+                showCashActions && !row.alreadyReverted && !row.isReversal;
+              const isBusy = busyActionMovementId === row.cashMovementId;
+              const menuOpen = actionsOpenForRow === row.id;
 
               return (
                 <div
@@ -471,13 +470,29 @@ export default function DetalleCuenta() {
                     <p className="text-sm font-medium text-foreground truncate">
                       {row.concept}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatearFechaCorta(row.date)} · {typeLabel}
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                      <span>
+                        {formatearFechaCorta(row.date)} · {typeLabel}
+                      </span>
+                      {row.alreadyReverted && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+                          <CheckCircle2 className="h-2.5 w-2.5" /> Revertido
+                        </span>
+                      )}
+                      {row.isReversal && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">
+                          <RotateCcw className="h-2.5 w-2.5" /> Reverso
+                        </span>
+                      )}
                     </p>
                   </div>
                   <p
                     className={`text-sm font-bold whitespace-nowrap ${
-                      isCashMovement
+                      row.isReversal
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : row.alreadyReverted
+                        ? 'line-through text-muted-foreground'
+                        : isCashMovement
                         ? 'text-muted-foreground'
                         : isPositive
                         ? 'text-emerald-600'
@@ -486,6 +501,7 @@ export default function DetalleCuenta() {
                   >
                     {!isCashMovement && isPositive && '+'}
                     {!isCashMovement && isNegative && ''}
+                    {row.isReversal && '-'}
                     {formatBalance(
                       isCashMovement ? Math.abs(row.amount) : row.amount,
                       account.currency,
@@ -499,6 +515,63 @@ export default function DetalleCuenta() {
                     >
                       <ExternalLink className="h-4 w-4" />
                     </Link>
+                  )}
+                  {showCashActions && (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActionsOpenForRow(menuOpen ? null : row.id)
+                        }
+                        disabled={isBusy}
+                        className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                        title="Acciones"
+                        aria-label="Acciones del movimiento"
+                      >
+                        {isBusy ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <MoreVertical className="h-4 w-4" />
+                        )}
+                      </button>
+                      {menuOpen && (
+                        <>
+                          {/* Backdrop para cerrar al click fuera */}
+                          <div
+                            className="fixed inset-0 z-20"
+                            onClick={() => setActionsOpenForRow(null)}
+                          />
+                          <div className="absolute right-0 top-full mt-1 z-30 min-w-[180px] bg-card border border-border rounded-lg shadow-lg overflow-hidden">
+                            {canRevert && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  row.cashMovementId &&
+                                  handleRevertMovement(row.cashMovementId)
+                                }
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-foreground hover:bg-muted transition-colors"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Revertir
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActionsOpenForRow(null);
+                                setConfirmDeleteMovementId(
+                                  row.cashMovementId ?? null,
+                                );
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-destructive hover:bg-destructive/10 transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Eliminar
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               );
@@ -551,6 +624,17 @@ export default function DetalleCuenta() {
         onConfirm={handleDelete}
         title="¿Eliminar esta cuenta?"
         description={`Vas a eliminar "${account.name}" permanentemente. Si tiene gastos asociados la operación fallará y deberás archivarla.`}
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+        isDestructive
+      />
+
+      <ConfirmationModal
+        isOpen={!!confirmDeleteMovementId}
+        onClose={() => setConfirmDeleteMovementId(null)}
+        onConfirm={handleDeleteMovement}
+        title="¿Eliminar este movimiento?"
+        description="El monto se devolverá automáticamente al saldo de la cuenta. Esta acción no se puede deshacer."
         confirmText="Sí, eliminar"
         cancelText="Cancelar"
         isDestructive
