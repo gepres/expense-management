@@ -6,10 +6,11 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGastos } from '@hooks/useGastos';
 import { useConfig } from '@context/ConfigContext';
+import { useAccountsContext } from '@context/AccountsContext';
 import { formatearMoneda, formatearFecha } from '@utils/formatters';
 import { calcularTotalGastos, agruparGastosPorMoneda } from '@utils/calculations';
 import { toast } from 'react-hot-toast';
-import { Plus, FileText, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Download, Search, Filter, Calendar, CreditCard, TrendingUp, Lightbulb, ChevronRight, Trash2, AlertTriangle, FileSpreadsheet, FileJson, CalendarSearch } from 'lucide-react';
+import { Plus, FileText, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Download, Search, Filter, Calendar, CreditCard, TrendingUp, Lightbulb, ChevronRight, Trash2, AlertTriangle, FileSpreadsheet, FileJson, CalendarSearch, Wallet, Check } from 'lucide-react';
 import CustomLoader from '@components/common/CustomLoader';
 import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
 import { ExpensesService } from '../../services/expenses';
@@ -46,7 +47,10 @@ export default function ListaGastos() {
   const [exportMonth, setExportMonth] = useState(new Date().getMonth() + 1);
   const [exportYear, setExportYear] = useState(new Date().getFullYear());
   const [exportFormat, setExportFormat] = useState<'json' | 'excel'>('excel');
+  const [exportAccountIds, setExportAccountIds] = useState<string[]>([]);
   const [isExporting, setIsExporting] = useState(false);
+
+  const { activeAccounts } = useAccountsContext();
 
   const [loadingDelete, setLoadingDelete] = useState(false);
 
@@ -190,11 +194,21 @@ export default function ListaGastos() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const blob = await ExpensesService.exportExpenses(exportMonth, exportYear, exportFormat);
+      const blob = await ExpensesService.exportExpenses(
+        exportMonth,
+        exportYear,
+        exportFormat,
+        // Vacío = todas las cuentas (el backend interpreta así).
+        exportAccountIds.length > 0 ? exportAccountIds : undefined,
+      );
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `reporte_gastos_${exportYear}_${String(exportMonth).padStart(2, '0')}.${exportFormat === 'excel' ? 'xlsx' : 'json'}`;
+      const suffix =
+        exportAccountIds.length > 0 && exportAccountIds.length < activeAccounts.length
+          ? `_${exportAccountIds.length}cuentas`
+          : '';
+      a.download = `reporte_gastos_${exportYear}_${String(exportMonth).padStart(2, '0')}${suffix}.${exportFormat === 'excel' ? 'xlsx' : 'json'}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -206,6 +220,14 @@ export default function ListaGastos() {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const toggleExportAccount = (accountId: string) => {
+    setExportAccountIds((prev) =>
+      prev.includes(accountId)
+        ? prev.filter((id) => id !== accountId)
+        : [...prev, accountId],
+    );
   };
 
   if (estado.estado === 'loading') {
@@ -664,6 +686,77 @@ export default function ListaGastos() {
               </div>
             </div>
           </div>
+
+          {/* Cuentas a incluir */}
+          {activeAccounts.length > 0 && (
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <div className="p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                    Cuentas a incluir
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExportAccountIds(
+                        exportAccountIds.length === activeAccounts.length
+                          ? []
+                          : activeAccounts.map((a) => a.id),
+                      )
+                    }
+                    className="text-[11px] font-medium text-primary hover:underline"
+                  >
+                    {exportAccountIds.length === activeAccounts.length
+                      ? 'Quitar todas'
+                      : 'Seleccionar todas'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted-foreground mb-2">
+                  {exportAccountIds.length === 0
+                    ? `Sin filtro: incluye TODAS (${activeAccounts.length})`
+                    : `${exportAccountIds.length} de ${activeAccounts.length} cuenta${exportAccountIds.length === 1 ? '' : 's'} seleccionada${exportAccountIds.length === 1 ? '' : 's'}`}
+                </p>
+                <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                  {activeAccounts.map((acc) => {
+                    const checked = exportAccountIds.includes(acc.id);
+                    return (
+                      <label
+                        key={acc.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                          checked
+                            ? 'bg-primary/10 border border-primary/30'
+                            : 'border border-border hover:bg-muted/50'
+                        }`}
+                      >
+                        <div
+                          className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${
+                            checked
+                              ? 'bg-primary border-primary text-primary-foreground'
+                              : 'border-input bg-background'
+                          }`}
+                        >
+                          {checked && <Check className="h-3 w-3" />}
+                        </div>
+                        <Wallet className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleExportAccount(acc.id)}
+                          className="sr-only"
+                        />
+                        <span className="flex-1 text-sm font-medium truncate">
+                          {acc.name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          {acc.currency}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Formato */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">

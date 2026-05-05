@@ -162,6 +162,8 @@ export const ExpensesService = {
     month: number,
     year: number,
     format: 'json' | 'excel',
+    /** IDs de cuenta a incluir. Vacío/undefined = todas las cuentas del usuario. */
+    accountIds?: string[],
   ): Promise<Blob> {
     const token = await getAuthToken();
     const queryParams = new URLSearchParams({
@@ -169,11 +171,17 @@ export const ExpensesService = {
       year: year.toString(),
       format,
     });
+    if (accountIds && accountIds.length > 0) {
+      queryParams.set('accountIds', accountIds.join(','));
+    }
 
-    const response = await fetch(`${API_URL}/expenses/export?${queryParams}`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const response = await fetchOrThrowOffline(
+      `${API_URL}/expenses/export?${queryParams}`,
+      {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
 
     if (!response.ok) throw new Error('Error exporting expenses');
     return response.blob();

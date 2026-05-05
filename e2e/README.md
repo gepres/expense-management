@@ -5,14 +5,17 @@ Tests End-to-End para la aplicación de Gestión de Gastos Personales usando Pla
 ## 📋 Contenido de Tests
 
 ### Tests Públicos (sin autenticación)
-- `auth.spec.ts` - Tests de autenticación (Login, Registro, Validaciones) - **7 tests**
-- `dashboard.spec.ts` - Tests de páginas públicas, navegación, responsive, accesibilidad - **13 tests**
-- `gastos.spec.ts` - Tests de rutas protegidas, PWA, performance, tema - **15 tests**
+- `auth.spec.ts` — Login, Registro, Validaciones
+- `dashboard.spec.ts` — Páginas públicas, navegación, responsive, accesibilidad
+- `gastos.spec.ts` — Rutas protegidas, PWA, performance, tema
 
-### Tests Autenticados
-- `dashboard-authenticated.spec.ts` - Tests que requieren login (Dashboard, Gastos, Presupuestos, Asistente IA, Config) - **8 tests**
+### Tests Autenticados (cargan storageState desde `auth.setup.ts`)
+- `dashboard-authenticated.spec.ts` — Dashboard, navegación a páginas protegidas
+- `cuentas.spec.ts` — Multi-cuenta: lista, modal Ingreso, transferir, formulario nueva, datos de tarjeta
+- `presupuestos.spec.ts` — Solo categorías (Opción B), panel "Máximo asignable", banner backend offline
 
-**Total: 43 tests** (35 públicos + 8 autenticados)
+### Setup
+- `auth.setup.ts` — Login one-shot que guarda `e2e/.auth/user.json`. Lo cargan los projects con `dependencies: ['setup']`
 
 ## 🚀 Comandos Disponibles
 
@@ -406,11 +409,10 @@ Los tests están divididos en dos categorías:
 
 ### Archivos Importantes
 
-- `e2e/helpers/auth.ts` - Helper functions para autenticación
-- `e2e/auth.setup.ts` - Setup de autenticación (legacy, ya no se usa)
-- `.env.test` - Variables de entorno para tests
-- `test-e2e.bat` - Script helper para Windows
-- `playwright.config.ts` - Configuración de Playwright
+- `e2e/auth.setup.ts` — Login one-shot que persiste storageState. Usado por `dependencies: ['setup']` de cada project
+- `e2e/load-env.ts` — Carga `.env.test` filtrando vars conflictivas (PLAYWRIGHT_BROWSERS_PATH)
+- `.env.test` — Variables de entorno (ver `.env.test.example`)
+- `playwright.config.ts` — Configuración de Playwright
 
 ## 🎯 Cobertura de Tests
 
@@ -424,13 +426,17 @@ Los tests están divididos en dos categorías:
 - [x] Tests de accesibilidad básica
 - [x] Tests autenticados (Dashboard, Gastos, Presupuestos, Asistente IA, Importar, Config)
 
+### ✅ Implementado en Fase 6.5
+- [x] Tests de UI multi-cuenta (`cuentas.spec.ts`)
+- [x] Tests de UI presupuestos Opción B (`presupuestos.spec.ts`)
+- [x] Test de banner backend offline (route abort)
+
 ### 📋 TODO
-- [ ] Tests de CRUD de gastos completo
+- [ ] Tests funcionales con sandbox Firebase dedicado (CRUD completo de gastos)
 - [ ] Tests de importación/exportación Excel
-- [ ] Tests de presupuestos (crear, editar, alertas)
 - [ ] Tests de chat IA (enviar mensajes, historial)
+- [ ] Tests de revertir cash-movement
 - [ ] Visual regression testing
-- [ ] Tests de performance avanzado
 - [ ] Configurar CI/CD para ejecutar tests automáticamente
 
 ## 🚨 Troubleshooting
