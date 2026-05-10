@@ -30,7 +30,9 @@
       "Bash(echo \"exit=$?\")",
       "Bash(npx knip *)",
       "Bash(npm uninstall *)",
-      "Bash(npx playwright *)"
+      "Bash(npx playwright *)",
+      "PowerShell(Get-Item *)",
+      "PowerShell(Test-Path *)"
     ],
     "deny": [],
     "ask": []
