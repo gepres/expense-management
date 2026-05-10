@@ -940,3 +940,26 @@ export interface CreateTransferDto {
   date?: string;
 }
 
+// ============================================================================
+// Programaciones (Gastos / Transferencias recurrentes)
+// ============================================================================
+
+export type {
+  FrecuenciaProgramado,
+  EstadoEjecucion,
+  ScheduleConfig,
+  GastoProgramado,
+  GastoProgramadoFirestore,
+  CreateGastoProgramadoDto,
+  UpdateGastoProgramadoDto,
+  TransferenciaProgramada,
+  EjecucionProgramada,
+} from './programados';
+
+export {
+  FRECUENCIAS_PROGRAMADO,
+  FRECUENCIA_LABELS,
+  DIAS_SEMANA_LABELS,
+  ESTADOS_EJECUCION,
+} from './programados';
+

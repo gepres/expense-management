@@ -102,6 +102,22 @@
         { "fieldPath": "accountId", "order": "ASCENDING" },
         { "fieldPath": "date", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "gastosProgramados",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "activo", "order": "ASCENDING" },
+        { "fieldPath": "proximaEjecucion", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "gastosProgramados",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "proximaEjecucion", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

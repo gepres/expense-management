@@ -249,6 +249,28 @@ service cloud.firestore {
     }
 
     // ========================================================================
+    // GASTOS PROGRAMADOS — plantillas recurrentes que el cron del backend ejecuta.
+    // El frontend solo LEE (onSnapshot). Las mutations pasan por el backend
+    // (Admin SDK bypassa estas reglas). Esto evita que un cliente cree una
+    // programación con próximaEjecucion manipulada o salte validaciones.
+    // ========================================================================
+
+    match /gastosProgramados/{programadoId} {
+      allow read: if ownsResource();
+      allow create, update, delete: if false;
+    }
+
+    // ========================================================================
+    // EJECUCIONES PROGRAMADAS — auditoría inmutable de cada disparo del cron.
+    // Solo lectura para el dueño. Solo el backend escribe.
+    // ========================================================================
+
+    match /ejecucionesProgramadas/{ejecucionId} {
+      allow read: if ownsResource();
+      allow create, update, delete: if false;
+    }
+
+    // ========================================================================
     // WHATSAPP QUEUE — solo Cloud Functions (Twilio webhook)
     // Ningún cliente debe leer ni escribir
     // ========================================================================

@@ -15,6 +15,7 @@ import {
   ShoppingBag,
   Crown,
   CreditCard,
+  Repeat,
 } from 'lucide-react';
 
 interface MobileMenuProps {
@@ -138,6 +139,19 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                 <Target className="h-5 w-5" />
               </div>
               <span className="font-medium text-foreground">Presupuestos</span>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
+
+          <button
+            onClick={() => handleNavigation('/programados')}
+            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-accent transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+                <Repeat className="h-5 w-5" />
+              </div>
+              <span className="font-medium text-foreground">Programados</span>
             </div>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
           </button>

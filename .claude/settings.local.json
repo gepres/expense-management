@@ -32,7 +32,10 @@
       "Bash(npm uninstall *)",
       "Bash(npx playwright *)",
       "PowerShell(Get-Item *)",
-      "PowerShell(Test-Path *)"
+      "PowerShell(Test-Path *)",
+      "Bash(npx vitest *)",
+      "PowerShell(New-Item *)",
+      "Bash(npx jest *)"
     ],
     "deny": [],
     "ask": []

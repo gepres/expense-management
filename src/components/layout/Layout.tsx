@@ -7,7 +7,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
-import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, ShoppingBag, BanknoteArrowDown, Crown, CreditCard } from 'lucide-react';
+import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, ShoppingBag, BanknoteArrowDown, Crown, CreditCard, Repeat } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import BudgetMonitor from '../common/BudgetMonitor';
 import NotificationsPanel from '../compartidos/NotificationsPanel';
@@ -45,6 +45,7 @@ export default function Layout() {
 
   // Nav secundario (en dropdown "Más" del desktop)
   const desktopMoreLinks = [
+    { to: '/programados', label: 'Programados', icon: Repeat },
     { to: '/compras', label: 'Compras', icon: ShoppingBag },
     { to: '/compartidos', label: 'Compartidos', icon: Users },
     { to: '/importar', label: 'Importar', icon: Upload },

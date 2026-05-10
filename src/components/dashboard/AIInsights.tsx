@@ -10,12 +10,12 @@ interface AIInsightsProps {
   year: number;
 }
 
-// TTL del cache configurable vía env. Default: 5 min.
+// TTL del cache configurable vía env. Default: 1440 min = 24 h (una vez al día).
 // Vite expone los env como strings; convertimos a número con fallback.
 const TTL_MINUTES = (() => {
   const raw = import.meta.env.VITE_AI_INSIGHTS_TTL_MINUTES;
   const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1440;
 })();
 const TTL_MS = TTL_MINUTES * 60 * 1000;
 
@@ -24,10 +24,12 @@ interface CacheEntry {
   timestamp: number;
 }
 
-// Cache a nivel de módulo: sobrevive desmontes/remontes del componente
-// dentro de la misma sesión, pero no entre recargas de página (apropiado
-// para tips de IA que dependen del momento del día).
+// Cache a nivel de módulo: sirve como hit rápido durante la sesión actual.
+// Para sobrevivir recargas de página (clave para "una vez al día") también
+// persistimos cada entrada en localStorage; ver localStorage helpers abajo.
 const insightsCache = new Map<string, CacheEntry>();
+
+const LS_PREFIX = 'ai-insights:';
 
 function cacheKey(month: number, year: number, userId: string | undefined): string {
   return `${userId ?? 'anon'}:${year}-${month}`;
@@ -36,6 +38,32 @@ function cacheKey(month: number, year: number, userId: string | undefined): stri
 function isCacheFresh(entry: CacheEntry | undefined): entry is CacheEntry {
   if (!entry) return false;
   return Date.now() - entry.timestamp < TTL_MS;
+}
+
+function readFromStorage(key: string): CacheEntry | undefined {
+  try {
+    const raw = localStorage.getItem(LS_PREFIX + key);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as CacheEntry;
+    if (
+      !parsed ||
+      typeof parsed.timestamp !== 'number' ||
+      !Array.isArray(parsed.insights)
+    ) {
+      return undefined;
+    }
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeToStorage(key: string, entry: CacheEntry): void {
+  try {
+    localStorage.setItem(LS_PREFIX + key, JSON.stringify(entry));
+  } catch {
+    // Quota exceeded o storage deshabilitado → ignorar (memoria sigue funcionando)
+  }
 }
 
 const FALLBACK_INSIGHTS = [
@@ -71,7 +99,15 @@ export default function AIInsights({ month, year }: AIInsightsProps) {
       }
 
       // Cache hit y no forzamos refresh → usar lo guardado.
-      const cached = insightsCache.get(key);
+      // Buscar en memoria primero; si no, en localStorage (sobrevive recargas).
+      let cached = insightsCache.get(key);
+      if (!cached) {
+        const persisted = readFromStorage(key);
+        if (persisted) {
+          insightsCache.set(key, persisted);
+          cached = persisted;
+        }
+      }
       if (!force && isCacheFresh(cached)) {
         setInsights(cached.insights);
         setLastUpdated(cached.timestamp);
@@ -93,7 +129,9 @@ export default function AIInsights({ month, year }: AIInsightsProps) {
             .filter((s: string) => s.length > 0);
           const finalInsights = parts.length > 0 ? parts : [response.message];
           const now = Date.now();
-          insightsCache.set(key, { insights: finalInsights, timestamp: now });
+          const entry: CacheEntry = { insights: finalInsights, timestamp: now };
+          insightsCache.set(key, entry);
+          writeToStorage(key, entry);
           setInsights(finalInsights);
           setLastUpdated(now);
         }
@@ -231,7 +269,11 @@ export default function AIInsights({ month, year }: AIInsightsProps) {
               onClick={handleRefresh}
               disabled={refreshing}
               className="p-1.5 rounded-md hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 transition-colors disabled:opacity-50"
-              title={`Refrescar insights (cache ${TTL_MINUTES} min)`}
+              title={
+                TTL_MINUTES >= 60
+                  ? `Refrescar insights (cache ${Math.round(TTL_MINUTES / 60)} h)`
+                  : `Refrescar insights (cache ${TTL_MINUTES} min)`
+              }
               aria-label="Refrescar insights"
             >
               <RefreshCw
