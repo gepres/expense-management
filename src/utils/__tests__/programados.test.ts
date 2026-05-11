@@ -9,6 +9,42 @@ const HORA = '12:00';
 const MAYO_10_2026 = new Date(2026, 4, 10, 8, 0, 0); // domingo 10 mayo 2026, 08:00 local
 
 describe('calcularProximaEjecucion', () => {
+  describe('frecuencia diaria', () => {
+    it('cada día desde fechaInicio si la hora no ha pasado', () => {
+      const ahora = new Date(2026, 4, 10, 8, 0, 0);
+      const res = calcularProximaEjecucion({
+        frecuencia: 'diaria',
+        hora: HORA,
+        fechaInicio: ahora,
+        ahora,
+      });
+      expect(res!.getDate()).toBe(10);
+      expect(res!.getHours()).toBe(12);
+    });
+
+    it('si la hora de hoy ya pasó, salta a mañana', () => {
+      const ahora = new Date(2026, 4, 10, 13, 0, 0);
+      const res = calcularProximaEjecucion({
+        frecuencia: 'diaria',
+        hora: HORA,
+        fechaInicio: new Date(2026, 4, 10, 8, 0, 0),
+        ahora,
+      });
+      expect(res!.getDate()).toBe(11);
+    });
+
+    it('después de ejecutar, suma 1 día', () => {
+      const res = calcularProximaEjecucion({
+        frecuencia: 'diaria',
+        hora: HORA,
+        fechaInicio: new Date(2026, 4, 10),
+        ultimaEjecucion: new Date(2026, 4, 10, 12, 0, 0),
+        ahora: new Date(2026, 4, 11, 0, 0, 0),
+      });
+      expect(res!.getDate()).toBe(11);
+    });
+  });
+
   describe('frecuencia única', () => {
     it('devuelve la fecha única si está en el futuro', () => {
       const res = calcularProximaEjecucion({
@@ -230,6 +266,10 @@ describe('calcularProximaEjecucion', () => {
 });
 
 describe('describirFrecuencia', () => {
+  it('diaria', () => {
+    expect(describirFrecuencia({ frecuencia: 'diaria' })).toBe('Cada día');
+  });
+
   it('semanal con día', () => {
     expect(describirFrecuencia({ frecuencia: 'semanal', diaEjecucion: 1 })).toBe('Cada lunes');
     expect(describirFrecuencia({ frecuencia: 'semanal', diaEjecucion: 5 })).toBe('Cada viernes');

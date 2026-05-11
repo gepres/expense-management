@@ -41,10 +41,8 @@ const ListaCuentas = lazy(() => import('@components/cuentas/ListaCuentas'));
 const FormularioCuenta = lazy(() => import('@components/cuentas/FormularioCuenta'));
 const DetalleCuenta = lazy(() => import('@components/cuentas/DetalleCuenta'));
 
-// Programados (gastos recurrentes)
-const ListaGastosProgramados = lazy(
-  () => import('@components/programados/ListaGastosProgramados'),
-);
+// Programados (gastos + transferencias recurrentes)
+const Programados = lazy(() => import('@components/programados/Programados'));
 
 // Documentación
 const Documentacion = lazy(() => import('@/pages/Documentacion'));
@@ -167,8 +165,8 @@ function AppRoutes() {
           <Route path="cuentas/editar/:id" element={<FormularioCuenta />} />
           <Route path="cuentas/:id" element={<DetalleCuenta />} />
 
-          {/* Programados (gastos recurrentes) */}
-          <Route path="programados" element={<ListaGastosProgramados />} />
+          {/* Programados (gastos + transferencias recurrentes) */}
+          <Route path="programados" element={<Programados />} />
 
           {/* Shopping List */}
           <Route path="compras" element={<ShoppingListView />} />

@@ -65,7 +65,7 @@ Ver [`.env.example`](./.env.example) para la lista completa con comentarios. Res
 | `VITE_API_BASE_URL` | `http://localhost:3000/api` | URL del backend NestJS |
 | `VITE_APP_URL` | `http://localhost:5173` | URL pública del frontend (deep-links de WhatsApp) |
 | `VITE_APP_ENV` | `development` | `development` \| `production` \| `test` |
-| `VITE_AI_INSIGHTS_TTL_MINUTES` | `5` | Cache de tips IA del dashboard |
+| `VITE_AI_INSIGHTS_TTL_MINUTES` | `1440` | Cache de tips IA del dashboard (default 24 h) |
 | `VITE_TWILIO_WHATSAPP_NUMBER` | — | Número del bot (formato `whatsapp:+51...`) |
 
 Para tests E2E: ver [`.env.test.example`](./.env.test.example).
@@ -122,6 +122,7 @@ Documentos clave:
 - **Multi-moneda:** PEN, USD (sin mezclar — cards y filtros separados por moneda).
 - **Sub-reservas por categoría:** opcionales, con alerta amber cuando el gasto supera la asignación.
 - **Movimientos:** ingreso externo (sueldo, préstamo, CTS, AFP), retiro al efectivo, depósito de efectivo, transferencias entre cuentas. Todos atómicos y reversibles.
+- **Programados:** gastos y transferencias recurrentes (diaria/semanal/quincenal/mensual/personalizada/única) que el backend ejecuta automáticamente vía cron, con manejo de saldo insuficiente y zona horaria del usuario.
 - **Tarjetas:** datos cifrados (AES-GCM 256, PBKDF2 250k iter). Botón "Copiar" para usarlas como gestor. CVC nunca se almacena.
 - **Asistente IA:** chat con Claude, insights del dashboard cacheados.
 - **OCR de boletas:** sube una foto y autocompleta el gasto.

@@ -261,6 +261,16 @@ service cloud.firestore {
     }
 
     // ========================================================================
+    // TRANSFERENCIAS PROGRAMADAS — mismo principio que gastos: solo el backend
+    // (Admin SDK) escribe. El cliente lee.
+    // ========================================================================
+
+    match /transferenciasProgramadas/{programadoId} {
+      allow read: if ownsResource();
+      allow create, update, delete: if false;
+    }
+
+    // ========================================================================
     // EJECUCIONES PROGRAMADAS — auditoría inmutable de cada disparo del cron.
     // Solo lectura para el dueño. Solo el backend escribe.
     // ========================================================================

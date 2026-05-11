@@ -18,6 +18,7 @@ Toda la documentación del proyecto vive en `/markdown/`. La raíz solo contiene
 | [VOICE_INPUT_GUIDE.md](./VOICE_INPUT_GUIDE.md) | Implementación de entrada de voz con Web Speech API | Trabajo sobre `useVoiceInput` o el formulario |
 | [FLOWS.md](./FLOWS.md) | **Flujos de trabajo por módulo** (cuentas, gastos, presupuesto, asistente, etc) — quién consume API vs Firestore directo | Empezar por acá si es la primera vez en el proyecto |
 | [SMOKE_TEST.md](./SMOKE_TEST.md) | Checklist manual end-to-end para validar la fase multi-cuenta | Antes de subir a `main` después de cambios grandes |
+| [../docs/programados-backend.md](../docs/programados-backend.md) | Contrato y modelo Firestore de gastos/transferencias programadas + cron del backend | Trabajo sobre `/programados`, `useGastosProgramados`, módulo `programados` del backend |
 
 ---
 

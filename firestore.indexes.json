@@ -118,6 +118,22 @@
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "proximaEjecucion", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "transferenciasProgramadas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "activo", "order": "ASCENDING" },
+        { "fieldPath": "proximaEjecucion", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transferenciasProgramadas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "proximaEjecucion", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -181,6 +181,30 @@
 
 ---
 
+### ⏰ Programados (`/programados`)
+
+Plantillas recurrentes que el cron del backend ejecuta automáticamente. Dos tipos en tabs:
+- **Gastos programados** → genera un documento en `expenses` y debita la cuenta origen.
+- **Transferencias programadas** → genera un documento en `transfers`, debita origen y acredita destino.
+
+| Tab | Componente | Datos | Path |
+|---|---|---|---|
+| **Gastos** | `ListaGastosProgramados` + `FormularioGastoProgramado` | `gastosProgramados` | **API** `/api/programados/gastos` (CRUD + pause/resume); read realtime via `onSnapshot` desde `useGastosProgramados` |
+| **Transferencias** | `ListaTransferenciasProgramadas` + `FormularioTransferenciaProgramada` | `transferenciasProgramadas` | **API** `/api/programados/transferencias`; read realtime via `useTransferenciasProgramadas` |
+
+**Frecuencias soportadas:** `diaria`, `semanal`, `quincenal` (cada 15 días), `mensual` (día específico u "último día"), `personalizada` (cada N días), `unica` (one-off).
+
+**Cron del backend** (`programados.cron.ts`, cada 30 min):
+1. Lock idempotente con ID determinístico `{programadaId}_{fechaProgramadaISO}` en `ejecucionesProgramadas` (auditoría).
+2. Transacción Firestore: crea `expense`/`transfer`, decrementa saldo, recalcula `proximaEjecucion`.
+3. Si saldo insuficiente → marca ejecución `saldo_insuficiente`, **avanza próxima** (no se atasca).
+4. Si destino borrado (transferencias) → marca `fallida` y **pausa** el programado.
+5. Si frecuencia `unica` o `fechaFin` alcanzada → desactiva.
+
+**TZ-aware:** el cálculo respeta `zonaHoraria` del usuario con `date-fns-tz`. Almacenamiento en UTC, lógica de "día 5 a las 12:00" en hora local.
+
+---
+
 ### ⚙️ Configuración (`/configuracion?tab=*`)
 
 Todos los catálogos del usuario viven en `users/{uid}/<subcoll>` y se gestionan vía backend (write) + Firestore directo (read).
@@ -207,6 +231,8 @@ Todos los catálogos del usuario viven en `users/{uid}/<subcoll>` y se gestionan
 | `transfers.ts` | `transfers` | Mutations API |
 | `cash-movements.ts` | `cash-movements` | Mutations API (income/withdraw/deposit/revert) |
 | `presupuestos.ts` | `presupuestos` | Mutations API + resumen |
+| `programados.ts` | `programados` (gastos) | Mutations API + pause/resume |
+| `transferencias-programadas.ts` | `programados` (transferencias) | Mutations API + pause/resume |
 | `ai.ts` | `chat` | API chat |
 | `config.ts` | `categories`, `payment-methods`, `currencies`, `shortcuts` | Mutations API + init |
 | `import.ts` | `import` | API |
@@ -225,6 +251,8 @@ Todos los catálogos del usuario viven en `users/{uid}/<subcoll>` y se gestionan
 | `usePresupuestos` | `presupuestos` | `PresupuestosService.*` |
 | `useTransfers` | `transfers` | `TransfersService.*` |
 | `useCashMovements` | `cash-movements` | `CashMovementsService.*` |
+| `useGastosProgramados` | `gastosProgramados` | `ProgramadosService.*` |
+| `useTransferenciasProgramadas` | `transferenciasProgramadas` | `TransferenciasProgramadasService.*` |
 | `useAssistant` | (no — pull on-demand) | `ai.ts` |
 | `useSharedExpenses` | `shared_groups/*` | `SharedService.*` |
 | `useVoiceInput` | — | Web Speech API + `voice.ts` |
@@ -249,3 +277,5 @@ Wrapper `src/utils/api-errors.ts`:
 3. **Income vs Depositar**: 3 operaciones distintas, modales separados. NO unificar (decisión del usuario, Fase 6.7).
 4. **Card data**: AES-GCM 256-bit + PBKDF2 250k iter, clave derivada del `userId`. CVC NUNCA se persiste.
 5. **Realtime selectivo**: solo collections que el usuario ve cambiar en tiempo real (gastos, accounts, transfers, etc.). Resumenes y stats van por API.
+6. **Programados — write bloqueado al cliente**: las colecciones `gastosProgramados` y `transferenciasProgramadas` solo permiten lectura desde el cliente. Las mutaciones obligatoriamente pasan por backend para que el cron pueda confiar en `proximaEjecucion` y validaciones (saldo, ownership, mismo currency).
+7. **Cron idempotente**: el cron de `programados` puede correr en múltiples workers / reiniciarse — el lock determinístico en `ejecucionesProgramadas/{programadaId}_{fechaISO}` garantiza que cada disparo se ejecute exactamente una vez.

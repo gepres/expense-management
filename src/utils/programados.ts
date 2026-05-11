@@ -86,6 +86,19 @@ export function calcularProximaEjecucion(
   let candidata: Date;
 
   switch (frecuencia) {
+    case 'diaria': {
+      const refStart = aplicarHora(fechaInicio, horas, minutos);
+      if (ultimaEjecucion) {
+        candidata = aplicarHora(addDays(ultimaEjecucion, 1), horas, minutos);
+      } else {
+        candidata = refStart;
+        while (isBefore(candidata, ahora)) {
+          candidata = addDays(candidata, 1);
+        }
+      }
+      break;
+    }
+
     case 'semanal': {
       const diaTarget = input.diaEjecucion ?? getDay(fechaInicio);
       candidata = siguienteDiaSemana(base, diaTarget);
@@ -241,6 +254,8 @@ export function describirFrecuencia(
 ): string {
   const f = config.frecuencia;
   switch (f) {
+    case 'diaria':
+      return 'Cada día';
     case 'semanal': {
       // diaEjecucion debe estar en 0-6; si viene fuera de rango (ej. al
       // cambiar de mensual donde era 10) caemos a lunes para no romper.

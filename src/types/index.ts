@@ -953,6 +953,9 @@ export type {
   CreateGastoProgramadoDto,
   UpdateGastoProgramadoDto,
   TransferenciaProgramada,
+  TransferenciaProgramadaFirestore,
+  CreateTransferenciaProgramadaDto,
+  UpdateTransferenciaProgramadaDto,
   EjecucionProgramada,
 } from './programados';
 

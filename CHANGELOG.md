@@ -4,6 +4,67 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.3.0 (2026-05-11)
+**Release**: Gastos y Transferencias Programadas (recurrentes)
+
+**Nueva ruta `/programados`** con 2 tabs:
+- **Gastos programados** — plantillas que generan un `expense` automáticamente según frecuencia
+- **Transferencias programadas** — mueven dinero entre cuentas de forma automática
+
+**Frecuencias soportadas**:
+- `diaria` (cada día)
+- `semanal` (día específico de la semana)
+- `quincenal` (cada 15 días desde fechaInicio)
+- `mensual` (día específico u "último día del mes" — si el día no existe, ej. 31 en febrero, usa el último)
+- `personalizada` (cada N días configurable)
+- `unica` (one-off, fecha y hora exactas)
+
+**Frontend**:
+- Nuevos tipos: `GastoProgramado`, `TransferenciaProgramada`, `EjecucionProgramada`, `FrecuenciaProgramado`
+- Utilidad pura `calcularProximaEjecucion` con 27 tests (Vitest)
+- Schema Zod `gastoProgramadoFormSchema` + `transferenciaProgramadaFormSchema` con validación cruzada por frecuencia
+- Hooks `useGastosProgramados` + `useTransferenciasProgramadas` (onSnapshot + mutations)
+- Componentes: `Programados` (wrapper con SegmentedControl), `ListaGastosProgramados`, `ListaTransferenciasProgramadas`, `FormularioGastoProgramado`, `FormularioTransferenciaProgramada`
+- Vista previa en tiempo real de "próxima ejecución" en el formulario
+- Pausar/Reanudar sin perder configuración
+
+**Backend** (`gastos-backend`):
+- Nuevo módulo `programados/` con 2 servicios + 2 controllers + 1 cron
+- Endpoints `/api/programados/gastos/*` y `/api/programados/transferencias/*`
+- Cron cada 30 min con `@nestjs/schedule` que procesa pendientes
+- Lock idempotente con ID determinístico `{programadaId}_{fechaProgramadaISO}` en colección `ejecucionesProgramadas`
+- Manejo de timezone con `date-fns-tz` (cálculo en hora local del usuario, almacenamiento UTC)
+- Manejo de saldo insuficiente (no se atasca, avanza próxima ejecución y registra en auditoría)
+- 19 tests Jest del cálculo de próxima ejecución
+- Spec completa en [`docs/programados-backend.md`](./docs/programados-backend.md)
+
+**Reglas Firestore**:
+- `gastosProgramados` y `transferenciasProgramadas`: read solo dueño, write **bloqueado al cliente** (solo backend con Admin SDK escribe)
+- `ejecucionesProgramadas`: read solo dueño, write bloqueado
+- 4 índices nuevos compuestos
+
+**Otros cambios**:
+- `AIInsights` cache: TTL default cambiado de 5 min → 24 h, persistencia en `localStorage` para sobrevivir recargas
+- Variable `VITE_AI_INSIGHTS_TTL_MINUTES` ahora documentada con default 1440
+
+**Archivos creados (frontend)**:
+- `src/types/programados.ts`
+- `src/utils/programados.ts` + `__tests__/programados.test.ts`
+- `src/utils/validators-programados.ts`
+- `src/services/programados.ts`
+- `src/services/transferencias-programadas.ts`
+- `src/hooks/useGastosProgramados.ts`
+- `src/hooks/useTransferenciasProgramadas.ts`
+- `src/components/programados/*.tsx` (5 componentes)
+- `docs/programados-backend.md`
+
+**Archivos creados (backend)**:
+- `src/modules/programados/` (interfaces, dto, utils, service, controller, cron, module)
+
+**Dependencias agregadas (backend)**: `@nestjs/schedule`, `date-fns`, `date-fns-tz`
+
+---
+
 ## v2.2.0 (2025-12-04)
 **Release**: Integración de Playwright para Testing E2E
 

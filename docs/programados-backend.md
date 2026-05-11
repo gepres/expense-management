@@ -1,8 +1,14 @@
-# Backend: Gastos Programados — Contrato
+# Backend: Programados — Contrato (IMPLEMENTADO ✅)
 
-Spec para implementar en `D:\PROYECTOS\gepres\gastos-backend` (NestJS).
+> **Estado:** implementado en producción (`gastos-backend/src/modules/programados/`).
+> Este documento describe el contrato vigente para gastos y transferencias programadas.
+> **Última actualización:** 2026-05-11
 
-El frontend ya está listo (Fase 1) en `src/components/programados/`, `src/services/programados.ts`, `src/hooks/useGastosProgramados.ts`. Apunta a `VITE_API_BASE_URL` (default `http://localhost:3000/api`).
+Cubre dos sub-módulos:
+- **Gastos programados** (`/api/programados/gastos`) — generan un `expense` y debitan la cuenta origen.
+- **Transferencias programadas** (`/api/programados/transferencias`) — mueven dinero entre cuentas (mismo currency).
+
+El frontend está en `src/components/programados/`, hooks `useGastosProgramados` + `useTransferenciasProgramadas`, services `programados.ts` + `transferencias-programadas.ts`. Apuntan a `VITE_API_BASE_URL` (default `http://localhost:3000/api`).
 
 ---
 
@@ -227,23 +233,54 @@ GET /api/programados/gastos/:id/ejecuciones
 
 ---
 
-## 5. Checklist de implementación backend
+## 5. Estado de implementación
 
-- [ ] Módulo `programados/` en NestJS con controller, service, DTOs
-- [ ] Portar `calcularProximaEjecucion` con `date-fns-tz`
-- [ ] Tests unitarios del cálculo (espejear `src/utils/__tests__/programados.test.ts`)
-- [ ] Cron con `@nestjs/schedule` cada 15 min
-- [ ] Lock idempotente con ID determinístico
-- [ ] Reglas Firestore de las 2 colecciones
-- [ ] Tests E2E: crear → esperar → verificar gasto generado + saldo decrementado
-- [ ] Test de reentrancia: correr cron 2 veces → no duplica
-- [ ] Test de saldo insuficiente: no crea gasto, registra ejecución `saldo_insuficiente`
+- [x] Módulo `programados/` con 2 services, 2 controllers, 1 cron
+- [x] `calcularProximaEjecucion` con `date-fns-tz` (zona horaria del usuario)
+- [x] 19 tests Jest del cálculo (espejean los 27 de Vitest del frontend)
+- [x] Cron con `@nestjs/schedule` cada 30 min (`CronExpression.EVERY_30_MINUTES`)
+- [x] Lock idempotente con ID determinístico `{programadaId}_{fechaISO}` en `ejecucionesProgramadas`
+- [x] Reglas Firestore para `gastosProgramados`, `transferenciasProgramadas`, `ejecucionesProgramadas`
+- [x] 4 índices compuestos en `firestore.indexes.json`
+- [x] Endpoint para transferencias programadas con validación de mismo currency y cuentas distintas
+- [ ] Tests E2E del cron (pendiente — se valida manualmente acelerando el cron a `EVERY_MINUTE`)
+- [ ] Notificaciones push en saldo insuficiente (pendiente — Fase 4)
+- [ ] Cross-currency transfers programadas (pendiente — Fase 2.5)
 
 ---
 
 ## 6. Coordinación frontend ↔ backend
 
-El frontend ya despliega correctamente sin el backend (la lista mostrará error de fetch al hacer mutations). Una vez el backend exponga los endpoints:
-1. Confirmar `VITE_API_BASE_URL` en `.env` del frontend
-2. La página `/programados` empezará a funcionar end-to-end
-3. Los gastos generados aparecerán automáticamente en el listado de Gastos (vía `onSnapshot` existente de `useGastos`)
+End-to-end funcionando:
+1. Usuario crea programación en `/programados` → `POST /api/programados/{gastos|transferencias}` → backend valida + persiste.
+2. Cron del backend cada 30 min revisa pendientes → crea `expense`/`transfer` real en transacción atómica.
+3. Frontend ve el documento generado vía `onSnapshot` existente de `useGastos`/`useTransfers` — sin código adicional.
+4. Cada ejecución queda registrada en `ejecucionesProgramadas` (auditoría).
+
+## 7. Endpoints completos
+
+### Gastos programados (`/api/programados/gastos`)
+
+| Método | Path | Body | Respuesta |
+|---|---|---|---|
+| `GET` | `/` | — | `GastoProgramado[]` |
+| `POST` | `/` | `CreateGastoProgramadoDto` | `GastoProgramado` (201) |
+| `GET` | `/:id` | — | `GastoProgramado` |
+| `PATCH` | `/:id` | `UpdateGastoProgramadoDto` | `GastoProgramado` |
+| `DELETE` | `/:id` | — | (204) |
+| `POST` | `/:id/pause` | — | `GastoProgramado` (`activo: false`) |
+| `POST` | `/:id/resume` | — | `GastoProgramado` (`activo: true`, recalcula próxima) |
+
+### Transferencias programadas (`/api/programados/transferencias`)
+
+Mismos endpoints pero con `cuentaDestinoId` en el DTO y sin `categoria`/`subcategoria`/`metodoPago`. Validación adicional:
+- `cuentaOrigenId !== cuentaDestinoId`
+- Ambas cuentas deben tener el mismo `currency` que el monto
+
+### Auditoría (sugerido para Fase 3)
+
+```
+GET /api/programados/{gastos|transferencias}/:id/ejecuciones
+  → EjecucionProgramada[]
+```
+No implementado todavía.

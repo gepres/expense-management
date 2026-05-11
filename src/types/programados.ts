@@ -20,6 +20,7 @@ import type {
 // ============================================================================
 
 export const FRECUENCIAS_PROGRAMADO = [
+  'diaria',
   'semanal',
   'quincenal',
   'mensual',
@@ -30,6 +31,7 @@ export const FRECUENCIAS_PROGRAMADO = [
 export type FrecuenciaProgramado = (typeof FRECUENCIAS_PROGRAMADO)[number];
 
 export const FRECUENCIA_LABELS: Record<FrecuenciaProgramado, string> = {
+  diaria: 'Diaria',
   semanal: 'Semanal',
   quincenal: 'Quincenal (cada 15 días)',
   mensual: 'Mensual',
@@ -181,7 +183,7 @@ export type UpdateGastoProgramadoDto = Partial<CreateGastoProgramadoDto> & {
 };
 
 // ============================================================================
-// TRANSFERENCIA PROGRAMADA (Fase 2 — tipos definidos, CRUD pendiente)
+// TRANSFERENCIA PROGRAMADA
 // ============================================================================
 
 export interface TransferenciaProgramada extends ScheduleConfig {
@@ -202,6 +204,55 @@ export interface TransferenciaProgramada extends ScheduleConfig {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface TransferenciaProgramadaFirestore {
+  userId: string;
+  cuentaOrigenId: string;
+  cuentaDestinoId: string;
+  monto: number;
+  moneda: Moneda;
+  descripcion?: string;
+
+  frecuencia: FrecuenciaProgramado;
+  diaEjecucion?: number;
+  ultimoDiaDelMes?: boolean;
+  intervaloDias?: number;
+  fechaUnica?: Timestamp;
+  hora: string;
+  zonaHoraria: string;
+  fechaInicio: Timestamp;
+  fechaFin?: Timestamp;
+
+  activo: boolean;
+  proximaEjecucion: Timestamp;
+  ultimaEjecucion?: Timestamp;
+  totalEjecuciones: number;
+
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export interface CreateTransferenciaProgramadaDto {
+  cuentaOrigenId: string;
+  cuentaDestinoId: string;
+  monto: number;
+  moneda: Moneda;
+  descripcion?: string;
+
+  frecuencia: FrecuenciaProgramado;
+  diaEjecucion?: number;
+  ultimoDiaDelMes?: boolean;
+  intervaloDias?: number;
+  fechaUnica?: string;
+  hora: string;
+  zonaHoraria: string;
+  fechaInicio: string;
+  fechaFin?: string;
+}
+
+export type UpdateTransferenciaProgramadaDto = Partial<CreateTransferenciaProgramadaDto> & {
+  activo?: boolean;
+};
 
 // ============================================================================
 // EJECUCIÓN (auditoría de cada disparo del cron)

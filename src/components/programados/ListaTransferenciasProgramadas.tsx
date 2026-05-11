@@ -1,8 +1,7 @@
 /**
- * Página /programados — lista los gastos programados del usuario.
- *
- * Cada card muestra: descripción, monto, frecuencia humana, próxima ejecución,
- * estado activo/pausado, y acciones (Pausar/Reanudar, Editar, Eliminar).
+ * Lista de Transferencias Programadas (subpágina dentro de /programados).
+ * Sigue el mismo layout que ListaGastosProgramados pero sin header propio
+ * (el header lo pone el contenedor Programados con tabs).
  */
 
 import { useMemo, useState } from 'react';
@@ -14,19 +13,18 @@ import {
   Trash2,
   Repeat,
   Calendar as CalendarIcon,
-  Wallet,
+  ArrowRight,
   AlertCircle,
 } from 'lucide-react';
 import Button from '@components/common/Button';
 import { EmptyState } from '@components/common/EmptyState';
 import CustomLoader from '@components/common/CustomLoader';
 import ConfirmationModal from '@components/common/ConfirmationModal';
-import FormularioGastoProgramado from './FormularioGastoProgramado';
-import { useGastosProgramados } from '@hooks/useGastosProgramados';
+import FormularioTransferenciaProgramada from './FormularioTransferenciaProgramada';
+import { useTransferenciasProgramadas } from '@hooks/useTransferenciasProgramadas';
 import { useAccountsContext } from '@context/AccountsContext';
-import { useConfig } from '@context/ConfigContext';
 import { describirFrecuencia } from '@utils/programados';
-import { MONEDA_SIMBOLOS, type GastoProgramado } from '@app-types';
+import { MONEDA_SIMBOLOS, type TransferenciaProgramada } from '@app-types';
 
 function formatMonto(monto: number, moneda: keyof typeof MONEDA_SIMBOLOS): string {
   const simbolo = MONEDA_SIMBOLOS[moneda] ?? moneda;
@@ -43,14 +41,16 @@ function formatProxima(fecha: Date): string {
   });
 }
 
-export default function ListaGastosProgramados() {
-  const { gastosProgramados, estado, eliminar, pausar, reanudar } = useGastosProgramados();
+export default function ListaTransferenciasProgramadas() {
+  const { transferenciasProgramadas, estado, eliminar, pausar, reanudar } =
+    useTransferenciasProgramadas();
   const { activeAccounts } = useAccountsContext();
-  const { getCategoryLabel, getCategoryColor, getCategoryIcon } = useConfig();
 
   const [formAbierto, setFormAbierto] = useState(false);
-  const [editando, setEditando] = useState<GastoProgramado | undefined>(undefined);
-  const [eliminando, setEliminando] = useState<GastoProgramado | null>(null);
+  const [editando, setEditando] = useState<TransferenciaProgramada | undefined>(
+    undefined,
+  );
+  const [eliminando, setEliminando] = useState<TransferenciaProgramada | null>(null);
 
   const cuentasMap = useMemo(() => {
     const m = new Map<string, (typeof activeAccounts)[number]>();
@@ -63,8 +63,8 @@ export default function ListaGastosProgramados() {
     setFormAbierto(true);
   };
 
-  const handleEditar = (g: GastoProgramado) => {
-    setEditando(g);
+  const handleEditar = (t: TransferenciaProgramada) => {
+    setEditando(t);
     setFormAbierto(true);
   };
 
@@ -74,17 +74,16 @@ export default function ListaGastosProgramados() {
       await eliminar(eliminando.id);
       setEliminando(null);
     } catch {
-      // toast ya mostrado por el hook
+      // toast lo muestra el hook
     }
   };
 
-  const handleTogglePausa = async (g: GastoProgramado) => {
-    if (g.activo) await pausar(g.id);
-    else await reanudar(g.id);
+  const handleTogglePausa = async (t: TransferenciaProgramada) => {
+    if (t.activo) await pausar(t.id);
+    else await reanudar(t.id);
   };
 
-  // Loading
-  if (estado.estado === 'loading' && gastosProgramados.length === 0) {
+  if (estado.estado === 'loading' && transferenciasProgramadas.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
         <CustomLoader />
@@ -92,13 +91,14 @@ export default function ListaGastosProgramados() {
     );
   }
 
-  // Error
   if (estado.estado === 'error') {
     return (
       <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3">
         <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
         <div>
-          <p className="font-semibold text-destructive">Error al cargar programaciones</p>
+          <p className="font-semibold text-destructive">
+            Error al cargar transferencias programadas
+          </p>
           <p className="text-sm text-destructive/80 mt-1">{estado.error}</p>
         </div>
       </div>
@@ -110,100 +110,90 @@ export default function ListaGastosProgramados() {
       {/* Botón nuevo */}
       <div className="flex justify-end mb-4">
         <Button variant="primary" icon={Plus} onClick={handleNuevo}>
-          Nuevo gasto
+          Nueva transferencia
         </Button>
       </div>
 
-      {/* Empty state */}
-      {gastosProgramados.length === 0 ? (
+      {transferenciasProgramadas.length === 0 ? (
         <EmptyState
           icon={Repeat}
-          title="Aún no tienes gastos programados"
-          description="Crea tu primer gasto recurrente: alquiler, internet, gimnasio, suscripciones..."
+          title="Aún no tienes transferencias programadas"
+          description="Programa movimientos automáticos entre tus cuentas: ahorro mensual, fondo de emergencia, separar para inversiones..."
           action={{
-            label: 'Crear el primero',
+            label: 'Crear la primera',
             onClick: handleNuevo,
             icon: Plus,
           }}
         />
       ) : (
         <div className="space-y-3">
-          {gastosProgramados.map((g) => {
-            const cuenta = cuentasMap.get(g.cuentaOrigenId);
-            const categoriaColor = getCategoryColor(g.categoria);
-            const categoriaIcon = getCategoryIcon(g.categoria);
-            const categoriaLabel = getCategoryLabel(g.categoria);
+          {transferenciasProgramadas.map((t) => {
+            const origen = cuentasMap.get(t.cuentaOrigenId);
+            const destino = cuentasMap.get(t.cuentaDestinoId);
 
             return (
               <div
-                key={g.id}
+                key={t.id}
                 className={`p-4 rounded-xl border transition-all ${
-                  g.activo
+                  t.activo
                     ? 'bg-card border-border'
                     : 'bg-muted/40 border-border opacity-70'
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  {/* Icono categoría */}
-                  <div
-                    className="h-10 w-10 rounded-lg flex items-center justify-center text-xl flex-shrink-0"
-                    style={{ backgroundColor: `${categoriaColor}20`, color: categoriaColor }}
-                  >
-                    {categoriaIcon}
+                  <div className="h-10 w-10 rounded-lg flex items-center justify-center bg-blue-500/10 text-blue-600 dark:text-blue-400 flex-shrink-0">
+                    <ArrowRight className="h-5 w-5" />
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <h3 className="font-semibold text-foreground truncate">
-                          {g.descripcion}
+                          {t.descripcion || 'Transferencia programada'}
                         </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {categoriaLabel}
-                          {!g.activo && ' · Pausado'}
+                        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <span className="truncate">
+                            {origen?.name ?? t.cuentaOrigenId}
+                          </span>
+                          <ArrowRight className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">
+                            {destino?.name ?? t.cuentaDestinoId}
+                          </span>
+                          {!t.activo && <span className="ml-1">· Pausado</span>}
                         </p>
                       </div>
                       <p className="font-bold text-lg text-foreground whitespace-nowrap">
-                        {formatMonto(g.monto, g.moneda)}
+                        {formatMonto(t.monto, t.moneda)}
                       </p>
                     </div>
 
-                    {/* Detalles */}
                     <div className="mt-3 space-y-1 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1.5">
                         <Repeat className="h-3.5 w-3.5" />
-                        <span>{describirFrecuencia(g)}</span>
+                        <span>{describirFrecuencia(t)}</span>
                       </div>
-                      {g.activo && (
+                      {t.activo && (
                         <div className="flex items-center gap-1.5">
                           <CalendarIcon className="h-3.5 w-3.5" />
-                          <span>Próxima: {formatProxima(g.proximaEjecucion)}</span>
-                        </div>
-                      )}
-                      {cuenta && (
-                        <div className="flex items-center gap-1.5">
-                          <Wallet className="h-3.5 w-3.5" />
-                          <span>{cuenta.name}</span>
+                          <span>Próxima: {formatProxima(t.proximaEjecucion)}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Acciones */}
                     <div className="flex items-center gap-2 mt-3">
                       <Button
                         variant="ghost"
                         size="sm"
-                        icon={g.activo ? Pause : Play}
-                        onClick={() => handleTogglePausa(g)}
+                        icon={t.activo ? Pause : Play}
+                        onClick={() => handleTogglePausa(t)}
                       >
-                        {g.activo ? 'Pausar' : 'Reanudar'}
+                        {t.activo ? 'Pausar' : 'Reanudar'}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         icon={Pencil}
-                        onClick={() => handleEditar(g)}
+                        onClick={() => handleEditar(t)}
                       >
                         Editar
                       </Button>
@@ -211,7 +201,7 @@ export default function ListaGastosProgramados() {
                         variant="ghost"
                         size="sm"
                         icon={Trash2}
-                        onClick={() => setEliminando(g)}
+                        onClick={() => setEliminando(t)}
                       >
                         Eliminar
                       </Button>
@@ -224,14 +214,12 @@ export default function ListaGastosProgramados() {
         </div>
       )}
 
-      {/* Modal formulario */}
-      <FormularioGastoProgramado
+      <FormularioTransferenciaProgramada
         isOpen={formAbierto}
         onClose={() => setFormAbierto(false)}
-        gasto={editando}
+        transferencia={editando}
       />
 
-      {/* Modal confirmación de eliminar */}
       <ConfirmationModal
         isOpen={!!eliminando}
         onClose={() => setEliminando(null)}
@@ -239,7 +227,7 @@ export default function ListaGastosProgramados() {
         title="Eliminar programación"
         description={
           eliminando
-            ? `¿Eliminar "${eliminando.descripcion}"? Las ejecuciones ya generadas no se borran.`
+            ? `¿Eliminar la transferencia programada "${eliminando.descripcion || 'sin descripción'}"? Las ejecuciones ya generadas no se borran.`
             : ''
         }
         confirmText="Eliminar"

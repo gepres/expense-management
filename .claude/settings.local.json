@@ -35,7 +35,8 @@
       "PowerShell(Test-Path *)",
       "Bash(npx vitest *)",
       "PowerShell(New-Item *)",
-      "Bash(npx jest *)"
+      "Bash(npx jest *)",
+      "Bash(grep -i \"\\\\.md$\")"
     ],
     "deny": [],
     "ask": []

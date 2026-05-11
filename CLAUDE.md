@@ -3,13 +3,13 @@
 > Documentación esencial para trabajar en el proyecto de Gestión de Gastos Personales.
 > **Para detalle extenso ver:** `docs/components.md`, `docs/testing.md`, `CHANGELOG.md`
 
-**Versión**: 2.2.0 · **Última actualización**: 2025-12-04
+**Versión**: 2.3.0 · **Última actualización**: 2026-05-11
 
 ---
 
 ## 🎯 Visión General
 
-Aplicación web React para gestionar gastos personales con análisis IA (Claude de Anthropic). Multi-cuenta, multi-moneda (PEN/USD), PWA instalable, presupuestos por categoría y general, asistente IA conversacional.
+Aplicación web React para gestionar gastos personales con análisis IA (Claude de Anthropic). Multi-cuenta, multi-moneda (PEN/USD), PWA instalable, presupuestos por categoría y general, gastos y transferencias programadas (recurrentes), asistente IA conversacional.
 
 ---
 
@@ -42,10 +42,12 @@ Usuario → Componente → Hook → Servicio → Firebase / Backend API
 ```
 src/
 ├── components/     # UI por feature (auth, dashboard, gastos, importar,
-│                   #   asistente, presupuestos, config, layout, common)
+│                   #   asistente, presupuestos, programados, config, layout, common)
 ├── context/        # AuthContext, ThemeContext
-├── hooks/          # useGastos, usePresupuestos, useAssistant, usePWAInstall
-├── services/       # firebase, ai, config, excel, import
+├── hooks/          # useGastos, usePresupuestos, useAssistant, usePWAInstall,
+│                   #   useGastosProgramados, useTransferenciasProgramadas
+├── services/       # firebase, ai, config, excel, import,
+│                   #   programados, transferencias-programadas
 ├── types/          # TypeScript types
 ├── utils/          # formatters, calculations, validators, tagsSugeridos
 ├── mocks/          # Test mocks
@@ -57,6 +59,7 @@ src/
 - Cada cuenta ES su propio presupuesto general; suma de saldos = techo del mes.
 - Sub-reservas opcionales por categoría.
 - Income vs Depositar son operaciones distintas — NO unificar en tabs.
+- **Programados (`gastosProgramados`, `transferenciasProgramadas`)**: write **bloqueado al cliente** desde reglas Firestore. Solo el backend (Admin SDK) escribe. El cron del backend ejecuta cada 30 min con lock idempotente en `ejecucionesProgramadas/{programadaId}_{fechaISO}`.
 
 ---
 
@@ -160,6 +163,8 @@ try {
 | `services/ai.ts` | Llama backend (`/api`). Conversaciones persistentes, validación 1000 chars. Auth por Firebase ID Token |
 | `services/config.ts` | CRUD dinámico de categorías, subcategorías, métodos de pago, monedas |
 | `services/excel.ts` | Import/Export Excel. Validación Zod, normalización de categorías, vista previa |
+| `services/programados.ts` | CRUD + pause/resume de gastos programados. Apunta a `/api/programados/gastos` |
+| `services/transferencias-programadas.ts` | CRUD + pause/resume de transferencias programadas. Apunta a `/api/programados/transferencias` |
 
 ---
 
@@ -182,6 +187,8 @@ Patrón: `Context + Provider + custom hook` que lanza error si se usa fuera del 
 | `usePresupuestos` | CRUD presupuestos mensuales |
 | `useAssistant` | Conversaciones IA: cargar/seleccionar/crear/renombrar/eliminar, mensajes optimistas |
 | `usePWAInstall` | Escucha `beforeinstallprompt`, expone `install()` |
+| `useGastosProgramados` | onSnapshot a `gastosProgramados` + mutations vía backend. Pausar/reanudar |
+| `useTransferenciasProgramadas` | onSnapshot a `transferenciasProgramadas` + mutations vía backend |
 
 ---
 
@@ -314,6 +321,8 @@ npm run generate:icons / clean / reinstall
 - [`CHANGELOG.md`](./CHANGELOG.md) — historial de versiones
 - [`docs/components.md`](./docs/components.md) — componentes comunes (props, ejemplos, patrones)
 - [`docs/testing.md`](./docs/testing.md) — Vitest setup, Playwright config, ejemplos
+- [`docs/programados-backend.md`](./docs/programados-backend.md) — contrato backend de gastos/transferencias programadas (modelo Firestore, endpoints, cron, idempotencia)
+- [`markdown/FLOWS.md`](./markdown/FLOWS.md) — mapa de módulos y dónde "vive" cada operación (API vs Firestore directo)
 
 ---
 
