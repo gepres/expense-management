@@ -65,6 +65,9 @@ function firestoreToTransferenciaProgramada(
     cuentaDestinoId: data.cuentaDestinoId,
     monto: data.monto,
     moneda: data.moneda,
+    monedaDestino: data.monedaDestino,
+    exchangeRate: data.exchangeRate,
+    usarTasaActual: data.usarTasaActual,
     descripcion: data.descripcion,
 
     frecuencia: data.frecuencia,

@@ -7,11 +7,13 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
-import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, ShoppingBag, BanknoteArrowDown, Crown, CreditCard, Repeat } from 'lucide-react';
+import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, AlertCircle, ShoppingBag, BanknoteArrowDown, Crown, CreditCard, Repeat } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import BudgetMonitor from '../common/BudgetMonitor';
 import NotificationsPanel from '../compartidos/NotificationsPanel';
+import NotificacionesSistemaPanel from '../compartidos/NotificacionesSistemaPanel';
 import { useSharedExpenses } from '@context/SharedExpensesContext';
+import { useNotificaciones } from '@hooks/useNotificaciones';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -19,9 +21,11 @@ export default function Layout() {
   const { usuario, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { unreadCount } = useSharedExpenses();
+  const { noLeidasCount: sistemaNoLeidas } = useNotificaciones();
   const [menuUsuarioAbierto, setMenuUsuarioAbierto] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [sistemaPanelOpen, setSistemaPanelOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   const handleLogout = async (): Promise<void> => {
@@ -146,7 +150,21 @@ export default function Layout() {
 
             {/* Actions - Desktop */}
             <div className="flex items-center space-x-4">
-              {/* Notifications Bell */}
+              {/* Alertas del sistema (programados, FX, etc.) */}
+              <button
+                onClick={() => setSistemaPanelOpen(true)}
+                className="p-2 rounded-md text-foreground hover:bg-accent transition-colors relative"
+                title="Alertas del sistema"
+              >
+                <AlertCircle className="h-5 w-5" />
+                {sistemaNoLeidas > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-amber-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {sistemaNoLeidas > 9 ? '9+' : sistemaNoLeidas}
+                  </span>
+                )}
+              </button>
+
+              {/* Notificaciones de gastos compartidos */}
               <button
                 onClick={() => setNotificationsOpen(true)}
                 className="p-2 rounded-md text-foreground hover:bg-accent transition-colors relative"
@@ -292,6 +310,12 @@ export default function Layout() {
 
       {/* Notifications Panel */}
       <NotificationsPanel isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+
+      {/* Alertas del sistema (programados) */}
+      <NotificacionesSistemaPanel
+        isOpen={sistemaPanelOpen}
+        onClose={() => setSistemaPanelOpen(false)}
+      />
     </div>
   );
 }

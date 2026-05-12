@@ -36,7 +36,8 @@
       "Bash(npx vitest *)",
       "PowerShell(New-Item *)",
       "Bash(npx jest *)",
-      "Bash(grep -i \"\\\\.md$\")"
+      "Bash(grep -i \"\\\\.md$\")",
+      "PowerShell(Get-ChildItem \"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\components\\\\programados\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\components\\\\layout\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\components\\\\common\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\types\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\services\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\hooks\" -Name | ForEach-Object { $_ })"
     ],
     "deny": [],
     "ask": []

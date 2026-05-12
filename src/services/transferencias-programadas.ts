@@ -9,7 +9,35 @@ import type {
   TransferenciaProgramada,
   CreateTransferenciaProgramadaDto,
   UpdateTransferenciaProgramadaDto,
+  EjecucionProgramada,
 } from '@app-types';
+
+interface RawEjecucionProgramada {
+  id: string;
+  programadaId: string;
+  userId: string;
+  tipo: 'gasto' | 'transferencia';
+  fechaProgramada: string;
+  fechaEjecutada: string;
+  estado: EjecucionProgramada['estado'] | 'pending';
+  gastoCreadoId?: string;
+  transferCreadoId?: string;
+  errorMensaje?: string;
+}
+
+function deserializeEjecucion(raw: RawEjecucionProgramada): EjecucionProgramada {
+  return {
+    id: raw.id,
+    programadaId: raw.programadaId,
+    tipo: raw.tipo,
+    fechaProgramada: new Date(raw.fechaProgramada),
+    fechaEjecutada: new Date(raw.fechaEjecutada),
+    estado: (raw.estado === 'pending' ? 'fallida' : raw.estado) as EjecucionProgramada['estado'],
+    gastoCreadoId: raw.gastoCreadoId,
+    transferCreadoId: raw.transferCreadoId,
+    errorMensaje: raw.errorMensaje,
+  };
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
@@ -127,6 +155,13 @@ export const TransferenciasProgramadasService = {
       { method: 'POST' },
     );
     return deserialize(raw);
+  },
+
+  async findEjecuciones(id: string): Promise<EjecucionProgramada[]> {
+    const raws = await fetchWithAuth<RawEjecucionProgramada[]>(
+      `/programados/transferencias/${id}/ejecuciones`,
+    );
+    return raws.map(deserializeEjecucion);
   },
 };
 

@@ -194,6 +194,12 @@ export interface TransferenciaProgramada extends ScheduleConfig {
   cuentaDestinoId: string;
   monto: number;
   moneda: Moneda;
+  /** Si difiere de `moneda` → cross-currency. */
+  monedaDestino?: Moneda;
+  /** Tasa fija aplicada en cada ejecución cuando `usarTasaActual` es false. */
+  exchangeRate?: number;
+  /** Si true, el backend consulta API externa al ejecutar e ignora `exchangeRate`. */
+  usarTasaActual?: boolean;
   descripcion?: string;
 
   activo: boolean;
@@ -211,6 +217,9 @@ export interface TransferenciaProgramadaFirestore {
   cuentaDestinoId: string;
   monto: number;
   moneda: Moneda;
+  monedaDestino?: Moneda;
+  exchangeRate?: number;
+  usarTasaActual?: boolean;
   descripcion?: string;
 
   frecuencia: FrecuenciaProgramado;
@@ -237,6 +246,9 @@ export interface CreateTransferenciaProgramadaDto {
   cuentaDestinoId: string;
   monto: number;
   moneda: Moneda;
+  monedaDestino?: Moneda;
+  exchangeRate?: number;
+  usarTasaActual?: boolean;
   descripcion?: string;
 
   frecuencia: FrecuenciaProgramado;

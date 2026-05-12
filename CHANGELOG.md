@@ -4,6 +4,43 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.4.0 (2026-05-12)
+**Release**: Notificaciones in-app, historial de ejecuciones, cross-currency en transferencias programadas, cron en producción
+
+### Producción del cron
+- El backend corre en Vercel serverless, donde `@nestjs/schedule` **no se ejecuta** (proceso no persistente).
+- **Solución**: nuevo endpoint `POST /api/programados/cron/run` protegido por `CRON_SECRET` + **GitHub Actions** que lo dispara cada 15 min (`.github/workflows/cron-programados.yml` en el backend).
+- En local, el `@Cron(EVERY_30_MINUTES)` sigue funcionando. El lock idempotente previene duplicados si ambos disparan.
+
+### Notificaciones in-app
+- Nueva colección Firestore `notificaciones` (solo el backend escribe; cliente puede leer, marcar leída y borrar).
+- El cron genera notificación cuando hay `saldo_insuficiente`, `ejecucion_fallida`, `cuenta_destino_eliminada` o `fx_api_error`.
+- **Frontend**: nuevo botón `AlertCircle` (ámbar) en navbar con badge de no leídas + panel deslizante (`NotificacionesSistemaPanel`).
+- Tipos: `Notificacion`, `TipoNotificacion`, `NotificacionFirestore` (en `types/notificaciones.ts`).
+- Servicio: `services/notificaciones.ts` + hook `useNotificaciones` (read reactivo vía `onSnapshot`).
+- Backend: módulo `notificaciones/` con CRUD + `crear()` invocado desde el cron tras fallos.
+- Reglas Firestore: update permitido SOLO al campo `leida` (preserva integridad de auditoría).
+
+### Historial de ejecuciones
+- Endpoints nuevos: `GET /api/programados/{gastos|transferencias}/:id/ejecuciones` → array de hasta 100 ejecuciones ordenadas por `fechaEjecutada` desc.
+- Componente `HistorialEjecuciones` (modal reutilizable) accesible desde el botón "Historial" en ambas listas.
+- Muestra estado (exitosa/fallida/saldo_insuficiente), fecha programada vs ejecutada, errorMensaje y ref al `expense`/`transfer` generado.
+
+### Cross-currency en transferencias programadas
+- Nuevos campos en `transferenciasProgramadas`: `monedaDestino`, `exchangeRate`, `usarTasaActual`.
+- **Modo "tasa fija"**: el usuario fija `exchangeRate` al crear; se aplica en cada ejecución (default recomendado).
+- **Modo "tasa actual"**: `usarTasaActual: true` → el cron consulta la API pública [Frankfurter](https://www.frankfurter.app/) al ejecutar (cache 1h en memoria). Si falla → ejecución marcada `fallida` + notificación `fx_api_error`.
+- El cron crea `transfers/` con `amount` (debitado) + `amountConverted` (acreditado) + `exchangeRate` + `fromCurrency`/`toCurrency`.
+- Frontend: `SelectorCuenta` destino permite cuentas con moneda distinta a origen; bloque ámbar con switch "Usar tasa del día", input de exchangeRate y preview en vivo del monto convertido.
+- Validador Zod actualizado.
+
+### Cambios técnicos
+- **Indexes Firestore nuevos**: `ejecucionesProgramadas(programadaId, userId, fechaEjecutada DESC)`, `notificaciones(userId, createdAt DESC)`, `notificaciones(userId, leida, createdAt DESC)`.
+- **Rules Firestore**: nueva sección para `notificaciones`.
+- Doc actualizado: [`docs/programados-backend.md`](./docs/programados-backend.md) §5.1–5.4.
+
+---
+
 ## v2.3.0 (2026-05-11)
 **Release**: Gastos y Transferencias Programadas (recurrentes)
 

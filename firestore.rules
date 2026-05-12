@@ -281,6 +281,24 @@ service cloud.firestore {
     }
 
     // ========================================================================
+    // NOTIFICACIONES — generadas por el cron (saldo insuficiente, fallos, etc.)
+    // El cliente lee y puede marcar `leida` o borrarlas. NO puede crear ni
+    // cambiar otros campos.
+    // ========================================================================
+
+    match /notificaciones/{notificacionId} {
+      allow read: if ownsResource();
+      // Solo el backend (Admin SDK) crea notificaciones.
+      allow create: if false;
+      // El cliente puede actualizar ÚNICAMENTE el campo `leida` (de false a true).
+      // Cualquier otro cambio queda bloqueado para preservar la auditoría.
+      allow update: if ownsResource() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['leida']);
+      // El usuario puede borrar sus propias notificaciones (limpiar buzón).
+      allow delete: if ownsResource();
+    }
+
+    // ========================================================================
     // WHATSAPP QUEUE — solo Cloud Functions (Twilio webhook)
     // Ningún cliente debe leer ni escribir
     // ========================================================================

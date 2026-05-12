@@ -11,6 +11,7 @@ import {
   CircleDollarSign,
   Clock,
   Repeat,
+  TrendingUp,
 } from 'lucide-react';
 import Modal, { ModalFooterActions } from '@components/common/Modal';
 import { Input, Select } from '@components/common/Input';
@@ -22,6 +23,7 @@ import {
   FRECUENCIAS_PROGRAMADO,
   FRECUENCIA_LABELS,
   DIAS_SEMANA_LABELS,
+  MONEDA_SIMBOLOS,
   type FrecuenciaProgramado,
   type Moneda,
   type TransferenciaProgramada,
@@ -39,6 +41,9 @@ interface FormState {
   cuentaDestinoId: string;
   monto: string;
   moneda: Moneda;
+  monedaDestino: Moneda;
+  exchangeRate: string;
+  usarTasaActual: boolean;
   descripcion: string;
 
   frecuencia: FrecuenciaProgramado;
@@ -70,6 +75,9 @@ function buildInitialState(t?: TransferenciaProgramada): FormState {
       cuentaDestinoId: '',
       monto: '',
       moneda: 'PEN',
+      monedaDestino: 'PEN',
+      exchangeRate: '',
+      usarTasaActual: false,
       descripcion: '',
       frecuencia: 'mensual',
       diaEjecucion: now.getDate(),
@@ -86,6 +94,9 @@ function buildInitialState(t?: TransferenciaProgramada): FormState {
     cuentaDestinoId: t.cuentaDestinoId,
     monto: String(t.monto),
     moneda: t.moneda,
+    monedaDestino: t.monedaDestino ?? t.moneda,
+    exchangeRate: t.exchangeRate !== undefined ? String(t.exchangeRate) : '',
+    usarTasaActual: t.usarTasaActual ?? false,
     descripcion: t.descripcion ?? '',
     frecuencia: t.frecuencia,
     diaEjecucion: t.diaEjecucion ?? new Date().getDate(),
@@ -119,6 +130,16 @@ export default function FormularioTransferenciaProgramada({
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+
+  const esCrossCurrency = state.monedaDestino !== state.moneda;
+  const montoNum = parseFloat(state.monto) || 0;
+  const exchangeRateNum = parseFloat(state.exchangeRate) || 0;
+  const amountConvertedPreview = useMemo(() => {
+    if (!esCrossCurrency || !montoNum) return null;
+    if (state.usarTasaActual) return null; // se resuelve en backend
+    if (!exchangeRateNum) return null;
+    return Number((montoNum * exchangeRateNum).toFixed(2));
+  }, [esCrossCurrency, montoNum, exchangeRateNum, state.usarTasaActual]);
 
   useEffect(() => {
     if (isOpen) {
@@ -156,6 +177,12 @@ export default function FormularioTransferenciaProgramada({
       cuentaDestinoId: state.cuentaDestinoId,
       monto: parseFloat(state.monto),
       moneda: state.moneda,
+      monedaDestino: esCrossCurrency ? state.monedaDestino : undefined,
+      exchangeRate:
+        esCrossCurrency && !state.usarTasaActual && state.exchangeRate
+          ? parseFloat(state.exchangeRate)
+          : undefined,
+      usarTasaActual: esCrossCurrency ? state.usarTasaActual : undefined,
       descripcion: state.descripcion.trim() || undefined,
 
       frecuencia: state.frecuencia,
@@ -249,20 +276,22 @@ export default function FormularioTransferenciaProgramada({
           <ArrowRight className="h-5 w-5" />
         </div>
 
-        {/* Cuenta destino — filtrada por currency, excluye origen */}
+        {/* Cuenta destino — permite distinta moneda (cross-currency) */}
         <SelectorCuenta
           label="Cuenta destino"
           value={state.cuentaDestinoId}
-          currency={state.moneda}
           excludeAccountId={state.cuentaOrigenId}
-          onChange={(id) => setField('cuentaDestinoId', id)}
+          onChange={(id, account) => {
+            setField('cuentaDestinoId', id);
+            if (account) setField('monedaDestino', account.currency as Moneda);
+          }}
           required
           error={errors.cuentaDestinoId}
         />
 
         {/* Monto */}
         <Input
-          label={`Monto (${state.moneda})`}
+          label={`Monto a debitar (${state.moneda})`}
           type="number"
           step="0.01"
           min="0"
@@ -274,6 +303,66 @@ export default function FormularioTransferenciaProgramada({
           error={!!errors.monto}
           errorMessage={errors.monto}
         />
+
+        {/* Bloque cross-currency: aparece solo si las cuentas tienen monedas distintas */}
+        {esCrossCurrency && (
+          <div className="p-3 rounded-lg bg-amber-50/60 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-100">
+              <TrendingUp className="h-4 w-4" />
+              Conversión de moneda ({state.moneda} → {state.monedaDestino})
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer text-sm">
+              <input
+                type="checkbox"
+                checked={state.usarTasaActual}
+                onChange={(e) => setField('usarTasaActual', e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="text-foreground">
+                Usar tasa del día (el sistema consulta el tipo de cambio al ejecutar)
+              </span>
+            </label>
+
+            {!state.usarTasaActual && (
+              <Input
+                label={`Tipo de cambio (1 ${state.moneda} = ? ${state.monedaDestino})`}
+                type="number"
+                step="0.0001"
+                min="0"
+                icon={TrendingUp}
+                value={state.exchangeRate}
+                onChange={(e) => setField('exchangeRate', e.target.value)}
+                placeholder="Ej. 3.75"
+                helperText="Se aplicará la misma tasa en cada ejecución"
+                error={!!errors.exchangeRate}
+                errorMessage={errors.exchangeRate}
+              />
+            )}
+
+            {amountConvertedPreview !== null && (
+              <p className="text-sm text-amber-900 dark:text-amber-100 bg-card/60 rounded p-2 border border-amber-200/50 dark:border-amber-800/50">
+                Cada ejecución acreditará{' '}
+                <strong>
+                  {MONEDA_SIMBOLOS[state.monedaDestino] ?? state.monedaDestino}{' '}
+                  {amountConvertedPreview.toLocaleString('es-PE', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </strong>{' '}
+                en la cuenta destino.
+              </p>
+            )}
+
+            {state.usarTasaActual && (
+              <p className="text-xs text-amber-900/80 dark:text-amber-100/80">
+                Al activar esta opción, el monto convertido depende del tipo de
+                cambio del momento (vía API Frankfurter). Si la API falla, esa
+                ejecución se marca como fallida y se notifica.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Descripción opcional */}
         <Input

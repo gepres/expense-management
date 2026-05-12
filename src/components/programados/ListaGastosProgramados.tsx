@@ -16,12 +16,14 @@ import {
   Calendar as CalendarIcon,
   Wallet,
   AlertCircle,
+  History,
 } from 'lucide-react';
 import Button from '@components/common/Button';
 import { EmptyState } from '@components/common/EmptyState';
 import CustomLoader from '@components/common/CustomLoader';
 import ConfirmationModal from '@components/common/ConfirmationModal';
 import FormularioGastoProgramado from './FormularioGastoProgramado';
+import HistorialEjecuciones from './HistorialEjecuciones';
 import { useGastosProgramados } from '@hooks/useGastosProgramados';
 import { useAccountsContext } from '@context/AccountsContext';
 import { useConfig } from '@context/ConfigContext';
@@ -51,6 +53,7 @@ export default function ListaGastosProgramados() {
   const [formAbierto, setFormAbierto] = useState(false);
   const [editando, setEditando] = useState<GastoProgramado | undefined>(undefined);
   const [eliminando, setEliminando] = useState<GastoProgramado | null>(null);
+  const [historialDe, setHistorialDe] = useState<GastoProgramado | null>(null);
 
   const cuentasMap = useMemo(() => {
     const m = new Map<string, (typeof activeAccounts)[number]>();
@@ -210,6 +213,14 @@ export default function ListaGastosProgramados() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        icon={History}
+                        onClick={() => setHistorialDe(g)}
+                      >
+                        Historial
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         icon={Trash2}
                         onClick={() => setEliminando(g)}
                       >
@@ -245,6 +256,16 @@ export default function ListaGastosProgramados() {
         confirmText="Eliminar"
         isDestructive
       />
+
+      {historialDe && (
+        <HistorialEjecuciones
+          isOpen
+          onClose={() => setHistorialDe(null)}
+          programadaId={historialDe.id}
+          tipo="gasto"
+          titulo={historialDe.descripcion}
+        />
+      )}
     </div>
   );
 }

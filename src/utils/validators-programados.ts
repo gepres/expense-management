@@ -155,6 +155,12 @@ export const transferenciaProgramadaFormSchema = z
       .number({ message: 'El monto debe ser un número' })
       .positive('El monto debe ser mayor a 0'),
     moneda: z.enum(MONEDAS),
+    monedaDestino: z.enum(MONEDAS).optional(),
+    exchangeRate: z
+      .number({ message: 'La tasa debe ser un número' })
+      .positive('La tasa debe ser mayor a 0')
+      .optional(),
+    usarTasaActual: z.boolean().optional(),
     descripcion: z.string().max(200).optional(),
 
     frecuencia: z.enum(FRECUENCIAS_PROGRAMADO),
@@ -175,6 +181,19 @@ export const transferenciaProgramadaFormSchema = z
         message: 'Las cuentas origen y destino deben ser distintas',
       });
     }
+
+    const monedaDestino = data.monedaDestino ?? data.moneda;
+    const esCrossCurrency = monedaDestino !== data.moneda;
+    if (esCrossCurrency) {
+      if (!data.usarTasaActual && (!data.exchangeRate || data.exchangeRate <= 0)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['exchangeRate'],
+          message: 'Indica el tipo de cambio o activa "Usar tasa del día"',
+        });
+      }
+    }
+
     aplicarValidacionesSchedule(data, ctx);
   });
 

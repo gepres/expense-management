@@ -15,12 +15,14 @@ import {
   Calendar as CalendarIcon,
   ArrowRight,
   AlertCircle,
+  History,
 } from 'lucide-react';
 import Button from '@components/common/Button';
 import { EmptyState } from '@components/common/EmptyState';
 import CustomLoader from '@components/common/CustomLoader';
 import ConfirmationModal from '@components/common/ConfirmationModal';
 import FormularioTransferenciaProgramada from './FormularioTransferenciaProgramada';
+import HistorialEjecuciones from './HistorialEjecuciones';
 import { useTransferenciasProgramadas } from '@hooks/useTransferenciasProgramadas';
 import { useAccountsContext } from '@context/AccountsContext';
 import { describirFrecuencia } from '@utils/programados';
@@ -51,6 +53,7 @@ export default function ListaTransferenciasProgramadas() {
     undefined,
   );
   const [eliminando, setEliminando] = useState<TransferenciaProgramada | null>(null);
+  const [historialDe, setHistorialDe] = useState<TransferenciaProgramada | null>(null);
 
   const cuentasMap = useMemo(() => {
     const m = new Map<string, (typeof activeAccounts)[number]>();
@@ -200,6 +203,14 @@ export default function ListaTransferenciasProgramadas() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        icon={History}
+                        onClick={() => setHistorialDe(t)}
+                      >
+                        Historial
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         icon={Trash2}
                         onClick={() => setEliminando(t)}
                       >
@@ -233,6 +244,16 @@ export default function ListaTransferenciasProgramadas() {
         confirmText="Eliminar"
         isDestructive
       />
+
+      {historialDe && (
+        <HistorialEjecuciones
+          isOpen
+          onClose={() => setHistorialDe(null)}
+          programadaId={historialDe.id}
+          tipo="transferencia"
+          titulo={historialDe.descripcion || 'Historial de la transferencia'}
+        />
+      )}
     </div>
   );
 }

@@ -966,3 +966,21 @@ export {
   ESTADOS_EJECUCION,
 } from './programados';
 
+// ============================================================================
+// Notificaciones
+// ============================================================================
+
+export type {
+  TipoNotificacion,
+  EntidadNotificacion,
+  NotificacionMetadata,
+  Notificacion,
+  NotificacionFirestore,
+} from './notificaciones';
+
+export {
+  TIPOS_NOTIFICACION,
+  TIPO_NOTIFICACION_LABELS,
+  TIPO_NOTIFICACION_ICONS,
+} from './notificaciones';
+
