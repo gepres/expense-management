@@ -52,6 +52,27 @@ El backend computa el summary, lo compacta y se lo pasa a `analyzeMetrics()`.
 Pregunta libre con el summary como contexto. Body:
 `{ question, month, year, accountIds?, moneda? }` → `{ respuesta, contextUsed }`.
 
+### `POST /ai-roast`
+Roast financiero sarcástico **compartible**. Body:
+`{ month, year, accountIds?, moneda?, tono? }` (`tono`: `suave|picante`,
+default `picante`). Respuesta: `MetricsRoast` → `{ titulo,
+puntuacionDesastre (0-100), frases[], veredicto, hashtags[], imagenUrl?,
+contextUsed }`. Humor amigable (sin groserías ni temas sensibles), español
+LatAm. Disparo **manual** desde el cliente (no auto → control de costo).
+
+### `POST /ai-image`
+**Ilustración IA** del roast (OpenAI `gpt-image-1`). Mismo body que
+`/ai-roast`. Respuesta: `{ imagenDataUrl: "data:image/png;base64,...",
+contextUsed }`. **Opcional**: requiere `OPENAI_API_KEY` (config `openai.*`,
+módulo global `OpenAiModule`). Sin key → **400** y `AnalyticsSummary.
+aiImageEnabled=false` (el frontend oculta el botón). Prompt derivado del
+roast, sin texto en la imagen, family-friendly. Manual (control de costo).
+
+> El campo `MetricsRoast.imagenUrl` sigue reservado/sin uso: la imagen NO se
+> adjunta al roast, se sirve por `/ai-image` aparte (no rompe el contrato
+> de `/ai-roast`). La tarjeta diseñada→PNG (`html-to-image`) sigue siendo
+> el camino por defecto y no requiere OpenAI.
+
 ### `GET /export`
 Descarga binaria. Query igual que `/summary` + `format=excel|csv`.
 - `excel`: libro multi-hoja (KPIs, Por categoría, Serie diaria, Top gastos, Anomalías).

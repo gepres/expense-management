@@ -80,6 +80,15 @@ export interface AnalyticsSummary {
   }>;
   topTags: Array<{ tag: string; total: number; count: number }>;
   monedasDisponibles: string[];
+  /** True si el backend tiene OPENAI_API_KEY → se muestra "Ilustración IA". */
+  aiImageEnabled: boolean;
+}
+
+/** Respuesta de `POST /api/analytics/ai-image`. */
+export interface MetricsRoastImage {
+  /** PNG en data URL (`data:image/png;base64,...`). */
+  imagenDataUrl: string;
+  contextUsed: { month: number; year: number; moneda: string };
 }
 
 /** Resultado IA estructurado de `POST /api/analytics/ai-insights`. */
@@ -99,6 +108,22 @@ export interface MetricsAiResult {
 /** Respuesta de `POST /api/analytics/ai-ask`. */
 export interface MetricsAiAnswer {
   respuesta: string;
+  contextUsed: { month: number; year: number; moneda: string };
+}
+
+export type RoastTono = 'suave' | 'picante';
+
+/**
+ * Roast sarcástico compartible (`POST /api/analytics/ai-roast`).
+ * `imagenUrl` está reservado para una fase-2 (ilustración IA); hoy undefined.
+ */
+export interface MetricsRoast {
+  titulo: string;
+  puntuacionDesastre: number; // 0-100
+  frases: string[];
+  veredicto: string;
+  hashtags: string[];
+  imagenUrl?: string;
   contextUsed: { month: number; year: number; moneda: string };
 }
 

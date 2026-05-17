@@ -13,11 +13,11 @@ import {
   Users,
   Target,
   ShoppingBag,
-  Crown,
   CreditCard,
   Repeat,
   LineChart,
 } from 'lucide-react';
+import ProBadge from '../common/ProBadge';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -72,9 +72,11 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
               )}
             </div>
             {isPro && (
-              <div className="absolute -top-2 -right-1 bg-background rounded-full p-1 shadow-sm border-2 border-background">
-                <Crown className="h-3 w-3 text-amber-500 fill-amber-500" />
-              </div>
+              <ProBadge
+                size="sm"
+                showText={false}
+                className="absolute -top-2 -right-1 border-2 border-background"
+              />
             )}
           </div>
           <div className="flex-1 min-w-0">
@@ -100,10 +102,7 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
                 <LineChart className="h-5 w-5" />
               </div>
               <span className="font-medium text-foreground">Métricas</span>
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-semibold">
-                <Crown className="h-2.5 w-2.5" />
-                PRO
-              </span>
+              <ProBadge size="sm" />
             </div>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
           </button>

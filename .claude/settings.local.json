@@ -51,7 +51,14 @@
       "Bash(sed -n '4,32p' src/components/common/SegmentedControl.tsx)",
       "Bash(npx eslint *)",
       "Bash(sed -n '1,75p' src/components/layout/Layout.tsx)",
-      "Bash(sed -n '1,60p' src/components/layout/MobileMenu.tsx)"
+      "Bash(sed -n '1,60p' src/components/layout/MobileMenu.tsx)",
+      "Bash(grep -n \"import.*MetricsAiResult\\\\|AiAskDto\\\\|async getAiInsights\\\\|async askAi\\\\|return {\\\\s*$\\\\|^  }\\\\|topTags.slice\" src/modules/analytics/analytics.service.ts)",
+      "Bash(grep -n \"async getRoast\\\\|// ==================== EXPORT \\(PRO\\) ====================\\\\|BadRequestException\\\\|import { Injectable, Logger\" src/modules/analytics/analytics.service.ts)",
+      "Bash(curl -s --retry 25 --retry-delay 1 --retry-connrefused -o /dev/null -w \"health HTTP %{http_code}\\\\n\" http://localhost:3000/api/health)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" -X POST http://localhost:3000/api/analytics/ai-image -H \"Content-Type: application/json\" -d '{\"month\":5,\"year\":2026}')",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost:3000/api/analytics/summary?month=5&year=2026\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" -X POST http://localhost:3000/api/analytics/no-existe)"
     ],
     "deny": [],
     "ask": []

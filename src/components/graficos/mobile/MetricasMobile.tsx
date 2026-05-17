@@ -9,7 +9,6 @@
 import {
   ChevronLeft,
   ChevronRight,
-  Crown,
   Monitor,
   Sparkles,
   TrendingUp,
@@ -21,6 +20,8 @@ import { useMetricasIA } from '@hooks/useMetricasIA';
 import { useConfig } from '@context/ConfigContext';
 import { formatearMoneda, formatearPorcentaje } from '@utils/formatters';
 import CustomLoader from '@components/common/CustomLoader';
+import ProBadge from '@components/common/ProBadge';
+import RoastCard from '../RoastCard';
 import type { Moneda } from '@app-types';
 
 export default function MetricasMobile() {
@@ -53,10 +54,7 @@ export default function MetricasMobile() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
           Métricas
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-semibold">
-            <Crown className="h-3 w-3" />
-            PRO
-          </span>
+          <ProBadge size="sm" />
         </h1>
         <div className="flex items-center gap-1">
           <button
@@ -223,6 +221,13 @@ export default function MetricasMobile() {
               </div>
             </div>
           )}
+
+          {/* Roast compartible (mobile-first para compartir) */}
+          <RoastCard
+            filtros={filtros}
+            enabled={enabled}
+            aiImageEnabled={summary.aiImageEnabled}
+          />
 
           {/* Banner ir a escritorio */}
           <div className="rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 p-4 flex items-start gap-3">

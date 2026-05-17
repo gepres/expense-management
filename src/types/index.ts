@@ -995,5 +995,8 @@ export type {
   MetricsAiAnswer,
   MetricasFiltros,
   ExportMetricasFormato,
+  RoastTono,
+  MetricsRoast,
+  MetricsRoastImage,
 } from './metricas';
 

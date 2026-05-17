@@ -3,6 +3,7 @@ import { useAuth } from '@context/AuthContext';
 import { Crown, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../common/Button';
+import ProBadge from '../common/ProBadge';
 
 export default function ProRequestButton() {
   const { usuario, requestProRole, isPro } = useAuth();
@@ -12,9 +13,9 @@ export default function ProRequestButton() {
 
   if (isPro) {
     return (
-      <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-lg border border-green-200">
-        <Crown className="w-5 h-5" />
-        <span className="font-medium">Eres usuario PRO</span>
+      <div className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card">
+        <ProBadge size="md" />
+        <span className="font-medium text-foreground">Eres usuario PRO</span>
       </div>
     );
   }

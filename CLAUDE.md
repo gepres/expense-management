@@ -3,7 +3,7 @@
 > Documentación esencial para trabajar en el proyecto de Gestión de Gastos Personales.
 > **Para detalle extenso ver:** `docs/components.md`, `docs/testing.md`, `CHANGELOG.md`
 
-**Versión**: 2.5.0 · **Última actualización**: 2026-05-16
+**Versión**: 2.5.3 · **Última actualización**: 2026-05-16
 
 ---
 
@@ -172,7 +172,7 @@ try {
 | `services/programados.ts` | CRUD + pause/resume + `findEjecuciones` de gastos programados (`/api/programados/gastos`) |
 | `services/transferencias-programadas.ts` | CRUD + pause/resume + `findEjecuciones` de transferencias (`/api/programados/transferencias`). Soporta cross-currency (`monedaDestino`, `exchangeRate`, `usarTasaActual`) |
 | `services/notificaciones.ts` | List, marcar leída, marcar todas leídas, eliminar (`/api/notificaciones`). Read principal vía `onSnapshot` desde el hook |
-| `services/analytics.ts` | Métricas PRO (`/api/analytics/*`): `getSummary`, `getAiInsights`, `askAi`, `exportMetricas`. `ProRequiredError` mapea el 403 → teaser |
+| `services/analytics.ts` | Métricas PRO (`/api/analytics/*`): `getSummary`, `getAiInsights`, `askAi`, `getRoast`, `exportMetricas`. `ProRequiredError` mapea el 403 → teaser |
 
 ---
 
@@ -200,6 +200,7 @@ Patrón: `Context + Provider + custom hook` que lanza error si se usa fuera del 
 | `useNotificaciones` | onSnapshot a `notificaciones` + `marcarLeida`/`marcarTodasLeidas`/`eliminar`. Expone `noLeidasCount` para el badge |
 | `useMetricas` | Filtros + `GET /analytics/summary`. Caché 10 min memoria+localStorage, stale-while-revalidate. Solo PRO llama |
 | `useMetricasIA` | `POST /analytics/ai-insights` (caché 24h) + `ask()` contextual (`/ai-ask`). Solo PRO; no llama si sin datos |
+| `useMetricasRoast` | `POST /analytics/ai-roast` (roast compartible). Disparo manual, caché por periodo, solo PRO. Render → PNG → WhatsApp (`RoastCard`) |
 
 ---
 
@@ -263,7 +264,7 @@ VITE_API_BASE_URL=http://localhost:3000/api
 
 ## 🎨 Componentes Comunes — resumen
 
-`src/components/common/`: `Button`, `Input` (4 variantes), `TextArea`, `Select`, `InputGroup`/`InputRow`, `Switch`, `Modal`, `ConfirmationModal`, `CustomLoader`, `LoadingSpinner`, `ErrorAlert`, `InstallPWA`, `BudgetMonitor`.
+`src/components/common/`: `Button`, `Input` (4 variantes), `TextArea`, `Select`, `InputGroup`/`InputRow`, `Switch`, `Modal`, `ConfirmationModal`, `CustomLoader`, `LoadingSpinner`, `ErrorAlert`, `InstallPWA`, `BudgetMonitor`, `ProBadge` (badge PRO unificado de la app).
 
 **Detalle completo, props y ejemplos en `docs/components.md`**.
 

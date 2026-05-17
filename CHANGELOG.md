@@ -4,6 +4,35 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.5.3 (2026-05-16)
+**Release**: Badge PRO homologado
+
+- Nuevo componente común `<ProBadge/>` (degradado dorado `amber-500→amber-600`, corona + "PRO", tamaños `sm|md|lg`, `showText`).
+- Reemplaza las 3 variantes que existían (degradado índigo/púrpura en Métricas+nav, chip ámbar en Perfil, corona ámbar suelta en Home) en: Dashboard, PerfilConfig, ProRequestButton, MetricasDesktop/Teaser/Mobile, MetricasPromoCard, Layout (nav "Más" + avatar) y MobileMenu (item + avatar). Apariencia consistente en toda la app.
+
+---
+
+## v2.5.2 (2026-05-16)
+**Release**: Ilustración IA del roast (OpenAI) + fix export desktop
+
+- **Ilustración IA**: nuevo `POST /api/analytics/ai-image` (PRO) → OpenAI `gpt-image-1` genera una ilustración cómica a partir del roast (sin texto en la imagen, family-friendly). Devuelve data URL PNG.
+- **Opcional/env-gated**: módulo `openai` (`OpenAiImageService`, `OPENAI_API_KEY` + `OPENAI_IMAGE_MODEL`). Si no hay key → endpoint 400 y el flag `AnalyticsSummary.aiImageEnabled=false` oculta el botón en el cliente.
+- Frontend: `RoastCard` con botón extra **"Ilustración IA ✨"** (junto a la tarjeta diseñada), imagen en caché de memoria, Descargar/Compartir propios. Disparo manual (control de costo).
+- **Fix**: la descarga del roast en **desktop** salía mal — `html-to-image` con glitch de primer render + gradiente Tailwind (CSS vars) no capturado. Solución: espera `document.fonts.ready` + render de calentamiento (doble) + gradiente inline con colores explícitos en la tarjeta.
+
+---
+
+## v2.5.1 (2026-05-16)
+**Release**: Roast financiero compartible (humor IA) en Métricas PRO
+
+- Nuevo `POST /api/analytics/ai-roast` (PRO) → `AnthropicService.roastMetrics()` devuelve JSON `MetricsRoast` (título, índice de desastre 0-100, frases sarcásticas, veredicto, hashtags). Humor amigable español LatAm, tono `suave|picante`.
+- Frontend: `useMetricasRoast` (disparo **manual**, caché por periodo, solo PRO), `RoastCard` (tarjeta estilo "Wrapped" exportable).
+- **Compartir**: `compartirImagenNodo()` — Web Share API con archivo (móvil → WhatsApp directo) y fallback descarga PNG + `wa.me` con el texto (desktop).
+- Integrado en `MetricasDesktop` y `MetricasMobile`. Control de costo: no consume IA hasta que el usuario pulsa "Generar".
+- **Seam fase-2**: `MetricsRoast.imagenUrl` reservado para una futura ilustración por modelo de imágenes (OpenAI/Gemini) — hoy no se genera, el contrato no cambia al añadirla.
+
+---
+
 ## v2.5.0 (2026-05-16)
 **Release**: Módulo de Métricas PRO — gráficos, analytics e IA
 

@@ -22,8 +22,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Target, Plus, Bot, ArrowRight, Crown, Banknote, Star } from 'lucide-react';
+import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Target, Plus, Bot, ArrowRight, Banknote, Star } from 'lucide-react';
 import AIInsights from './AIInsights';
+import ProBadge from '../common/ProBadge';
 import MetricasPromoCard from './MetricasPromoCard';
 import InstallPWA from '../common/InstallPWA';
 import CuentasWidget from '../cuentas/CuentasWidget';
@@ -181,13 +182,7 @@ export default function Dashboard() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
               Hola, {usuario?.nombre?.split(' ')[0]} 
               <span className="animate-wave inline-block origin-[70%_70%]">👋</span>
-              {
-                isPro && (
-                  <div className="ml-2 flex  items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-success text-xs font-medium">
-                    <Crown className="h-5 w-5 text-amber-500 fill-amber-500" />
-                  </div>
-                )
-              }
+              {isPro && <ProBadge size="md" className="ml-2" />}
             </h1>
             <p className="text-muted-foreground text-sm md:text-base">
               Resumen de {new Date(year, month - 1).toLocaleString('es', { month: 'long', year: 'numeric' })}

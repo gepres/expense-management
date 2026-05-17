@@ -7,8 +7,9 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
-import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, AlertCircle, ShoppingBag, BanknoteArrowDown, Crown, CreditCard, Repeat, LineChart, type LucideIcon } from 'lucide-react';
+import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, AlertCircle, ShoppingBag, BanknoteArrowDown, CreditCard, Repeat, LineChart, type LucideIcon } from 'lucide-react';
 import MobileMenu from './MobileMenu';
+import ProBadge from '../common/ProBadge';
 import BudgetMonitor from '../common/BudgetMonitor';
 import NotificationsPanel from '../compartidos/NotificationsPanel';
 import NotificacionesSistemaPanel from '../compartidos/NotificacionesSistemaPanel';
@@ -146,10 +147,7 @@ export default function Layout() {
                             <Icon className="h-4 w-4" />
                             {link.label}
                             {link.badge && (
-                              <span className="ml-auto inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-semibold">
-                                <Crown className="h-2.5 w-2.5" />
-                                {link.badge}
-                              </span>
+                              <ProBadge size="sm" className="ml-auto" />
                             )}
                           </NavLink>
                         );
@@ -219,9 +217,11 @@ export default function Layout() {
                     {usuario?.nombre}
                   </span> */}
                   {(usuario?.role === 'pro' || usuario?.role === 'admin') && (
-                    <div className="absolute top-1 right-0 bg-background rounded-full p-0.5 ">
-                      <Crown className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                    </div>
+                    <ProBadge
+                      size="sm"
+                      showText={false}
+                      className="absolute -top-1 -right-1"
+                    />
                   )}
                 </button>
 

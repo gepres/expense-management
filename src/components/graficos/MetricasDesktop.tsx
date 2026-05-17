@@ -6,7 +6,8 @@
  */
 
 import { useCallback, useRef, useState } from 'react';
-import { Crown, BarChart3, WifiOff, AlertCircle } from 'lucide-react';
+import { BarChart3, WifiOff, AlertCircle } from 'lucide-react';
+import ProBadge from '@components/common/ProBadge';
 import toast from 'react-hot-toast';
 import { useMetricas } from '@hooks/useMetricas';
 import { formatearMoneda, formatearPorcentaje } from '@utils/formatters';
@@ -20,6 +21,7 @@ import CategoriasPanel from './desktop/CategoriasPanel';
 import PresupuestoVsRealPanel from './desktop/PresupuestoVsRealPanel';
 import IAPanel from './desktop/IAPanel';
 import ExtrasPanel from './desktop/ExtrasPanel';
+import RoastCard from './RoastCard';
 
 export default function MetricasDesktop() {
   const {
@@ -89,10 +91,7 @@ export default function MetricasDesktop() {
           <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
             <BarChart3 className="h-7 w-7 text-indigo-500" />
             Métricas
-            <span className="ml-1 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[11px] font-semibold">
-              <Crown className="h-3 w-3" />
-              PRO
-            </span>
+            <ProBadge size="lg" className="ml-1" />
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             Análisis profundo de tus finanzas con IA
@@ -161,6 +160,12 @@ export default function MetricasDesktop() {
           </div>
 
           <IAPanel summary={summary} filtros={filtros} />
+
+          <RoastCard
+            filtros={filtros}
+            enabled={summary.totales.numTransacciones > 0}
+            aiImageEnabled={summary.aiImageEnabled}
+          />
 
           <ExtrasPanel summary={summary} />
         </div>

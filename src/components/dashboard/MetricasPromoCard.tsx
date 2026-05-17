@@ -4,8 +4,9 @@
  */
 
 import { Link } from 'react-router-dom';
-import { Crown, Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight } from 'lucide-react';
 import { useAuth } from '@context/AuthContext';
+import ProBadge from '../common/ProBadge';
 
 export default function MetricasPromoCard() {
   const { isPro } = useAuth();
@@ -23,10 +24,7 @@ export default function MetricasPromoCard() {
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
             Métricas avanzadas con IA
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-semibold">
-              <Crown className="h-3 w-3" />
-              PRO
-            </span>
+            <ProBadge size="sm" />
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             Flujo de caja con proyección, presupuesto vs real, anomalías y un

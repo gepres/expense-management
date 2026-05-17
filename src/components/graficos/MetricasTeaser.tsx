@@ -17,6 +17,7 @@ import {
   Check,
 } from 'lucide-react';
 import ProRequestButton from '@components/user/ProRequestButton';
+import ProBadge from '@components/common/ProBadge';
 
 const BENEFICIOS = [
   {
@@ -90,10 +91,7 @@ export default function MetricasTeaser() {
         <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
           <BarChart3 className="h-7 w-7 text-indigo-500" />
           Métricas
-          <span className="ml-1 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[11px] font-semibold">
-            <Crown className="h-3 w-3" />
-            PRO
-          </span>
+          <ProBadge size="lg" className="ml-1" />
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
           Análisis profundo de tus finanzas con IA — disponible para cuentas PRO

@@ -19,6 +19,9 @@ import type {
   AnalyticsSummary,
   MetricsAiResult,
   MetricsAiAnswer,
+  MetricsRoast,
+  MetricsRoastImage,
+  RoastTono,
   MetricasFiltros,
   ExportMetricasFormato,
 } from '@app-types';
@@ -110,6 +113,26 @@ export const AnalyticsService = {
     filtros: MetricasFiltros & { question: string },
   ): Promise<MetricsAiAnswer> {
     return fetchWithAuth<MetricsAiAnswer>('/analytics/ai-ask', {
+      method: 'POST',
+      body: JSON.stringify(filtros),
+    });
+  },
+
+  /** Roast sarcástico compartible del periodo. */
+  async getRoast(
+    filtros: MetricasFiltros & { tono?: RoastTono },
+  ): Promise<MetricsRoast> {
+    return fetchWithAuth<MetricsRoast>('/analytics/ai-roast', {
+      method: 'POST',
+      body: JSON.stringify(filtros),
+    });
+  },
+
+  /** Ilustración IA del roast (OpenAI). Requiere OPENAI_API_KEY en backend. */
+  async getRoastImage(
+    filtros: MetricasFiltros & { tono?: RoastTono },
+  ): Promise<MetricsRoastImage> {
+    return fetchWithAuth<MetricsRoastImage>('/analytics/ai-image', {
       method: 'POST',
       body: JSON.stringify(filtros),
     });
