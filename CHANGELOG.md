@@ -4,6 +4,29 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.9.0 (2026-05-17)
+**Release**: Panel de Administración — gestión de usuarios y cuota IA
+
+> Mejoras al Panel de Administración (multi-repo `gastos` + `gastos-backend`). Nuevo guard `AdminGuard` en el backend; sin cambios de reglas/índices Firestore.
+
+### Gestión de usuarios
+- **Buscar y activar PRO**: en *Cuentas PRO*, búsqueda por **email exacto** → activar PRO directo (sin esperar solicitud), con confirmación. Revocar PRO se mantiene.
+
+### Gestión de cuota IA
+- **Límites por rol editables desde la UI** (*Consumo IA*): tokens/imágenes standard·PRO + umbral de aviso. Se guardan en `appConfig/aiQuota` (override sobre los env `AI_QUOTA_*`, propaga ≤60s); no requiere redeploy. `admin` sigue ilimitado.
+- **Reset/ampliar cuota por usuario**: desde el detalle de un usuario en el "Top del mes" **y** desde cada fila de *Cuentas PRO* (botón "Ajustar cuota"). `reset` perdona el consumo del mes; `ampliar` suma tokens. **No altera** el rollup de costo/analytics (doc aparte `aiQuotaAdjust`).
+- **Visualización/alertas**: % de cuota usada, barra y badges **≥aviso%** / **100% bloqueado** / **∞ admin** por usuario en el top (aproximación por rol; mes actual).
+
+### Costo real de las APIs
+- **Gasto facturado real** por proveedor (Anthropic Cost Report API + OpenAI Costs API) en *Consumo IA*, con navegación por mes. Requiere **Admin keys** opcionales (`ANTHROPIC_ADMIN_KEY`/`OPENAI_ADMIN_KEY`); sin ellas muestra link a la consola.
+- **Aclaración honesta** (en la UI): es el **gasto del periodo, NO el crédito restante** — ningún proveedor expone el saldo por API; eso solo se ve en su consola.
+
+### Backend (`gastos-backend`)
+- `AdminGuard`; endpoints `GET/PUT /api/ai-usage/quota-config`, `POST /api/ai-usage/quota-adjust`, `GET /api/ai-usage/vendor-cost?mes=` (todos admin). `QuotaService` lee config efectiva (doc sobre env, cache 60s) y bonus por usuario. `VendorCostService` (cache 10 min, best-effort, paginado).
+- Verificado contra la doc oficial (may-2026): Anthropic Cost Report devuelve `amount` en **centavos** → se divide /100 (corregido); OpenAI Costs `amount.value` en USD. Las **Admin keys** se crean en *Settings → Organization → Admin keys* de cada consola (no en la página normal de API keys; requiere rol admin/owner de la organización).
+
+---
+
 ## v2.8.2 (2026-05-17)
 **Release**: Homologación IA — Fase 3: `learning_log` compartido (la web también aprende)
 

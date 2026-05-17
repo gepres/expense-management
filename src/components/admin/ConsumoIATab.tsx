@@ -18,6 +18,7 @@ import type {
   AiUsageUserRow,
   AiUsageBucketStat,
   AiUsageSortBy,
+  QuotaConfig,
   Usuario,
 } from '@app-types';
 import {
@@ -33,6 +34,9 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { SegmentedControl } from '@components/common/SegmentedControl';
 import { formatearMoneda } from '@utils/formatters';
+import QuotaConfigEditor from './QuotaConfigEditor';
+import QuotaAdjustModal from './QuotaAdjustModal';
+import VendorCostPanel from './VendorCostPanel';
 
 const TOP_FETCH = 100;
 const TOP_SHOW = 15;
@@ -148,6 +152,12 @@ export default function ConsumoIATab() {
   const [error, setError] = useState<string | null>(null);
   const [topError, setTopError] = useState<string | null>(null);
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [ajustar, setAjustar] = useState<{
+    userId: string;
+    nombre: string;
+    used: number;
+  } | null>(null);
+  const [quotaCfg, setQuotaCfg] = useState<QuotaConfig | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -188,6 +198,13 @@ export default function ConsumoIATab() {
             : `No se pudo cargar el top de usuarios: ${msg}`,
         );
       }
+      // 3) Límites de cuota (para % y alertas por usuario). Best-effort:
+      //    si falla, simplemente no se muestran los indicadores.
+      try {
+        setQuotaCfg((await AiUsageAdminService.getQuotaConfig()).config);
+      } catch {
+        /* sin config → sin indicadores de cuota */
+      }
     } finally {
       setLoading(false);
     }
@@ -215,9 +232,39 @@ export default function ConsumoIATab() {
   }, [topUsers, mes]);
 
   const hoyMes = currentMonthKey();
+  const esMesActual = mes === hoyMes;
+  const warnPct = quotaCfg?.warnPct ?? 80;
+
+  // % de cuota usada por usuario, según su rol y los límites de config.
+  // Aproximación liviana: NO refleja bonus/reset por-usuario (ADM-3) ni
+  // tiene sentido en meses pasados (la cuota es mensual).
+  const cuotaInfo = (
+    uid: string,
+    used: number,
+  ):
+    | { kind: 'unlimited' }
+    | { kind: 'pct'; pct: number; blocked: boolean; warn: boolean }
+    | null => {
+    if (!esMesActual || !quotaCfg) return null;
+    const role = names[uid]?.role;
+    if (!role) return null;
+    if (role === 'admin') return { kind: 'unlimited' };
+    const limit =
+      role === 'pro' ? quotaCfg.proTokens : quotaCfg.standardTokens;
+    if (!limit || limit <= 0) return null;
+    const pct = Math.min(100, Math.round((used / limit) * 100));
+    return {
+      kind: 'pct',
+      pct,
+      blocked: used >= limit,
+      warn: pct >= warnPct && pct < 100,
+    };
+  };
 
   return (
     <div className="space-y-5">
+      <QuotaConfigEditor />
+
       {/* Controles */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-1">
@@ -257,6 +304,8 @@ export default function ConsumoIATab() {
           ]}
         />
       </div>
+
+      <VendorCostPanel mes={mes} />
 
       {error && (
         <div className="rounded-lg p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm flex items-start gap-2">
@@ -329,6 +378,7 @@ export default function ConsumoIATab() {
                 {topUsers.slice(0, TOP_SHOW).map((r, i) => {
                   const u = names[r.userId];
                   const abierto = expandido === r.userId;
+                  const ci = cuotaInfo(r.userId, r.totalTokens);
                   return (
                     <div key={r.docId}>
                       <button
@@ -341,12 +391,48 @@ export default function ConsumoIATab() {
                           {i + 1}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-foreground truncate">
-                            {u?.nombre ?? u?.email ?? r.userId}
+                          <p className="text-sm text-foreground truncate flex items-center gap-2">
+                            <span className="truncate">
+                              {u?.nombre ?? u?.email ?? r.userId}
+                            </span>
+                            {ci?.kind === 'pct' && ci.blocked && (
+                              <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+                                100% · bloqueado
+                              </span>
+                            )}
+                            {ci?.kind === 'pct' && !ci.blocked && ci.warn && (
+                              <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+                                ≥{warnPct}%
+                              </span>
+                            )}
+                            {ci?.kind === 'unlimited' && (
+                              <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                                ∞ admin
+                              </span>
+                            )}
                           </p>
                           <p className="text-[11px] text-muted-foreground truncate">
                             {u?.email ?? `uid: ${r.userId.slice(0, 12)}…`}
                           </p>
+                          {ci?.kind === 'pct' && (
+                            <div className="mt-1 flex items-center gap-2">
+                              <div className="flex-1 max-w-[140px] bg-muted rounded-full h-1.5">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    ci.blocked
+                                      ? 'bg-red-500'
+                                      : ci.warn
+                                        ? 'bg-amber-500'
+                                        : 'bg-emerald-500'
+                                  }`}
+                                  style={{ width: `${ci.pct}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] text-muted-foreground flex-shrink-0">
+                                {ci.pct}% cuota
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="text-sm font-semibold text-foreground">
@@ -364,6 +450,19 @@ export default function ConsumoIATab() {
                             titulo="Por feature"
                             data={r.byFeature ?? {}}
                           />
+                          <button
+                            onClick={() =>
+                              setAjustar({
+                                userId: r.userId,
+                                nombre:
+                                  u?.nombre ?? u?.email ?? r.userId,
+                                used: r.totalTokens,
+                              })
+                            }
+                            className="mt-3 text-xs font-medium text-primary hover:underline"
+                          >
+                            Ajustar cuota de este usuario →
+                          </button>
                         </div>
                       )}
                     </div>
@@ -373,6 +472,16 @@ export default function ConsumoIATab() {
             )}
           </div>
         </div>
+      )}
+
+      {ajustar && (
+        <QuotaAdjustModal
+          userId={ajustar.userId}
+          nombre={ajustar.nombre}
+          usedTokens={ajustar.used}
+          onClose={() => setAjustar(null)}
+          onApplied={() => void load()}
+        />
       )}
     </div>
   );

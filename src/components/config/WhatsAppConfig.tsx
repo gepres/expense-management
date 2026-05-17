@@ -352,11 +352,11 @@ export default function WhatsAppConfig() {
                   )}
                 </button>
               </div>
-              <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80 mt-2">
+              {/* <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80 mt-2">
                 El código exacto lo muestra Twilio en{' '}
                 <em>Messaging → Try it out → WhatsApp Sandbox</em>. Sin este
                 paso, el bot no recibirá tus mensajes.
-              </p>
+              </p> */}
             </div>
 
             <div>

@@ -57,3 +57,33 @@ export interface QuotaSnapshot {
   resetAt: string;
   warnPct: number;
 }
+
+/** Límites de cuota IA por rol (editables por admin). */
+export interface QuotaConfig {
+  standardTokens: number;
+  proTokens: number;
+  standardImages: number;
+  proImages: number;
+  warnPct: number;
+}
+
+export interface QuotaConfigResponse {
+  config: QuotaConfig;
+  /** 'doc' = override del admin activo; 'env' = defaults de entorno. */
+  source: 'doc' | 'env';
+  envDefaults: QuotaConfig;
+}
+
+/** Costo real facturado de un proveedor (no es saldo restante). */
+export interface ProviderCost {
+  enabled: boolean;
+  amountUsd?: number;
+  error?: string;
+}
+
+export interface VendorCost {
+  mes: string;
+  anthropic: ProviderCost;
+  openai: ProviderCost;
+  note: string;
+}

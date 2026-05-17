@@ -1010,5 +1010,9 @@ export type {
   AiUsageUserRow,
   AiUsageSortBy,
   QuotaSnapshot,
+  QuotaConfig,
+  QuotaConfigResponse,
+  ProviderCost,
+  VendorCost,
 } from './aiUsage';
 

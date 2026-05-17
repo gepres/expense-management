@@ -588,6 +588,41 @@ export const authService = {
   },
 
   /**
+   * Buscar usuarios por email exacto (Admin) — para activarles PRO sin
+   * que medie una solicitud. Email normalizado a minúsculas (Firebase
+   * Auth los entrega así); se intenta también el valor crudo por si algún
+   * doc histórico lo guardó con mayúsculas.
+   */
+  async searchUsersByEmail(email: string): Promise<Usuario[]> {
+    const raw = email.trim();
+    if (!raw) return [];
+    try {
+      const variants = Array.from(
+        new Set([raw.toLowerCase(), raw]),
+      );
+      const results: Usuario[] = [];
+      const seen = new Set<string>();
+      for (const value of variants) {
+        const q = query(
+          collection(db, 'users'),
+          where('email', '==', value),
+        );
+        const snap = await getDocs(q);
+        snap.docs.forEach((d) => {
+          if (seen.has(d.id)) return;
+          seen.add(d.id);
+          results.push(
+            firestoreToUsuario(d.id, d.data() as UsuarioFirestore),
+          );
+        });
+      }
+      return results;
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
+
+  /**
    * Otorgar PRO directamente (Admin) — sin pasar por solicitud.
    */
   async grantProRole(userId: string): Promise<void> {

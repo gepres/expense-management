@@ -18,11 +18,13 @@ import {
   SmartphoneNfc,
   ShieldCheck,
   Cpu,
+  Search,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Button from '../common/Button';
 import ProBadge from '../common/ProBadge';
 import ConfirmationModal from '../common/ConfirmationModal';
+import QuotaAdjustModal from './QuotaAdjustModal';
 import { formatearFechaCorta, formatearMoneda } from '@utils/formatters';
 
 export default function CuentasProTab() {
@@ -34,6 +36,16 @@ export default function CuentasProTab() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [confirmUser, setConfirmUser] = useState<Usuario | null>(null);
+  // Búsqueda por email para activar PRO directamente.
+  const [searchEmail, setSearchEmail] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<Usuario[] | null>(null);
+  const [confirmGrant, setConfirmGrant] = useState<Usuario | null>(null);
+  const [ajustar, setAjustar] = useState<{
+    userId: string;
+    nombre: string;
+    used: number;
+  } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -80,6 +92,117 @@ export default function CuentasProTab() {
     }
   };
 
+  const buscar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = searchEmail.trim();
+    if (!email) return;
+    try {
+      setSearching(true);
+      const res = await authService.searchUsersByEmail(email);
+      setSearchResults(res);
+      if (res.length === 0) toast('Sin resultados para ese email');
+    } catch {
+      toast.error('Error al buscar el usuario');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const activar = async (u: Usuario) => {
+    setConfirmGrant(null);
+    try {
+      setProcessingId(u.id);
+      await authService.grantProRole(u.id);
+      toast.success(`PRO activado para ${u.nombre}`);
+      setSearchResults(null);
+      setSearchEmail('');
+      await load();
+    } catch {
+      toast.error('No se pudo activar PRO');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const SearchPanel = (
+    <form onSubmit={buscar} className="mb-5">
+      <label className="block text-sm font-medium mb-1">
+        Activar PRO por email
+      </label>
+      <div className="flex gap-2">
+        <input
+          type="email"
+          value={searchEmail}
+          onChange={(e) => setSearchEmail(e.target.value)}
+          placeholder="correo@ejemplo.com (exacto)"
+          className="flex-1 px-3 py-2 rounded-lg border bg-background text-sm"
+        />
+        <Button
+          type="submit"
+          variant="outline"
+          size="sm"
+          loading={searching}
+          disabled={!searchEmail.trim()}
+        >
+          <Search className="h-4 w-4 mr-1" />
+          Buscar
+        </Button>
+      </div>
+
+      {searchResults && searchResults.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {searchResults.map((u) => {
+            const yaPro = u.role === 'pro' || u.role === 'admin';
+            return (
+              <div
+                key={u.id}
+                className="p-3 bg-muted/50 rounded-lg border flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium truncate flex items-center gap-2">
+                    {u.nombre}
+                    {u.role === 'admin' ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                        <ShieldCheck className="h-3 w-3" />
+                        ADMIN
+                      </span>
+                    ) : (
+                      u.role === 'pro' && <ProBadge size="sm" />
+                    )}
+                  </p>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {u.email}
+                  </p>
+                </div>
+                {yaPro ? (
+                  <span className="text-xs text-muted-foreground flex-shrink-0">
+                    Ya es {u.role === 'admin' ? 'admin' : 'PRO'}
+                  </span>
+                ) : (
+                  <Button
+                    variant="pro"
+                    size="sm"
+                    loading={processingId === u.id}
+                    disabled={processingId !== null}
+                    onClick={() => setConfirmGrant(u)}
+                    className="flex-shrink-0"
+                  >
+                    Activar PRO
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {searchResults && searchResults.length === 0 && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          No se encontró ningún usuario con ese email.
+        </p>
+      )}
+    </form>
+  );
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -88,21 +211,21 @@ export default function CuentasProTab() {
     );
   }
 
-  if (users.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        <User className="w-12 h-12 mx-auto mb-4 opacity-20" />
-        <p>No hay cuentas PRO ni admin</p>
-      </div>
-    );
-  }
-
   return (
     <>
-      <p className="text-xs text-muted-foreground mb-4">
-        {users.length} cuenta(s) · consumo IA del mes en curso
-      </p>
-      <div className="space-y-3">
+      {SearchPanel}
+
+      {users.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <User className="w-12 h-12 mx-auto mb-4 opacity-20" />
+          <p>No hay cuentas PRO ni admin</p>
+        </div>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground mb-4">
+            {users.length} cuenta(s) · consumo IA del mes en curso
+          </p>
+          <div className="space-y-3">
         {users.map((u) => {
           const usage = usageByUid[u.id];
           const esAdmin = u.role === 'admin';
@@ -172,6 +295,22 @@ export default function CuentasProTab() {
                     <p className="text-sm text-muted-foreground">—</p>
                   )}
                 </div>
+                {!esAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={processingId !== null}
+                    onClick={() =>
+                      setAjustar({
+                        userId: u.id,
+                        nombre: u.nombre,
+                        used: usage?.totalTokens ?? 0,
+                      })
+                    }
+                  >
+                    Ajustar cuota
+                  </Button>
+                )}
                 {!esAdmin && !esYo && (
                   <Button
                     variant="outline"
@@ -187,7 +326,9 @@ export default function CuentasProTab() {
             </div>
           );
         })}
-      </div>
+          </div>
+        </>
+      )}
 
       <ConfirmationModal
         isOpen={confirmUser !== null}
@@ -198,6 +339,25 @@ export default function CuentasProTab() {
         confirmText="Revocar"
         isDestructive
       />
+
+      <ConfirmationModal
+        isOpen={confirmGrant !== null}
+        onClose={() => setConfirmGrant(null)}
+        onConfirm={() => confirmGrant && activar(confirmGrant)}
+        title="Activar cuenta PRO"
+        description={`¿Otorgar el rol PRO a ${confirmGrant?.nombre ?? ''} (${confirmGrant?.email ?? ''})? Tendrá acceso a todas las funciones PRO.`}
+        confirmText="Activar PRO"
+      />
+
+      {ajustar && (
+        <QuotaAdjustModal
+          userId={ajustar.userId}
+          nombre={ajustar.nombre}
+          usedTokens={ajustar.used}
+          onClose={() => setAjustar(null)}
+          onApplied={() => void load()}
+        />
+      )}
     </>
   );
 }

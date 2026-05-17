@@ -72,7 +72,10 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(grep -nE \"\\\\| \\\\`voice\\\\`|process-audio|OpenAiTranscription|Whisper\" ../gastos-backend/CLAUDE.md)",
       "Bash(grep -nA8 \"learning_log\" firestore.indexes.json)",
-      "Bash(grep -nA4 \"learning_log\" firestore.rules)"
+      "Bash(grep -nA4 \"learning_log\" firestore.rules)",
+      "WebSearch",
+      "WebFetch(domain:developers.openai.com)",
+      "WebFetch(domain:docs.anthropic.com)"
     ],
     "deny": [],
     "ask": []

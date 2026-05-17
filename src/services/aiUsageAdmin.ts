@@ -16,8 +16,42 @@ import {
   orderBy,
   limit as fbLimit,
 } from 'firebase/firestore';
-import { db } from './firebase';
-import type { AiUsageRollup, AiUsageUserRow, AiUsageSortBy } from '@app-types';
+import { db, auth } from './firebase';
+import type {
+  AiUsageRollup,
+  AiUsageUserRow,
+  AiUsageSortBy,
+  QuotaConfig,
+  QuotaConfigResponse,
+  QuotaSnapshot,
+  VendorCost,
+} from '@app-types';
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+
+/** fetch autenticado (Firebase ID token) contra el backend admin. */
+async function adminFetch<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const token = await auth.currentUser?.getIdToken();
+  if (!token) throw new Error('No hay sesión activa');
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 403) throw new Error('Solo administradores.');
+    throw new Error(err.message || 'Error en la petición admin');
+  }
+  return res.json() as Promise<T>;
+}
 
 /** Clave de mes en UTC, idéntica a la que usan backend/functions. */
 export function currentMonthKey(d: Date = new Date()): string {
@@ -65,5 +99,43 @@ export const AiUsageAdminService = {
       docId: d.id,
       ...(d.data() as Omit<AiUsageUserRow, 'docId'>),
     }));
+  },
+
+  /** Límites de cuota IA por rol (efectivos + origen + defaults env). */
+  async getQuotaConfig(): Promise<QuotaConfigResponse> {
+    return adminFetch<QuotaConfigResponse>('/ai-usage/quota-config');
+  },
+
+  /** Guarda el override de límites (admin). Propaga en ≤60s. */
+  async updateQuotaConfig(
+    cfg: QuotaConfig,
+  ): Promise<{ ok: boolean; config: QuotaConfig }> {
+    return adminFetch('/ai-usage/quota-config', {
+      method: 'PUT',
+      body: JSON.stringify(cfg),
+    });
+  },
+
+  /**
+   * Resetea o amplía la cuota de un usuario para el mes en curso (admin).
+   * No toca el rollup de tracking. Devuelve el snapshot actualizado.
+   */
+  async adjustUserQuota(payload: {
+    userId: string;
+    mode: 'reset' | 'bonus';
+    tokens?: number;
+    note?: string;
+  }): Promise<QuotaSnapshot> {
+    return adminFetch<QuotaSnapshot>('/ai-usage/quota-adjust', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /** Costo REAL facturado por proveedor en el mes (no es saldo). */
+  async getVendorCost(mes: string): Promise<VendorCost> {
+    return adminFetch<VendorCost>(
+      `/ai-usage/vendor-cost?mes=${encodeURIComponent(mes)}`,
+    );
   },
 };
