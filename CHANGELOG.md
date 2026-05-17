@@ -4,6 +4,21 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.8.1 (2026-05-17)
+**Feature/Fix**: Audio web = Whisper server-side + 2 bugs de validación
+
+> Continúa la homologación de v2.8.0. El dictado de voz en la web deja de depender de la Web Speech API del navegador.
+
+### Feature — audio web server-side (homologado con WhatsApp)
+- **Backend** (`gastos-backend`): nuevo `OpenAiTranscriptionService` (Whisper / `gpt-4o-mini-transcribe`, modelo de `@gastos/expense-ai`, buffer en memoria — serverless-safe). Nuevo **`POST /api/voice/process-audio`** (multipart, auth): transcribe → parseo canónico → clasificación contra la taxonomía del usuario (reusa el `InferenceService` de v2.8.0). 1 chequeo de cuota cubre la operación; consumo `voice_transcribe`+`voice_expense` `scope:user`. `POST /voice/process-expense` (texto) se mantiene.
+- **Frontend** (`gastos`): `useVoiceInput` reescrito a **`MediaRecorder`** (graba y sube el audio). Se elimina la Web Speech API y, con ella, el error `Speech recognition error: network` (dependía de los servidores de Google). Pipeline web = pipeline WhatsApp.
+
+### Fix — bugs encontrados en validación
+- **"Invalid time value" al guardar un gasto desde imagen** (pre-existente, no introducido por v2.8.0): el autocompletar de escaneo metía la hora en `HH:mm:ss` dentro del campo `hora` del form (que es `HH:MM`), y `new Date(...)` quedaba inválido. Fix: normalizar a `HH:MM` en la frontera + guard defensivo en el submit (toast claro en vez del error críptico).
+- **Mensaje del micrófono**: el error de voz del navegador ahora muestra un texto accionable (resuelto de raíz por el audio server-side de arriba).
+
+---
+
 ## v2.8.0 (2026-05-17)
 **Release**: Homologación IA imagen/voz — paquete compartido + clasificación por-usuario
 

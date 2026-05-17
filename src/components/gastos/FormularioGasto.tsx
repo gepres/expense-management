@@ -141,7 +141,7 @@ export default function FormularioGasto() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estado para entrada de voz
-  const { isListening, transcript, startListening, stopListening, resetTranscript, isSupported, error: voiceError } = useVoiceInput();
+  const { isListening, audioBlob, startListening, stopListening, resetRecording, isSupported, error: voiceError } = useVoiceInput();
   const [processingVoice, setProcessingVoice] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -356,7 +356,10 @@ export default function FormularioGasto() {
           monto: data.amount?.toString() || prev.monto,
           moneda: data.currency || prev.moneda,
           fecha: data.date || prev.fecha,
-          hora: data.time || prev.hora,
+          // El backend devuelve la hora en HH:mm:ss; el form (y el input
+          // type=time) trabaja en HH:MM → normalizar o el new Date() de
+          // handleSubmit queda "Invalid Date".
+          hora: data.time ? data.time.slice(0, 5) : prev.hora,
           metodoPago: data.paymentMethod as MetodoPago || prev.metodoPago,
           descripcion: data.description || prev.descripcion,
         }));
@@ -391,12 +394,12 @@ export default function FormularioGasto() {
     }
   };
 
-  // Procesar entrada de voz cuando termine de hablar
+  // Procesar el audio grabado cuando termina la grabación
   useEffect(() => {
-    if (transcript && !isListening) {
-      handleVoiceInput(transcript);
+    if (audioBlob && !isListening) {
+      handleVoiceAudio(audioBlob);
     }
-  }, [transcript, isListening]);
+  }, [audioBlob, isListening]);
 
   // Mostrar error de voz si existe
   useEffect(() => {
@@ -405,12 +408,12 @@ export default function FormularioGasto() {
     }
   }, [voiceError]);
 
-  // Handler para procesar entrada de voz
-  const handleVoiceInput = async (text: string) => {
+  // Handler para procesar el audio grabado (transcripción server-side)
+  const handleVoiceAudio = async (blob: Blob) => {
     setProcessingVoice(true);
     try {
-      const expenseData = await VoiceService.processExpenseFromVoice(text);
-      
+      const expenseData = await VoiceService.processAudioExpense(blob);
+
       console.log('🎤 Datos recibidos de voz:', expenseData);
       
       // Autocompletar formulario si la confianza es alta
@@ -503,7 +506,7 @@ export default function FormularioGasto() {
       toast.error(error.message || 'Error al procesar entrada de voz');
     } finally {
       setProcessingVoice(false);
-      resetTranscript();
+      resetRecording();
     }
   };
 
@@ -591,8 +594,14 @@ export default function FormularioGasto() {
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
 
-      // Combinar fecha y hora
+      // Combinar fecha y hora. Defensivo: una combinación inválida no debe
+      // propagarse como "Invalid time value" críptico al serializar.
       const fechaHora = new Date(`${formData.fecha}T${formData.hora}:00`);
+      if (isNaN(fechaHora.getTime())) {
+        toast.error('Fecha u hora inválida. Revisa los campos.');
+        setCargando(false);
+        return;
+      }
 
       // Preparar datos del gasto
       // IMPORTANTE: No incluir campos undefined - Firestore los rechaza

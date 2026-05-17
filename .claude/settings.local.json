@@ -68,7 +68,9 @@
       "Bash(grep -n -i 'docs/\\\\|índice\\\\|index\\\\|versión\\\\|version\\\\|## \\\\|feature\\\\|módulo\\\\|modulo\\\\|analytics\\\\|métricas\\\\|metricas\\\\|ai-usage\\\\|consumo\\\\|whatsapp\\\\|CHANGELOG' __TRACKED_VAR__/README.md)",
       "Bash(npm test *)",
       "Bash(git checkout *)",
-      "Bash(npm i *)"
+      "Bash(npm i *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(grep -nE \"\\\\| \\\\`voice\\\\`|process-audio|OpenAiTranscription|Whisper\" ../gastos-backend/CLAUDE.md)"
     ],
     "deny": [],
     "ask": []
