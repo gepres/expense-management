@@ -984,3 +984,16 @@ export {
   TIPO_NOTIFICACION_ICONS,
 } from './notificaciones';
 
+// ============================================================================
+// Métricas (módulo PRO de gráficos/analytics)
+// ============================================================================
+
+export type {
+  TendenciaMetrica,
+  AnalyticsSummary,
+  MetricsAiResult,
+  MetricsAiAnswer,
+  MetricasFiltros,
+  ExportMetricasFormato,
+} from './metricas';
+

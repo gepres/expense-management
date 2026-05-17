@@ -37,7 +37,16 @@
       "PowerShell(New-Item *)",
       "Bash(npx jest *)",
       "Bash(grep -i \"\\\\.md$\")",
-      "PowerShell(Get-ChildItem \"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\components\\\\programados\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\components\\\\layout\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\components\\\\common\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\types\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\services\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\hooks\" -Name | ForEach-Object { $_ })"
+      "PowerShell(Get-ChildItem \"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\components\\\\programados\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\components\\\\layout\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\components\\\\common\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\types\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\services\",\"D:\\\\PROYECTOS\\\\gepres\\\\gastos\\\\src\\\\hooks\" -Name | ForEach-Object { $_ })",
+      "Bash(cd /d/PROYECTOS/gepres/gastos-backend)",
+      "Bash(ls src *)",
+      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\('name:',p.name\\);console.log\\('deps:',Object.keys\\(p.dependencies||{}\\).join\\(', '\\)\\)\")",
+      "Bash(xargs grep -ln \"anthropic\")",
+      "Bash(xargs grep -ln \"isPublic\\\\|@Public\\\\|SetMetadata\")",
+      "Bash(xargs ls)",
+      "Read(//d/d/PROYECTOS/gepres/gastos/src/**)",
+      "Read(//d/d/PROYECTOS/gepres/gastos/src/utils/**)",
+      "Bash(npm run *)"
     ],
     "deny": [],
     "ask": []
