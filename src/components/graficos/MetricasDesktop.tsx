@@ -5,14 +5,20 @@
  * El gating PRO / mobile / teaser se resuelve en `MetricasPage` (Bloque 5).
  */
 
+import { useCallback, useRef, useState } from 'react';
 import { Crown, BarChart3, WifiOff, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useMetricas } from '@hooks/useMetricas';
+import { formatearMoneda, formatearPorcentaje } from '@utils/formatters';
+import { exportarPNG, exportarReportePDF } from '@utils/exportMetricas';
 import CustomLoader from '@components/common/CustomLoader';
+import type { Moneda } from '@app-types';
 import FiltrosBar from './desktop/FiltrosBar';
 import KpiRow from './desktop/KpiRow';
 import FlujoCajaChart from './desktop/FlujoCajaChart';
 import CategoriasPanel from './desktop/CategoriasPanel';
 import PresupuestoVsRealPanel from './desktop/PresupuestoVsRealPanel';
+import IAPanel from './desktop/IAPanel';
 import ExtrasPanel from './desktop/ExtrasPanel';
 
 export default function MetricasDesktop() {
@@ -28,6 +34,52 @@ export default function MetricasDesktop() {
     setMoneda,
     refetch,
   } = useMetricas();
+
+  const contenidoRef = useRef<HTMLDivElement>(null);
+  const [exportando, setExportando] = useState(false);
+
+  const handleExportVisual = useCallback(
+    async (formato: 'png' | 'pdf') => {
+      const node = contenidoRef.current;
+      if (!node || !summary) return;
+      setExportando(true);
+      const base = `metricas_${filtros.year}_${String(filtros.month).padStart(2, '0')}`;
+      const moneda = (summary.moneda as Moneda) || 'PEN';
+      const tId = toast.loading(
+        `Generando ${formato.toUpperCase()}…`,
+      );
+      try {
+        if (formato === 'png') {
+          await exportarPNG(node, `${base}.png`);
+        } else {
+          await exportarReportePDF(node, `${base}.pdf`, {
+            periodo: new Date(
+              filtros.year,
+              filtros.month - 1,
+            ).toLocaleString('es', { month: 'long', year: 'numeric' }),
+            moneda,
+            totalGastado: formatearMoneda(
+              summary.totales.totalGastado,
+              moneda,
+            ),
+            proyeccion: formatearMoneda(summary.proyeccionFinMes, moneda),
+            vsMesAnterior: formatearPorcentaje(
+              summary.comparativaMesAnterior.diferenciaPorcentaje,
+            ),
+          });
+        }
+        toast.success(`Exportado en ${formato.toUpperCase()}`, { id: tId });
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : 'No se pudo exportar',
+          { id: tId },
+        );
+      } finally {
+        setExportando(false);
+      }
+    },
+    [summary, filtros],
+  );
 
   return (
     <div className="space-y-6 pb-10">
@@ -57,6 +109,7 @@ export default function MetricasDesktop() {
         onAccountIds={setAccountIds}
         onMoneda={setMoneda}
         onRefresh={refetch}
+        onExportVisual={summary ? handleExportVisual : undefined}
       />
 
       {/* Estados */}
@@ -94,8 +147,9 @@ export default function MetricasDesktop() {
         </div>
       ) : summary ? (
         <div
+          ref={contenidoRef}
           className={`space-y-6 transition-opacity ${
-            refreshing ? 'opacity-60' : 'opacity-100'
+            refreshing || exportando ? 'opacity-60' : 'opacity-100'
           }`}
         >
           <KpiRow summary={summary} />
@@ -106,7 +160,7 @@ export default function MetricasDesktop() {
             <PresupuestoVsRealPanel summary={summary} filtros={filtros} />
           </div>
 
-          {/* Bloque 4: panel IA + anomalías + chat contextual se inserta aquí */}
+          <IAPanel summary={summary} filtros={filtros} />
 
           <ExtrasPanel summary={summary} />
         </div>

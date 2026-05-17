@@ -24,6 +24,7 @@ import {
 } from 'recharts';
 import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Target, Plus, Bot, ArrowRight, Crown, Banknote, Star } from 'lucide-react';
 import AIInsights from './AIInsights';
+import MetricasPromoCard from './MetricasPromoCard';
 import InstallPWA from '../common/InstallPWA';
 import CuentasWidget from '../cuentas/CuentasWidget';
 import PatrimonioWidget from '../cuentas/PatrimonioWidget';
@@ -205,7 +206,10 @@ export default function Dashboard() {
 
         {/* AI Insights Component */}
         <AIInsights month={month} year={year} />
-        
+
+        {/* Promo Métricas PRO (solo no-pro) */}
+        <MetricasPromoCard />
+
         {/* PWA Install Banner */}
         <InstallPWA />
       </div>
