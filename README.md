@@ -133,8 +133,8 @@ Contratos de backend/feature en [`/docs/`](./docs/):
 - **Asistente IA:** chat con Claude, insights del dashboard cacheados.
 - **Métricas PRO:** dashboard de gráficos + análisis IA (insights, roast compartible, ilustración) — escritorio y mobile; teaser para no-pro.
 - **Consumo de IA:** tracking de tokens por usuario/aplicativo, panel admin y cuota mensual por rol (medidor en Perfil, bloqueo al 100%, aviso al 80%).
-- **OCR de boletas:** sube una foto y autocompleta el gasto.
-- **Entrada de voz:** describe el gasto verbalmente.
+- **OCR de boletas:** sube una foto y autocompleta el gasto (clasificado contra tus categorías, mismo motor IA que el bot de WhatsApp).
+- **Entrada de voz:** describe el gasto hablando; se transcribe en el servidor (Whisper) y se clasifica igual que en WhatsApp.
 - **Importación masiva:** Excel/JSON con validación + sugerencia de categorías por IA.
 - **Gastos compartidos:** grupos para gastos colectivos con settlement automático.
 - **WhatsApp Bot:** registra gastos por mensaje (Twilio).
