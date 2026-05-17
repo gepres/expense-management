@@ -143,6 +143,14 @@ export default function FormularioGasto() {
   // Estado para entrada de voz
   const { isListening, audioBlob, startListening, stopListening, resetRecording, isSupported, error: voiceError } = useVoiceInput();
   const [processingVoice, setProcessingVoice] = useState(false);
+  // Origen IA del gasto (Fase 3 learning_log): se setea al autocompletar
+  // por voz/imagen y viaja al backend al guardar para alimentar la
+  // bitácora (corrección si el usuario cambió la categoría sugerida).
+  const [iaOrigen, setIaOrigen] = useState<{
+    origenIA: 'voz' | 'imagen';
+    categoriaSugerida: string;
+    descripcionOrigen: string;
+  } | null>(null);
   const [showDetails, setShowDetails] = useState(false);
 
   // Obtener sugerencias desde ConfigContext
@@ -350,6 +358,17 @@ export default function FormularioGasto() {
       if (resultado.success && resultado.data) {
         const data = resultado.data;
 
+        // Origen IA (learning_log): `categoriaSugerida` = la categoría que
+        // el clasificador devolvió; `descripcionOrigen` = el mismo texto
+        // que el backend clasificó (descripción + comercio).
+        setIaOrigen({
+          origenIA: 'imagen',
+          categoriaSugerida: data.category ?? '',
+          descripcionOrigen: `${data.description ?? ''} ${
+            data.merchant ?? ''
+          }`.trim(),
+        });
+
         // Autocompletar formulario con los datos extraídos
         setFormData(prev => ({
           ...prev,
@@ -415,7 +434,17 @@ export default function FormularioGasto() {
       const expenseData = await VoiceService.processAudioExpense(blob);
 
       console.log('🎤 Datos recibidos de voz:', expenseData);
-      
+
+      // Origen IA (learning_log): la categoría sugerida es la que devolvió
+      // la clasificación; si el usuario la cambia antes de guardar, el
+      // backend lo registra como corrección.
+      const origenInfo = {
+        origenIA: 'voz' as const,
+        categoriaSugerida: expenseData.categoria,
+        descripcionOrigen: expenseData.descripcion,
+      };
+      setIaOrigen(origenInfo);
+
       // Autocompletar formulario si la confianza es alta
       if (expenseData.confidence > 0.6) {
         const today = new Date();
@@ -481,6 +510,8 @@ export default function FormularioGasto() {
                 descripcion: newFormData.descripcion.trim(),
                 metodoPago: newFormData.metodoPago,
                 recurrente: newFormData.recurrente || false,
+                // Origen IA (learning_log) — autoguardado por voz.
+                ...origenInfo,
               };
 
               if (newFormData.subcategoria) {
@@ -668,6 +699,9 @@ export default function FormularioGasto() {
       } else {
         // Crear nuevo gasto. El backend descuenta atómicamente del bankBalance
         // o cashBalance de la cuenta según `metodoPago`.
+        // Si vino de IA (voz/imagen), adjuntar origen para el learning_log:
+        // si el usuario cambió la categoría sugerida → corrección.
+        if (iaOrigen) Object.assign(gastoData, iaOrigen);
         await crear(gastoData);
 
         // Recordar la cuenta usada para futuros gastos del mismo "tipo" (efectivo / no-efectivo)

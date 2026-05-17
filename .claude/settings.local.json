@@ -70,7 +70,9 @@
       "Bash(git checkout *)",
       "Bash(npm i *)",
       "Bash(echo \"EXIT:$?\")",
-      "Bash(grep -nE \"\\\\| \\\\`voice\\\\`|process-audio|OpenAiTranscription|Whisper\" ../gastos-backend/CLAUDE.md)"
+      "Bash(grep -nE \"\\\\| \\\\`voice\\\\`|process-audio|OpenAiTranscription|Whisper\" ../gastos-backend/CLAUDE.md)",
+      "Bash(grep -nA8 \"learning_log\" firestore.indexes.json)",
+      "Bash(grep -nA4 \"learning_log\" firestore.rules)"
     ],
     "deny": [],
     "ask": []

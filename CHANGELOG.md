@@ -4,6 +4,30 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.8.2 (2026-05-17)
+**Release**: Homologación IA — Fase 3: `learning_log` compartido (la web también aprende)
+
+> Cierra la homologación (F1 modelos/prompts + F2 clasificador por-usuario + audio server-side + F3). La bitácora `users/{uid}/learning_log` es la **misma** colección Firestore para web y WhatsApp: una corrección hecha en cualquiera de las dos superficies mejora la otra.
+
+### Paquete compartido (`@gastos/expense-ai` v0.3.0)
+- `buildLearningLogDoc(entry)`: constructor **único** del doc `learning_log` (poda `undefined` + `tokens`, sin `createdAt`). Garantiza que web y WhatsApp escriban docs byte-compatibles. `tokenizeForLearning`/`tokenOverlap` ahora también se consumen desde el paquete en ambos repos (cero drift).
+
+### Backend (`gastos-backend`)
+- Nuevo `LearningLogService`: `queryRelevant` (misma query que WhatsApp — sin `orderBy` → índice automático, **no requiere desplegar índices**) y `append` (vía `buildLearningLogDoc`, Admin SDK, best-effort).
+- `InferenceService`: el **paso 4** del clasificador ahora lee el historial real (lo que ya aprendió WhatsApp aplica de inmediato en la web). `recordOutcome()` escribe `inference` o, si el usuario cambió la categoría sugerida, `user_correction`.
+- `POST /api/expenses` acepta opcionales `origenIA`/`categoriaSugerida`/`descripcionOrigen`; tras crear el gasto (post-commit, fire-and-forget) alimenta el `learning_log` solo si el gasto vino de voz/imagen. Creación manual = sin cambios.
+
+### Firebase Functions (`gastos-firebase-functions`)
+- `LearningLogService.append` construye el doc con `buildLearningLogDoc` del paquete (schema single-source). API y comportamiento del bot idénticos; tests verdes.
+
+### Frontend (`gastos`)
+- `FormularioGasto` recuerda la categoría sugerida por IA (voz/imagen) y la envía al guardar; si el usuario la cambió, el backend lo registra como corrección. Sin cambios de UI.
+
+### Importante
+- No requiere desplegar reglas ni índices de Firestore (read = índice automático; write = Admin SDK).
+
+---
+
 ## v2.8.1 (2026-05-17)
 **Feature/Fix**: Audio web = Whisper server-side + 2 bugs de validación
 

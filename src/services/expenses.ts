@@ -48,6 +48,10 @@ export interface CreateExpenseDto {
   igv?: number;
   subtotal?: number;
   reimbursementStatus?: string;
+  // Bitácora de aprendizaje (Fase 3) — solo si el gasto vino de IA.
+  origenIA?: 'voz' | 'imagen';
+  categoriaSugerida?: string;
+  descripcionOrigen?: string;
 }
 
 export type UpdateExpenseDto = Partial<CreateExpenseDto>;

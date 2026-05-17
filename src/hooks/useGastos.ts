@@ -30,11 +30,22 @@ import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import toast from 'react-hot-toast';
 
+/**
+ * Lo que el form envía a `crear`: un `Partial<Gasto>` + metadatos de
+ * origen IA (Fase 3 learning_log) que NO son propiedades del Gasto, solo
+ * viajan al backend para alimentar la bitácora de aprendizaje.
+ */
+export type CrearGastoInput = Partial<Gasto> & {
+  origenIA?: 'voz' | 'imagen';
+  categoriaSugerida?: string;
+  descripcionOrigen?: string;
+};
+
 interface UseGastosReturn {
   gastos: Gasto[];
   estado: Estado<Gasto[]>;
   cargarGastos: () => Promise<void>;
-  crear: (gasto: Partial<Gasto>) => Promise<Gasto | null>;
+  crear: (gasto: CrearGastoInput) => Promise<Gasto | null>;
   actualizar: (id: string, gasto: Partial<Gasto>) => Promise<void>;
   eliminar: (id: string) => Promise<void>;
   obtenerPorId: (id: string) => Promise<Gasto | null>;
@@ -47,7 +58,7 @@ interface UseGastosReturn {
  * backend espera. Hace la traducción de nombres mínima (Date → ISO string)
  * y filtra campos undefined.
  */
-function toCreateDto(gasto: Partial<Gasto>): CreateExpenseDto {
+function toCreateDto(gasto: CrearGastoInput): CreateExpenseDto {
   if (!gasto.accountId) throw new Error('accountId es requerido');
   if (gasto.monto === undefined) throw new Error('monto es requerido');
   if (!gasto.fecha) throw new Error('fecha es requerida');
@@ -77,6 +88,11 @@ function toCreateDto(gasto: Partial<Gasto>): CreateExpenseDto {
   if (gasto.igv !== undefined) dto.igv = gasto.igv;
   if (gasto.subtotal !== undefined) dto.subtotal = gasto.subtotal;
   if (gasto.reimbursementStatus) dto.reimbursementStatus = gasto.reimbursementStatus;
+  if (gasto.origenIA) {
+    dto.origenIA = gasto.origenIA;
+    if (gasto.categoriaSugerida) dto.categoriaSugerida = gasto.categoriaSugerida;
+    if (gasto.descripcionOrigen) dto.descripcionOrigen = gasto.descripcionOrigen;
+  }
   return dto;
 }
 
@@ -186,7 +202,7 @@ export function useGastos(): UseGastosReturn {
   // ==========================================================================
 
   const crear = useCallback(
-    async (gastoData: Partial<Gasto>): Promise<Gasto | null> => {
+    async (gastoData: CrearGastoInput): Promise<Gasto | null> => {
       if (!usuario) {
         toast.error('Debes iniciar sesión');
         return null;
