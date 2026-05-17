@@ -62,7 +62,10 @@
       "Bash(sed -n '700,718p' src/modules/expenses/expenses.service.ts)",
       "Bash(sed -n '300,312p' src/modules/shopping-lists/shopping-lists.service.ts)",
       "Bash(sed -n '300,350p' src/modules/import/import.service.ts)",
-      "Bash(sed -n '215,230p;295,310p' src/modules/chat/chat.service.ts)"
+      "Bash(sed -n '215,230p;295,310p' src/modules/chat/chat.service.ts)",
+      "Bash(grep -n \"constructor\\(\\\\|private readonly\\\\|AnthropicService\\\\|import {.*AnthropicService\\\\|from '../anthropic\\\\|from '../ai-usage\" src/modules/chat/chat.service.ts)",
+      "Bash([ -f \"$d/README.md\" ])",
+      "Bash(grep -n -i 'docs/\\\\|índice\\\\|index\\\\|versión\\\\|version\\\\|## \\\\|feature\\\\|módulo\\\\|modulo\\\\|analytics\\\\|métricas\\\\|metricas\\\\|ai-usage\\\\|consumo\\\\|whatsapp\\\\|CHANGELOG' __TRACKED_VAR__/README.md)"
     ],
     "deny": [],
     "ask": []

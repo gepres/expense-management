@@ -8,6 +8,7 @@ import { ContainerLoadingButton } from '../common/Button';
 import ConfirmationModal from '../common/ConfirmationModal';
 import ProBadge from '../common/ProBadge';
 import ProRequestButton from '../user/ProRequestButton';
+import ConsumoIACard from './ConsumoIACard';
 
 export default function PerfilConfig() {
   const { usuario, isAdmin, isPro } = useAuth();
@@ -119,6 +120,9 @@ export default function PerfilConfig() {
             <ProRequestButton />
           )
         }
+
+        {/* Consumo de IA del mes (cuota) */}
+        <ConsumoIACard />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">

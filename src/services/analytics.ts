@@ -44,6 +44,17 @@ export class ProRequiredError extends Error {
   }
 }
 
+/** 429 por cuota mensual de IA agotada (Fase 2). Lleva la fecha de reset. */
+export class QuotaExceededError extends Error {
+  readonly isQuotaExceeded = true;
+  readonly resetAt?: string;
+  constructor(message = 'Alcanzaste tu límite mensual de IA.', resetAt?: string) {
+    super(message);
+    this.name = 'QuotaExceededError';
+    this.resetAt = resetAt;
+  }
+}
+
 async function fetchWithAuth<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -69,6 +80,12 @@ async function fetchWithAuth<T>(
       throw new Error(errorData.message || 'Parámetros inválidos.');
     }
     if (response.status === 429) {
+      if (
+        errorData?.error === 'AiQuotaExceeded' ||
+        errorData?.error === 'AiImageQuotaExceeded'
+      ) {
+        throw new QuotaExceededError(errorData.message, errorData.resetAt);
+      }
       throw new Error('Límite de solicitudes excedido. Intenta en un minuto.');
     }
     throw new Error(errorData.message || 'Error en la petición.');

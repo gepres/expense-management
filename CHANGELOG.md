@@ -4,6 +4,29 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.7.0 (2026-05-17)
+**Release**: Consumo de tokens IA — enforcement de cuotas (Fase 2)
+
+> Multi-repo. Sigue a v2.6.0 (tracking). Decisiones: presupuesto de tokens/mes por rol (standard < pro < admin∞) + sub-límite de imágenes; bloqueo duro al 100%, aviso al 80%; todo configurable por env (`AI_QUOTA_*`).
+
+### Backend (`gastos-backend`)
+- `config/ai-quota.config.ts` (límites por rol vía env).
+- `QuotaService` (`ai-usage/quota.service.ts`): `assertWithinQuota()` lee rol + rollup mensual (O(1)) y lanza **429** (`AiQuotaExceeded` / `AiImageQuotaExceeded`, con `resetAt`) si excede. admin = ilimitado; `scope:'app'` no descuenta.
+- Enforcement antes de cada llamada `scope:'user'`: asistente (chat), métricas IA (insights/ask/roast/**imagen** con sub-límite), voz.
+- **`GET /api/ai-usage/me`** → snapshot de cuota del usuario.
+
+### Firebase Functions (`gastos-firebase-functions`)
+- `quota.service.ts` `checkQuota()` + `aiQuotaBlocked()` antes de los 3 caminos con IA del bot (imagen/audio/parse de texto por LLM). Si excede → responde por WhatsApp con la fecha de reinicio y cierra el item sin retry. Comandos/queries/regex **no** se bloquean. Best-effort: si falla la lectura, no bloquea.
+
+### Frontend (`gastos`)
+- **`ConsumoIACard`** en Configuración → Perfil: barra usado/límite/%, fecha de reinicio, verde/ámbar(aviso)/rojo(bloqueado); admin = ilimitado; sub-línea de imágenes. Lee `GET /api/ai-usage/me`.
+- 429 de cuota mapeado a `QuotaExceededError` (mensaje claro del backend con fecha de reset) en métricas y asistente — ya no muestra el genérico de throttle.
+
+### Importante
+- Define los `AI_QUOTA_*` en el `.env` de backend (y functions si querés valores propios); si no, usa los defaults del código. Ver [`docs/ai-usage.md`](./docs/ai-usage.md) §Fase 2.
+
+---
+
 ## v2.6.1 (2026-05-17)
 **Fix**: Análisis IA mobile + instrucción Sandbox WhatsApp
 

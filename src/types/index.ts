@@ -1009,5 +1009,6 @@ export type {
   AiUsageRollup,
   AiUsageUserRow,
   AiUsageSortBy,
+  QuotaSnapshot,
 } from './aiUsage';
 

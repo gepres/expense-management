@@ -72,7 +72,17 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     const errorData = await response.json().catch(() => ({}));
     
     if (response.status === 401) throw new Error('Debes iniciar sesión.');
-    if (response.status === 429) throw new Error('Límite de solicitudes excedido.');
+    if (response.status === 429) {
+      if (
+        errorData?.error === 'AiQuotaExceeded' ||
+        errorData?.error === 'AiImageQuotaExceeded'
+      ) {
+        throw new Error(
+          errorData.message || 'Alcanzaste tu límite mensual de IA.',
+        );
+      }
+      throw new Error('Límite de solicitudes excedido.');
+    }
     if (response.status === 500) throw new Error('Error del servidor.');
     
     throw new Error(errorData.message || 'Error en la petición.');

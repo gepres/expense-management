@@ -3,7 +3,7 @@
 > Documentación esencial para trabajar en el proyecto de Gestión de Gastos Personales.
 > **Para detalle extenso ver:** `docs/components.md`, `docs/testing.md`, `CHANGELOG.md`
 
-**Versión**: 2.6.1 · **Última actualización**: 2026-05-17
+**Versión**: 2.7.0 · **Última actualización**: 2026-05-17
 
 ---
 
@@ -174,6 +174,7 @@ try {
 | `services/notificaciones.ts` | List, marcar leída, marcar todas leídas, eliminar (`/api/notificaciones`). Read principal vía `onSnapshot` desde el hook |
 | `services/analytics.ts` | Métricas PRO (`/api/analytics/*`): `getSummary`, `getAiInsights`, `askAi`, `getRoast`, `exportMetricas`. `ProRequiredError` mapea el 403 → teaser |
 | `services/aiUsageAdmin.ts` | Lectura admin de consumo IA: `getAppMonthly`, `getUserMonthly`, `getTopUsers` (rollups `aiUsage*`). Solo lectura; escribe el Admin SDK del backend/functions |
+| `services/aiUsage.ts` | `getMyUsage()` → `GET /api/ai-usage/me` (snapshot de cuota del usuario, Fase 2). `analytics.ts` lanza `QuotaExceededError` en 429 de cuota |
 
 ---
 

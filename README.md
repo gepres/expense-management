@@ -114,6 +114,12 @@ Documentos clave:
 - [**README_ESTILO_PWA.md**](./markdown/README_ESTILO_PWA.md) — diseño + service worker
 - [**CLAUDE.md**](./CLAUDE.md) — especificación técnica completa (para Claude Code y futuros desarrolladores)
 
+Contratos de backend/feature en [`/docs/`](./docs/):
+
+- [**docs/ai-usage.md**](./docs/ai-usage.md) — consumo de tokens IA: modelo de datos, clasificación app/usuario, panel admin, cuotas (Fase 1+2), env vars y despliegue
+- [**docs/analytics-backend.md**](./docs/analytics-backend.md) — contrato del módulo de Métricas PRO (`/api/analytics/*`)
+- [**docs/programados-backend.md**](./docs/programados-backend.md) — contrato de gastos/transferencias programadas
+
 ---
 
 ## ✨ Features destacadas
@@ -125,6 +131,8 @@ Documentos clave:
 - **Programados:** gastos y transferencias recurrentes (diaria/semanal/quincenal/mensual/personalizada/única) que el backend ejecuta automáticamente vía cron, con manejo de saldo insuficiente y zona horaria del usuario.
 - **Tarjetas:** datos cifrados (AES-GCM 256, PBKDF2 250k iter). Botón "Copiar" para usarlas como gestor. CVC nunca se almacena.
 - **Asistente IA:** chat con Claude, insights del dashboard cacheados.
+- **Métricas PRO:** dashboard de gráficos + análisis IA (insights, roast compartible, ilustración) — escritorio y mobile; teaser para no-pro.
+- **Consumo de IA:** tracking de tokens por usuario/aplicativo, panel admin y cuota mensual por rol (medidor en Perfil, bloqueo al 100%, aviso al 80%).
 - **OCR de boletas:** sube una foto y autocompleta el gasto.
 - **Entrada de voz:** describe el gasto verbalmente.
 - **Importación masiva:** Excel/JSON con validación + sugerencia de categorías por IA.

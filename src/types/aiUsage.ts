@@ -36,3 +36,24 @@ export interface AiUsageUserRow extends AiUsageRollup {
 }
 
 export type AiUsageSortBy = 'totalTokens' | 'estimatedCostUsd';
+
+/**
+ * Snapshot de cuota del propio usuario (`GET /api/ai-usage/me`).
+ * Espejo de `QuotaService.snapshot()` del backend. `limit: null` = admin
+ * (ilimitado). `resetAt` es ISO (1° del próximo mes UTC).
+ */
+export interface QuotaSnapshot {
+  mes: string;
+  role: 'admin' | 'pro' | 'standard';
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+  pct: number;
+  warn: boolean;
+  blocked: boolean;
+  imagesUsed: number;
+  imagesLimit: number | null;
+  imagesBlocked: boolean;
+  resetAt: string;
+  warnPct: number;
+}
