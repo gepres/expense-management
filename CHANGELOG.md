@@ -4,6 +4,16 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.7.1 (2026-05-17)
+**Fix/UX**: Copiar comando WhatsApp + rediseño Métricas mobile
+
+- **WhatsApp Bot → Cómo usar**: el comando `join <código>` ahora tiene botón de **copiar** (icono, con feedback ✓).
+- **Métricas mobile · Resumen**: los KPIs pasan de carrusel horizontal (scroll) a **grid 2 columnas** — visibles de un vistazo, sin scroll.
+- **Métricas mobile · tabs**: nueva barra de tabs **icono + label, ancho parejo, sin scroll** (Resumen · Gráficos · Categorías · Rankings · Roast).
+- **Nuevo tab "Gráficos"**: se movió el **flujo de caja** (es un gráfico) ahí y se agregó un **gráfico de top categorías** (barra horizontal) para acompañarlo. Resumen queda con KPIs + análisis IA.
+
+---
+
 ## v2.7.0 (2026-05-17)
 **Release**: Consumo de tokens IA — enforcement de cuotas (Fase 2)
 

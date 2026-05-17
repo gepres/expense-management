@@ -1,10 +1,11 @@
 /**
  * Vista de Métricas en mobile — experiencia COMPLETA (uso principal).
  *
- * Patrón: filtro sticky + tabs segmentados (Resumen · Categorías · Rankings ·
- * Roast) con render diferido por tab. Reutiliza los paneles desktop ya
- * probados para consistencia. Best practices mobile: divulgación progresiva,
- * targets ≥44px, carrusel snap de KPIs, tap-para-detalle, sin hover.
+ * Tabs (icono+label, ancho parejo, sin scroll): Resumen · Gráficos ·
+ * Categorías · Rankings · Roast. Render diferido por tab. Reutiliza los
+ * paneles desktop ya probados. Best practices mobile: divulgación
+ * progresiva, targets ≥44px, KPIs en grid (visible, sin scroll),
+ * tap-para-detalle, sin hover.
  */
 
 import { useState } from 'react';
@@ -22,14 +23,28 @@ import {
   Crown,
   Flame,
   AlertTriangle,
+  LayoutGrid,
+  LineChart as LineChartIcon,
+  PieChart as PieChartIcon,
+  Trophy,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
 import { useMetricas } from '@hooks/useMetricas';
 import { useConfig } from '@context/ConfigContext';
 import { formatearMoneda, formatearPorcentaje } from '@utils/formatters';
-import { fmtFechaCorta } from '../charts/chartTheme';
+import { fmtFechaCorta, AXIS_PROPS, fmtEjeMoneda } from '../charts/chartTheme';
+import { MetricTooltip } from '../charts/MetricTooltip';
 import CustomLoader from '@components/common/CustomLoader';
 import ProBadge from '@components/common/ProBadge';
-import { SegmentedControl } from '@components/common/SegmentedControl';
 import FlujoCajaChart from '../desktop/FlujoCajaChart';
 import CategoriasPanel from '../desktop/CategoriasPanel';
 import PresupuestoVsRealPanel from '../desktop/PresupuestoVsRealPanel';
@@ -38,13 +53,21 @@ import IAPanel from '../desktop/IAPanel';
 import RoastCard from '../RoastCard';
 import type { AnalyticsSummary, Moneda } from '@app-types';
 
-type Tab = 'resumen' | 'categorias' | 'rankings' | 'roast';
+type Tab = 'resumen' | 'graficos' | 'categorias' | 'rankings' | 'roast';
+
+const TABS: { value: Tab; label: string; icon: LucideIcon }[] = [
+  { value: 'resumen', label: 'Resumen', icon: LayoutGrid },
+  { value: 'graficos', label: 'Gráficos', icon: LineChartIcon },
+  { value: 'categorias', label: 'Categorías', icon: PieChartIcon },
+  { value: 'rankings', label: 'Rankings', icon: Trophy },
+  { value: 'roast', label: 'Roast', icon: Flame },
+];
 
 // ---------------------------------------------------------------------------
-// KPI carrusel (snap horizontal, touch-friendly)
+// KPIs en grid (visible de un vistazo, sin scroll horizontal)
 // ---------------------------------------------------------------------------
 
-function KpiCarousel({ summary }: { summary: AnalyticsSummary }) {
+function KpiGrid({ summary }: { summary: AnalyticsSummary }) {
   const { getCategoryLabel } = useConfig();
   const moneda = (summary.moneda as Moneda) || 'PEN';
   const fmt = (n: number) => formatearMoneda(n, moneda);
@@ -79,13 +102,13 @@ function KpiCarousel({ summary }: { summary: AnalyticsSummary }) {
               <TrendingDown className="h-3 w-3" />
             ))}
           {subio ? '+' : ''}
-          {formatearPorcentaje(cmp.diferenciaPorcentaje)} vs mes ant.
+          {formatearPorcentaje(cmp.diferenciaPorcentaje)}
         </span>
       ),
     },
     {
       icon: CalendarRange,
-      label: 'Proyección fin de mes',
+      label: 'Proyección',
       value: fmt(summary.proyeccionFinMes),
       accent: 'text-blue-500',
       sub: (
@@ -96,12 +119,12 @@ function KpiCarousel({ summary }: { summary: AnalyticsSummary }) {
     },
     {
       icon: TrendingDown,
-      label: 'Promedio diario',
+      label: 'Prom. diario',
       value: fmt(totales.promedioDiario),
       accent: 'text-emerald-500',
       sub: (
         <span className="text-muted-foreground">
-          {totales.diasConGasto} días con gasto
+          {totales.diasConGasto} días
         </span>
       ),
     },
@@ -139,26 +162,87 @@ function KpiCarousel({ summary }: { summary: AnalyticsSummary }) {
   ];
 
   return (
-    <div className="-mx-4 px-4 overflow-x-auto snap-x snap-mandatory flex gap-3 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <div className="grid grid-cols-2 gap-3">
       {items.map((it) => (
         <div
           key={it.label}
-          className="snap-start shrink-0 w-[62%] max-w-[230px] bg-card border border-border rounded-xl p-4 shadow-sm"
+          className="bg-card border border-border rounded-xl p-3 shadow-sm"
         >
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 bg-muted rounded-lg">
-              <it.icon className={`h-4 w-4 ${it.accent}`} />
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="p-1 bg-muted rounded-md">
+              <it.icon className={`h-3.5 w-3.5 ${it.accent}`} />
             </div>
-            <p className="text-[11px] font-medium text-muted-foreground truncate">
+            <p className="text-[10px] font-medium text-muted-foreground truncate">
               {it.label}
             </p>
           </div>
-          <p className="text-xl font-bold text-foreground tracking-tight truncate">
+          <p className="text-base font-bold text-foreground tracking-tight truncate">
             {it.value}
           </p>
-          {it.sub && <div className="mt-1 text-[11px]">{it.sub}</div>}
+          {it.sub && <div className="mt-0.5 text-[10px]">{it.sub}</div>}
         </div>
       ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Gráfico que acompaña al flujo de caja: top categorías (barra horizontal)
+// ---------------------------------------------------------------------------
+
+function TopCategoriasChart({ summary }: { summary: AnalyticsSummary }) {
+  const { getCategoryLabel, getCategoryColor } = useConfig();
+  const moneda = summary.moneda;
+  const data = summary.porCategoria
+    .filter((c) => c.total > 0)
+    .slice(0, 6)
+    .map((c) => ({
+      name: getCategoryLabel(c.categoria),
+      value: c.total,
+      color: getCategoryColor(c.categoria),
+    }));
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-5 shadow-sm">
+      <h3 className="text-sm font-bold text-foreground mb-4">
+        Top categorías
+      </h3>
+      {data.length > 0 ? (
+        <div className="h-[220px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              layout="vertical"
+              data={data}
+              margin={{ top: 0, right: 10, left: 6, bottom: 0 }}
+            >
+              <XAxis
+                type="number"
+                {...AXIS_PROPS}
+                tickFormatter={(v) => fmtEjeMoneda(Number(v), moneda)}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                {...AXIS_PROPS}
+                width={84}
+              />
+              <Tooltip
+                cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
+                content={<MetricTooltip moneda={moneda} />}
+              />
+              <Bar dataKey="value" name="Total" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                {data.map((d) => (
+                  <Cell key={d.name} fill={d.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground h-[220px] flex items-center justify-center">
+          Sin datos de categorías
+        </p>
+      )}
     </div>
   );
 }
@@ -257,18 +341,33 @@ export default function MetricasMobile() {
           </div>
         </div>
 
-        <SegmentedControl
-          size="sm"
-          fullWidth
-          value={tab}
-          onChange={(v) => setTab(v as Tab)}
-          options={[
-            { value: 'resumen', label: 'Resumen' },
-            { value: 'categorias', label: 'Categorías' },
-            { value: 'rankings', label: 'Rankings' },
-            { value: 'roast', label: '🔥 Roast' },
-          ]}
-        />
+        {/* Tab bar mobile: icono + label, ancho parejo, sin scroll */}
+        <div
+          role="tablist"
+          className="flex gap-1 bg-muted/40 rounded-xl p-1"
+        >
+          {TABS.map((t) => {
+            const activo = tab === t.value;
+            return (
+              <button
+                key={t.value}
+                role="tab"
+                aria-selected={activo}
+                onClick={() => setTab(t.value)}
+                className={`flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg text-[10px] font-medium transition-colors ${
+                  activo
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <t.icon
+                  className={`h-4 w-4 ${activo ? 'text-indigo-500' : ''}`}
+                />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="pt-4">
@@ -298,12 +397,18 @@ export default function MetricasMobile() {
           <div className="space-y-4">
             {tab === 'resumen' && (
               <>
-                <KpiCarousel summary={summary} />
-                <FlujoCajaChart summary={summary} />
+                <KpiGrid summary={summary} />
                 {/* Análisis IA completo (mismo panel que escritorio:
                     resumen, recomendaciones, observaciones, anomalías,
                     selector de foco y mini-chat contextual). */}
                 <IAPanel summary={summary} filtros={filtros} />
+              </>
+            )}
+
+            {tab === 'graficos' && (
+              <>
+                <FlujoCajaChart summary={summary} />
+                <TopCategoriasChart summary={summary} />
               </>
             )}
 

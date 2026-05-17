@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@context/AuthContext';
-import { MessageCircle, Link2, Unlink, Info, Check, X, Loader2, ChevronDown, ChevronUp, ExternalLink, CheckCircle2, AlertTriangle, Crown } from 'lucide-react';
+import { MessageCircle, Link2, Unlink, Info, Check, X, Loader2, ChevronDown, ChevronUp, ExternalLink, CheckCircle2, AlertTriangle, Crown, Copy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Button from '@components/common/Button';
@@ -14,6 +14,18 @@ export default function WhatsAppConfig() {
   const [loading, setLoading] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
+  const [joinCopiado, setJoinCopiado] = useState(false);
+
+  const copiarJoin = async () => {
+    try {
+      await navigator.clipboard.writeText(joinComando);
+      setJoinCopiado(true);
+      toast.success('Comando copiado');
+      setTimeout(() => setJoinCopiado(false), 1800);
+    } catch {
+      toast.error('No se pudo copiar');
+    }
+  };
 
   const isLinked = !!usuario?.whatsappPhone;
 
@@ -322,8 +334,23 @@ export default function WhatsAppConfig() {
                 </span>
                 :
               </p>
-              <div className="bg-background p-3 rounded-lg font-mono text-xs">
-                {joinComando}
+              <div className="bg-background rounded-lg flex items-center gap-2 pl-3 pr-1 py-1">
+                <code className="font-mono text-xs flex-1 break-all">
+                  {joinComando}
+                </code>
+                <button
+                  type="button"
+                  onClick={copiarJoin}
+                  className="p-2 rounded-md hover:bg-accent text-muted-foreground transition-colors flex-shrink-0"
+                  title="Copiar comando"
+                  aria-label="Copiar comando"
+                >
+                  {joinCopiado ? (
+                    <Check className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </button>
               </div>
               <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80 mt-2">
                 El código exacto lo muestra Twilio en{' '}
