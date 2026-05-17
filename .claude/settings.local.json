@@ -46,7 +46,10 @@
       "Bash(xargs ls)",
       "Read(//d/d/PROYECTOS/gepres/gastos/src/**)",
       "Read(//d/d/PROYECTOS/gepres/gastos/src/utils/**)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(sed -n '20,60p' src/components/common/Button.tsx)",
+      "Bash(sed -n '4,32p' src/components/common/SegmentedControl.tsx)",
+      "Bash(npx eslint *)"
     ],
     "deny": [],
     "ask": []
