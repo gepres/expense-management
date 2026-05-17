@@ -4,6 +4,19 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.5.4 (2026-05-17)
+**Release**: Métricas mobile = experiencia completa (uso principal)
+
+- Rediseño de `MetricasMobile`: mobile deja de ser "no invasivo". Patrón **tabs segmentados** (Resumen · Categorías · Rankings · Roast) con filtro **sticky** (periodo + refresh + ProBadge) y render **diferido por tab** (performance + control de costo IA).
+- **Resumen**: carrusel snap de KPIs + flujo de caja + resumen IA (texto).
+- **Categorías**: donut con drilldown + tendencias + presupuesto vs real.
+- **Rankings**: método de pago, top etiquetas, top gastos + lista de gastos inusuales (2σ).
+- **Roast**: `RoastCard` completo (incluye ilustración IA).
+- Reutiliza los paneles desktop ya probados (consistencia desktop↔mobile, menos código/riesgo). Eliminado el banner "ver en escritorio". **Desktop sin cambios.**
+- Best practices aplicadas: divulgación progresiva, targets ≥44px, sin hover, scroll-snap, skeleton de carga, tabs para no abrumar.
+
+---
+
 ## v2.5.3 (2026-05-16)
 **Release**: Badge PRO homologado
 

@@ -143,19 +143,22 @@ export default function RoastCard({
 
   return (
     <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <div>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-            <Flame className="h-5 w-5 text-orange-500" />
+            <Flame className="h-5 w-5 text-orange-500 flex-shrink-0" />
             Roast de tu mes
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
             Tus gastos, pero con humor. Generá la tarjeta y compártela 😈
           </p>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           <SegmentedControl
             size="sm"
+            fullWidth
+            className="sm:w-auto"
             value={tono}
             onChange={(v) => setTono(v as 'suave' | 'picante')}
             options={[
@@ -163,35 +166,37 @@ export default function RoastCard({
               { value: 'picante', label: 'Picante' },
             ]}
           />
-          <button
-            onClick={() => void generar()}
-            disabled={loading || !enabled}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-pink-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : roast ? (
-              <RefreshCw className="h-4 w-4" />
-            ) : (
-              <Flame className="h-4 w-4" />
-            )}
-            {roast ? 'Otra' : 'Generar mi roast'}
-          </button>
-          {aiImageEnabled && (
+          <div className="flex gap-2">
             <button
-              onClick={() => void generarImagen()}
-              disabled={loadingImagen || !enabled}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-400 text-purple-600 dark:text-purple-300 text-sm font-semibold hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50"
-              title="Genera una ilustración con IA (OpenAI)"
+              onClick={() => void generar()}
+              disabled={loading || !enabled}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg bg-gradient-to-r from-orange-500 to-pink-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {loadingImagen ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+              ) : roast ? (
+                <RefreshCw className="h-4 w-4 flex-shrink-0" />
               ) : (
-                <Sparkles className="h-4 w-4" />
+                <Flame className="h-4 w-4 flex-shrink-0" />
               )}
-              Ilustración IA
+              {roast ? 'Otra' : 'Generar mi roast'}
             </button>
-          )}
+            {aiImageEnabled && (
+              <button
+                onClick={() => void generarImagen()}
+                disabled={loadingImagen || !enabled}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border border-purple-400 text-purple-600 dark:text-purple-300 text-sm font-semibold hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors disabled:opacity-50"
+                title="Genera una ilustración con IA (OpenAI)"
+              >
+                {loadingImagen ? (
+                  <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+                ) : (
+                  <Sparkles className="h-4 w-4 flex-shrink-0" />
+                )}
+                Ilustración IA
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

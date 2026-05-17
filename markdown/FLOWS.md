@@ -213,7 +213,7 @@ pesado vive server-side (módulo `analytics`, **PRO-gated** con `ProGuard`).
 | Vista | Componente | Datos | Path |
 |---|---|---|---|
 | **Desktop** | `MetricasDesktop` (Filtros, KPIs, FlujoCaja, Categorías, PresupuestoVsReal, IAPanel, Extras) | `AnalyticsSummary` + `MetricsAiResult` | **API** `GET /api/analytics/summary` · `POST /ai-insights` · `POST /ai-ask` · `GET /export` |
-| **Mobile** | `MetricasMobile` | idem (no invasivo, solo resumen) | misma API; reusa caché del desktop |
+| **Mobile** | `MetricasMobile` (experiencia completa: tabs Resumen·Categorías·Rankings·Roast, filtro sticky, reusa paneles desktop) | idem | misma API; reusa caché del desktop |
 | **No-pro** | `MetricasTeaser` | — | No llama backend; CTA `ProRequestButton` |
 
 - Gating en `MetricasPage`: no-pro→Teaser · pro+mobile→Mobile · pro+desktop→Desktop.
