@@ -65,7 +65,10 @@
       "Bash(sed -n '215,230p;295,310p' src/modules/chat/chat.service.ts)",
       "Bash(grep -n \"constructor\\(\\\\|private readonly\\\\|AnthropicService\\\\|import {.*AnthropicService\\\\|from '../anthropic\\\\|from '../ai-usage\" src/modules/chat/chat.service.ts)",
       "Bash([ -f \"$d/README.md\" ])",
-      "Bash(grep -n -i 'docs/\\\\|índice\\\\|index\\\\|versión\\\\|version\\\\|## \\\\|feature\\\\|módulo\\\\|modulo\\\\|analytics\\\\|métricas\\\\|metricas\\\\|ai-usage\\\\|consumo\\\\|whatsapp\\\\|CHANGELOG' __TRACKED_VAR__/README.md)"
+      "Bash(grep -n -i 'docs/\\\\|índice\\\\|index\\\\|versión\\\\|version\\\\|## \\\\|feature\\\\|módulo\\\\|modulo\\\\|analytics\\\\|métricas\\\\|metricas\\\\|ai-usage\\\\|consumo\\\\|whatsapp\\\\|CHANGELOG' __TRACKED_VAR__/README.md)",
+      "Bash(npm test *)",
+      "Bash(git checkout *)",
+      "Bash(npm i *)"
     ],
     "deny": [],
     "ask": []

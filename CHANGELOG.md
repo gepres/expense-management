@@ -4,6 +4,31 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.8.0 (2026-05-17)
+**Release**: Homologación IA imagen/voz — paquete compartido + clasificación por-usuario
+
+> Multi-repo. Unifica la lógica de extracción y clasificación de gastos entre el web app (`gastos-backend`) y el bot de WhatsApp (`gastos-firebase-functions`): un cambio se hace en **un solo lugar** y se propaga a ambos. No cambia código del frontend; sí mejora lo que devuelven recibos y voz.
+
+### Paquete compartido (`@gastos/expense-ai`, nuevo repo `D:\PROYECTOS\gepres\gastos-expense-ai`)
+- TS **puro** (sin IO), vendoreado en ambos repos como `.tgz` (`npm run sync`).
+- **Fase 1**: config de modelos por tier (env-driven, arregla la deprecación de `claude-sonnet-4-20250514` → `claude-sonnet-4-6`), prompts de extracción **fusionados** (recibo + voz/texto) y parsers al esquema canónico ES.
+- **Fase 2**: el **ranking de clasificación** (orden estricto: `suggestions_ideas` → subcategoría → categoría → historial → LLM acotado → `sin_clasificar`), `resolvePaymentMethod`, `resolveCurrency`, `inferVoucherType` y utilidades de texto (`phraseMatches` por palabra completa, no substring). Cada repo inyecta sus accesos a datos vía `ClassifyDeps`.
+
+### Backend (`gastos-backend`)
+- `AnthropicService` usa los prompts/parsers/modelos del paquete (`extractReceiptData`, `extractExpenseFromText`) + nuevo `classifyAgainstTaxonomy` (tier helper).
+- Nuevo `InferenceService` (módulo `inference`): clasifica contra la **taxonomía del usuario** con el mismo motor que WhatsApp (historial `learning_log` queda para Fase 3).
+- **Voz** (`POST /api/voice/process-expense`): `categoria`/`subcategoria`/`metodoPago` ahora se refinan contra tus categorías/métodos (antes era crudo del LLM). `sin_clasificar` conserva el hint del LLM (nunca peor que antes).
+- **Recibos** (`POST /api/receipts/scan`): **pasa a requerir token Firebase**; reemplaza el matcher estático por la taxonomía del usuario; `data.category` ahora es el **id de categoría del usuario**. El OCR de recibos cuenta en la cuota IA del usuario (`scope:user`).
+
+### Firebase Functions (`gastos-firebase-functions`)
+- `config/models.ts` e `InferenceService` pasan a ser **adapters delgados** del paquete. Comportamiento del bot idéntico; los tests siguen verdes.
+
+### Importante
+- El frontend ya envía el token Firebase app-wide, así que el cambio de auth en `/receipts/scan` es transparente para la UI.
+- Para editar prompts/modelos/clasificación: editar **solo** `gastos-expense-ai`, `npm test`, `npm run sync`, `npm i` en cada repo. Detalle en su `README.md`.
+
+---
+
 ## v2.7.1 (2026-05-17)
 **Fix/UX**: Copiar comando WhatsApp + rediseño Métricas mobile
 

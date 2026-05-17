@@ -3,7 +3,7 @@
 > Documentación esencial para trabajar en el proyecto de Gestión de Gastos Personales.
 > **Para detalle extenso ver:** `docs/components.md`, `docs/testing.md`, `CHANGELOG.md`
 
-**Versión**: 2.7.1 · **Última actualización**: 2026-05-17
+**Versión**: 2.8.0 · **Última actualización**: 2026-05-17
 
 ---
 

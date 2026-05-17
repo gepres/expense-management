@@ -433,12 +433,5 @@
       "icono": "🇺🇸",
       "codigoISO": "USD"
     }
-  ],
-  "categoriaEspecial": {
-    "id": "general",
-    "nombre": "Presupuesto General",
-    "icono": "💰",
-    "color": "#5d6672",
-    "descripcion": "Presupuesto general del mes (ingresos)"
-  }
+  ]
 }
