@@ -1000,3 +1000,14 @@ export type {
   MetricsRoastImage,
 } from './metricas';
 
+// ============================================================================
+// Consumo IA (Fase 1: tracking — panel admin)
+// ============================================================================
+
+export type {
+  AiUsageBucketStat,
+  AiUsageRollup,
+  AiUsageUserRow,
+  AiUsageSortBy,
+} from './aiUsage';
+

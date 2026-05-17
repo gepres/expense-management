@@ -299,6 +299,33 @@ service cloud.firestore {
     }
 
     // ========================================================================
+    // AI USAGE — consumo de tokens IA (Fase 1: tracking).
+    // Solo el backend / Cloud Functions (Admin SDK) escribe. El cliente
+    // NUNCA escribe: el rollup alimenta la cuota (Fase 2) y un write del
+    // dueño permitiría manipularla. Por eso vive top-level (no como
+    // subcolección de users/, cuya regla recursiva daría write al dueño).
+    // ========================================================================
+
+    // Eventos de auditoría (1 por llamada IA). Solo admin lee.
+    match /aiUsageEvents/{eventId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Rollup mensual por usuario (doc id = `{uid}_{YYYY-MM}`, campo userId).
+    // El dueño lee lo suyo; admin lee todo. Cliente nunca escribe.
+    match /aiUsageMonthly/{docId} {
+      allow read: if ownsResource() || isAdmin();
+      allow write: if false;
+    }
+
+    // Rollup mensual del aplicativo (consumo autogenerado). Solo admin.
+    match /aiUsageAppMonthly/{mes} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ========================================================================
     // WHATSAPP QUEUE — solo Cloud Functions (Twilio webhook)
     // Ningún cliente debe leer ni escribir
     // ========================================================================

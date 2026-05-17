@@ -58,7 +58,11 @@
       "Read(//tmp/**)",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" -X POST http://localhost:3000/api/analytics/ai-image -H \"Content-Type: application/json\" -d '{\"month\":5,\"year\":2026}')",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost:3000/api/analytics/summary?month=5&year=2026\")",
-      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" -X POST http://localhost:3000/api/analytics/no-existe)"
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" -X POST http://localhost:3000/api/analytics/no-existe)",
+      "Bash(sed -n '700,718p' src/modules/expenses/expenses.service.ts)",
+      "Bash(sed -n '300,312p' src/modules/shopping-lists/shopping-lists.service.ts)",
+      "Bash(sed -n '300,350p' src/modules/import/import.service.ts)",
+      "Bash(sed -n '215,230p;295,310p' src/modules/chat/chat.service.ts)"
     ],
     "deny": [],
     "ask": []

@@ -20,7 +20,14 @@ export default function WhatsAppConfig() {
   // Obtener número de WhatsApp de Twilio desde variables de entorno
   const twilioWhatsAppNumber = import.meta.env.VITE_TWILIO_WHATSAPP_NUMBER || '';
 
-  console.log('twilioWhatsAppNumber', twilioWhatsAppNumber);
+  // Palabra clave del Sandbox de Twilio (la que Twilio muestra en
+  // Messaging → Try it out → WhatsApp Sandbox). Configurable por env;
+  // si no está, se instruye genéricamente.
+  const sandboxKeyword = import.meta.env.VITE_TWILIO_SANDBOX_KEYWORD || '';
+  const joinComando = sandboxKeyword
+    ? `join ${sandboxKeyword}`
+    : 'join <código que te muestra Twilio>';
+
   // Extraer solo el número (remover 'whatsapp:' si existe)
   const whatsappNumber = twilioWhatsAppNumber.replace('whatsapp:', '');
   // Crear link de WhatsApp
@@ -304,6 +311,27 @@ export default function WhatsAppConfig() {
 
         {showInstructions && (
           <div className="mt-4 space-y-4 text-sm">
+            <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3">
+              <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-1">
+                📲 Paso 1: Conéctate al bot (solo la primera vez)
+              </h4>
+              <p className="text-xs text-amber-800/90 dark:text-amber-200/90 mb-2">
+                Desde tu WhatsApp, envía este mensaje al número{' '}
+                <span className="font-mono">
+                  {whatsappNumber || '(número de Twilio)'}
+                </span>
+                :
+              </p>
+              <div className="bg-background p-3 rounded-lg font-mono text-xs">
+                {joinComando}
+              </div>
+              <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80 mt-2">
+                El código exacto lo muestra Twilio en{' '}
+                <em>Messaging → Try it out → WhatsApp Sandbox</em>. Sin este
+                paso, el bot no recibirá tus mensajes.
+              </p>
+            </div>
+
             <div>
               <h4 className="font-medium text-foreground mb-2">📝 Registrar un gasto</h4>
               <div className="bg-background p-3 rounded-lg font-mono text-xs space-y-1">

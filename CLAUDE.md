@@ -3,7 +3,7 @@
 > Documentación esencial para trabajar en el proyecto de Gestión de Gastos Personales.
 > **Para detalle extenso ver:** `docs/components.md`, `docs/testing.md`, `CHANGELOG.md`
 
-**Versión**: 2.5.4 · **Última actualización**: 2026-05-17
+**Versión**: 2.6.1 · **Última actualización**: 2026-05-17
 
 ---
 
@@ -173,6 +173,7 @@ try {
 | `services/transferencias-programadas.ts` | CRUD + pause/resume + `findEjecuciones` de transferencias (`/api/programados/transferencias`). Soporta cross-currency (`monedaDestino`, `exchangeRate`, `usarTasaActual`) |
 | `services/notificaciones.ts` | List, marcar leída, marcar todas leídas, eliminar (`/api/notificaciones`). Read principal vía `onSnapshot` desde el hook |
 | `services/analytics.ts` | Métricas PRO (`/api/analytics/*`): `getSummary`, `getAiInsights`, `askAi`, `getRoast`, `exportMetricas`. `ProRequiredError` mapea el 403 → teaser |
+| `services/aiUsageAdmin.ts` | Lectura admin de consumo IA: `getAppMonthly`, `getUserMonthly`, `getTopUsers` (rollups `aiUsage*`). Solo lectura; escribe el Admin SDK del backend/functions |
 
 ---
 
@@ -335,6 +336,7 @@ npm run generate:icons / clean / reinstall
 - [`docs/testing.md`](./docs/testing.md) — Vitest setup, Playwright config, ejemplos
 - [`docs/programados-backend.md`](./docs/programados-backend.md) — contrato backend completo de programados: endpoints, modelo Firestore, cron en local + prod (GH Actions), idempotencia, notificaciones, auditoría, cross-currency
 - [`docs/analytics-backend.md`](./docs/analytics-backend.md) — contrato backend del módulo de Métricas PRO: endpoints `/api/analytics/*`, ProGuard, modelos IA por env, control de costo
+- [`docs/ai-usage.md`](./docs/ai-usage.md) — consumo de tokens IA: modelo de datos multi-repo, clasificación app/user, panel admin, y flujo recomendado de cuotas (Fase 2)
 - [`markdown/FLOWS.md`](./markdown/FLOWS.md) — mapa de módulos y dónde "vive" cada operación (API vs Firestore directo)
 
 ---

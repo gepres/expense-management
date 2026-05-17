@@ -21,11 +21,9 @@ import {
   Receipt,
   Crown,
   Flame,
-  Sparkles,
   AlertTriangle,
 } from 'lucide-react';
 import { useMetricas } from '@hooks/useMetricas';
-import { useMetricasIA } from '@hooks/useMetricasIA';
 import { useConfig } from '@context/ConfigContext';
 import { formatearMoneda, formatearPorcentaje } from '@utils/formatters';
 import { fmtFechaCorta } from '../charts/chartTheme';
@@ -36,6 +34,7 @@ import FlujoCajaChart from '../desktop/FlujoCajaChart';
 import CategoriasPanel from '../desktop/CategoriasPanel';
 import PresupuestoVsRealPanel from '../desktop/PresupuestoVsRealPanel';
 import ExtrasPanel from '../desktop/ExtrasPanel';
+import IAPanel from '../desktop/IAPanel';
 import RoastCard from '../RoastCard';
 import type { AnalyticsSummary, Moneda } from '@app-types';
 
@@ -208,11 +207,6 @@ export default function MetricasMobile() {
   const [tab, setTab] = useState<Tab>('resumen');
 
   const enabled = (summary?.totales.numTransacciones ?? 0) > 0;
-  const { insights } = useMetricasIA(
-    filtros,
-    undefined,
-    enabled && tab === 'resumen',
-  );
 
   const irMes = (delta: number) => {
     const d = new Date(filtros.year, filtros.month - 1 + delta, 1);
@@ -306,30 +300,10 @@ export default function MetricasMobile() {
               <>
                 <KpiCarousel summary={summary} />
                 <FlujoCajaChart summary={summary} />
-                {insights?.resumen && (
-                  <div className="rounded-xl p-[1px] bg-gradient-to-r from-indigo-600 to-purple-600">
-                    <div className="bg-card rounded-[11px] p-4">
-                      <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2 flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Resumen IA
-                      </p>
-                      <p className="text-sm text-foreground leading-relaxed">
-                        {insights.resumen}
-                      </p>
-                      {insights.recomendaciones.slice(0, 2).map((r, i) => (
-                        <p
-                          key={i}
-                          className="text-sm text-muted-foreground mt-2 flex gap-2"
-                        >
-                          <span className="text-amber-500 font-bold">
-                            {i + 1}.
-                          </span>
-                          {r}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* Análisis IA completo (mismo panel que escritorio:
+                    resumen, recomendaciones, observaciones, anomalías,
+                    selector de foco y mini-chat contextual). */}
+                <IAPanel summary={summary} filtros={filtros} />
               </>
             )}
 

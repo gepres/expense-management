@@ -225,6 +225,39 @@
         { "fieldPath": "userId", "order": "ASCENDING" },
         { "fieldPath": "amountFlagged", "order": "ASCENDING" }
       ]
+    },
+
+    {
+      "collectionGroup": "aiUsageMonthly",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "mes", "order": "ASCENDING" },
+        { "fieldPath": "totalTokens", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "aiUsageMonthly",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "mes", "order": "ASCENDING" },
+        { "fieldPath": "estimatedCostUsd", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "aiUsageEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "mes", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "aiUsageEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

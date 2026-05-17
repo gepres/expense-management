@@ -4,6 +4,43 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.6.1 (2026-05-17)
+**Fix**: Análisis IA mobile + instrucción Sandbox WhatsApp
+
+- **Métricas mobile**: el tab Resumen ahora renderiza el `IAPanel` completo (igual que escritorio: resumen, recomendaciones, observaciones, anomalías IA + outliers 2σ, selector de foco y mini-chat contextual). Antes solo mostraba un resumen de texto recortado.
+- **WhatsApp Bot → Cómo usar**: nuevo "Paso 1: Conéctate al bot" con el comando `join <código>` al número del Sandbox de Twilio (faltaba; sin ese paso el bot no recibe mensajes). Código configurable por `VITE_TWILIO_SANDBOX_KEYWORD` (fallback a instrucción genérica).
+
+---
+
+## v2.6.0 (2026-05-17)
+**Release**: Consumo de tokens IA — tracking multi-repo + Panel Admin (Fase 1)
+
+> Feature multi-repo (`gastos`, `gastos-backend`, `gastos-firebase-functions`). **Fase 1 = tracking + visualización**; el enforcement de cuotas es Fase 2 (pendiente de confirmación).
+
+### Modelo de datos (Firestore, top-level, solo Admin SDK escribe)
+- `aiUsageEvents/{id}` — auditoría, 1 por llamada IA.
+- `aiUsageMonthly/{uid}_{YYYY-MM}` — rollup incremental por usuario (campo `userId`). **Top-level** a propósito: una subcolección de `users/` heredaría `write` del dueño y permitiría manipular su cuota.
+- `aiUsageAppMonthly/{YYYY-MM}` — rollup del consumo autogenerado del aplicativo.
+
+### Backend (`gastos-backend`)
+- Módulo global `ai-usage` (`UsageService.record()` best-effort, nunca rompe el flujo IA). `config/ai-pricing.config.ts` (tarifas por env).
+- `AnthropicService`/`OpenAiImageService` capturan `response.usage` y reciben `usageCtx{userId,scope,feature}` por call site.
+- Clasificación `scope`: `user` (asistente, métricas IA, voz) cuenta para cuota Fase 2; `app` (autocategorize, import, etc.) solo se registra.
+
+### Firebase Functions (`gastos-firebase-functions`)
+- `recordUsage()` gemelo (mismo esquema, `repo:"functions"`). Captura `usage` de Anthropic y costo estimado de Whisper. Todo el bot WhatsApp = `scope:"user"` (uid vía `findByWhatsAppPhone`).
+
+### Frontend (`gastos`)
+- **Firestore rules + indexes** para las 3 colecciones (admin read; cliente sin write; dueño lee su rollup).
+- **Panel de Administración rediseñado** con tabs: **Solicitudes PRO** · **Cuentas PRO** (rol, email, WhatsApp vinculado + número + fecha, consumo IA del mes, revocar PRO) · **Consumo IA** (app vs usuarios, top usuarios, desglose por feature/proveedor, navegación por mes).
+- `authService`: `getProUsers`, `grantProRole`, `revokeProRole`, `getUsersByIds`. Servicio `services/aiUsageAdmin.ts`.
+
+### Importante
+- El tracking funciona vía Admin SDK (ignora rules). El **panel admin requiere** `firebase deploy --only firestore` (rules+indexes) — acción del usuario.
+- Sin enforcement de cuotas aún (Fase 2). Ver [`docs/ai-usage.md`](./docs/ai-usage.md).
+
+---
+
 ## v2.5.4 (2026-05-17)
 **Release**: Métricas mobile = experiencia completa (uso principal)
 

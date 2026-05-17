@@ -559,14 +559,87 @@ export const authService = {
         collection(db, 'users'),
         where('proRequestStatus', '==', 'pending')
       );
-      
+
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => 
+      return querySnapshot.docs.map(doc =>
         firestoreToUsuario(doc.id, doc.data() as UsuarioFirestore)
       );
     } catch (error) {
       throw new Error(obtenerMensajeError(error));
     }
+  },
+
+  /**
+   * Listar cuentas PRO/admin (Admin). Para el panel de gestión.
+   */
+  async getProUsers(): Promise<Usuario[]> {
+    try {
+      const q = query(
+        collection(db, 'users'),
+        where('role', 'in', ['pro', 'admin'])
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map((d) =>
+        firestoreToUsuario(d.id, d.data() as UsuarioFirestore)
+      );
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
+
+  /**
+   * Otorgar PRO directamente (Admin) — sin pasar por solicitud.
+   */
+  async grantProRole(userId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        role: 'pro',
+        proRequestStatus: 'approved',
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
+
+  /**
+   * Revocar PRO (Admin) — vuelve a 'standard'. No aplica a admins.
+   */
+  async revokeProRole(userId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        role: 'standard',
+        proRequestStatus: 'none',
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
+
+  /**
+   * Resolver nombre/email de varios usuarios por ID (Admin). Best-effort:
+   * los IDs no encontrados se omiten. Para mostrar nombres en el top de
+   * consumo IA (algunos usuarios no son PRO).
+   */
+  async getUsersByIds(ids: string[]): Promise<Record<string, Usuario>> {
+    const out: Record<string, Usuario> = {};
+    await Promise.all(
+      ids.map(async (id) => {
+        try {
+          const snap = await getDoc(doc(db, 'users', id));
+          if (snap.exists()) {
+            out[id] = firestoreToUsuario(
+              id,
+              snap.data() as UsuarioFirestore
+            );
+          }
+        } catch {
+          /* best-effort */
+        }
+      })
+    );
+    return out;
   },
 };
 
