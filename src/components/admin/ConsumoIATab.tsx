@@ -153,43 +153,44 @@ export default function ConsumoIATab() {
     setLoading(true);
     setError(null);
     setTopError(null);
-
-    // 1) App rollup: lectura de UN doc, no necesita índice. Si esto falla
-    //    es un problema real (rules sin desplegar / permisos).
     try {
-      setApp(await AiUsageAdminService.getAppMonthly(mes));
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : '';
-      setError(
-        /permission|insufficient/i.test(msg)
-          ? 'Sin permiso para leer el consumo IA. Despliega las reglas Firestore (firebase deploy --only firestore:rules).'
-          : `No se pudo cargar el consumo del aplicativo: ${msg}`,
-      );
-    }
+      // 1) App rollup: lectura de UN doc, no necesita índice. Si esto
+      //    falla es un problema real (rules sin desplegar / permisos).
+      try {
+        setApp(await AiUsageAdminService.getAppMonthly(mes));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : '';
+        setError(
+          /permission|insufficient/i.test(msg)
+            ? 'Sin permiso para leer el consumo IA. Despliega las reglas Firestore (firebase deploy --only firestore:rules).'
+            : `No se pudo cargar el consumo del aplicativo: ${msg}`,
+        );
+      }
 
-    // 2) Top usuarios: requiere índice compuesto. Si está construyéndose,
-    //    NO tumbamos toda la pestaña — mostramos la parte del aplicativo.
-    try {
-      const top = await AiUsageAdminService.getTopUsers(
-        mes,
-        TOP_FETCH,
-        sortBy,
-      );
-      setTopUsers(top);
-      const ids = top.slice(0, TOP_SHOW).map((r) => r.userId);
-      setNames(ids.length ? await authService.getUsersByIds(ids) : {});
-    } catch (err) {
-      setTopUsers([]);
-      setNames({});
-      const msg = err instanceof Error ? err.message : '';
-      setTopError(
-        /index is currently building|requires an index/i.test(msg)
-          ? 'El índice de Firestore aún se está construyendo. Vuelve en unos minutos (Firebase Console → Firestore → Indexes).'
-          : `No se pudo cargar el top de usuarios: ${msg}`,
-      );
+      // 2) Top usuarios: requiere índice compuesto. Si está
+      //    construyéndose, NO tumbamos toda la pestaña.
+      try {
+        const top = await AiUsageAdminService.getTopUsers(
+          mes,
+          TOP_FETCH,
+          sortBy,
+        );
+        setTopUsers(top);
+        const ids = top.slice(0, TOP_SHOW).map((r) => r.userId);
+        setNames(ids.length ? await authService.getUsersByIds(ids) : {});
+      } catch (err) {
+        setTopUsers([]);
+        setNames({});
+        const msg = err instanceof Error ? err.message : '';
+        setTopError(
+          /index is currently building|requires an index/i.test(msg)
+            ? 'El índice de Firestore aún se está construyendo. Vuelve en unos minutos (Firebase Console → Firestore → Indexes).'
+            : `No se pudo cargar el top de usuarios: ${msg}`,
+        );
+      }
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }, [mes, sortBy]);
 
   useEffect(() => {
