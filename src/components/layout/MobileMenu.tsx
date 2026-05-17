@@ -16,6 +16,7 @@ import {
   Crown,
   CreditCard,
   Repeat,
+  LineChart,
 } from 'lucide-react';
 
 interface MobileMenuProps {
@@ -90,6 +91,23 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
         {/* Menu Items */}
         <div className="space-y-2">
+          <button
+            onClick={() => handleNavigation('/metricas')}
+            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-accent transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                <LineChart className="h-5 w-5" />
+              </div>
+              <span className="font-medium text-foreground">Métricas</span>
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-semibold">
+                <Crown className="h-2.5 w-2.5" />
+                PRO
+              </span>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
+
           <button
             onClick={() => handleNavigation('/cuentas')}
             className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-accent transition-colors group"

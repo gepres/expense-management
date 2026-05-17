@@ -3,7 +3,7 @@
 > Documentación esencial para trabajar en el proyecto de Gestión de Gastos Personales.
 > **Para detalle extenso ver:** `docs/components.md`, `docs/testing.md`, `CHANGELOG.md`
 
-**Versión**: 2.4.0 · **Última actualización**: 2026-05-12
+**Versión**: 2.5.0 · **Última actualización**: 2026-05-16
 
 ---
 
@@ -43,7 +43,8 @@ Usuario → Componente → Hook → Servicio → Firebase / Backend API
 src/
 ├── components/     # UI por feature (auth, dashboard, gastos, importar,
 │                   #   asistente, presupuestos, programados, config, layout, common,
-│                   #   compartidos [incl. NotificacionesSistemaPanel])
+│                   #   compartidos [incl. NotificacionesSistemaPanel],
+│                   #   graficos [módulo Métricas PRO], user)
 ├── context/        # AuthContext, ThemeContext
 ├── hooks/          # useGastos, usePresupuestos, useAssistant, usePWAInstall,
 │                   #   useGastosProgramados, useTransferenciasProgramadas,
@@ -64,6 +65,7 @@ src/
 - **Programados (`gastosProgramados`, `transferenciasProgramadas`)**: write **bloqueado al cliente** desde reglas Firestore. Solo el backend (Admin SDK) escribe. En local el cron de `@nestjs/schedule` corre cada 30 min; en prod (Vercel serverless) un workflow de GitHub Actions golpea `POST /api/programados/cron/run` cada 15 min (autenticado con `CRON_SECRET`). Lock idempotente en `ejecucionesProgramadas/{programadaId}_{fechaISO}` previene duplicados aunque ambos disparen.
 - **Transferencias cross-currency**: el doc programado guarda `monedaDestino` + `exchangeRate` (o `usarTasaActual: true` → API Frankfurter al ejecutar). `amountConverted` se calcula en cada ejecución, no se persiste en el doc programado.
 - **Notificaciones (`notificaciones`)**: el cron crea docs cuando hay fallos. Cliente puede READ y UPDATE solo `leida` (regla `affectedKeys().hasOnly(['leida'])`). DELETE permitido al dueño.
+- **Métricas (`/metricas`, módulo PRO)**: read-only analytics vía backend (`/api/analytics/*`), **PRO-gated** server-side (`ProGuard` lee `users/{uid}.role`). No-pro ve teaser y nunca llama al backend. IA cacheada 24h (control de costo). Ver [`docs/analytics-backend.md`](./docs/analytics-backend.md).
 
 ---
 
@@ -170,6 +172,7 @@ try {
 | `services/programados.ts` | CRUD + pause/resume + `findEjecuciones` de gastos programados (`/api/programados/gastos`) |
 | `services/transferencias-programadas.ts` | CRUD + pause/resume + `findEjecuciones` de transferencias (`/api/programados/transferencias`). Soporta cross-currency (`monedaDestino`, `exchangeRate`, `usarTasaActual`) |
 | `services/notificaciones.ts` | List, marcar leída, marcar todas leídas, eliminar (`/api/notificaciones`). Read principal vía `onSnapshot` desde el hook |
+| `services/analytics.ts` | Métricas PRO (`/api/analytics/*`): `getSummary`, `getAiInsights`, `askAi`, `exportMetricas`. `ProRequiredError` mapea el 403 → teaser |
 
 ---
 
@@ -195,6 +198,8 @@ Patrón: `Context + Provider + custom hook` que lanza error si se usa fuera del 
 | `useGastosProgramados` | onSnapshot a `gastosProgramados` + mutations vía backend. Pausar/reanudar |
 | `useTransferenciasProgramadas` | onSnapshot a `transferenciasProgramadas` + mutations vía backend (incl. cross-currency) |
 | `useNotificaciones` | onSnapshot a `notificaciones` + `marcarLeida`/`marcarTodasLeidas`/`eliminar`. Expone `noLeidasCount` para el badge |
+| `useMetricas` | Filtros + `GET /analytics/summary`. Caché 10 min memoria+localStorage, stale-while-revalidate. Solo PRO llama |
+| `useMetricasIA` | `POST /analytics/ai-insights` (caché 24h) + `ask()` contextual (`/ai-ask`). Solo PRO; no llama si sin datos |
 
 ---
 
@@ -328,6 +333,7 @@ npm run generate:icons / clean / reinstall
 - [`docs/components.md`](./docs/components.md) — componentes comunes (props, ejemplos, patrones)
 - [`docs/testing.md`](./docs/testing.md) — Vitest setup, Playwright config, ejemplos
 - [`docs/programados-backend.md`](./docs/programados-backend.md) — contrato backend completo de programados: endpoints, modelo Firestore, cron en local + prod (GH Actions), idempotencia, notificaciones, auditoría, cross-currency
+- [`docs/analytics-backend.md`](./docs/analytics-backend.md) — contrato backend del módulo de Métricas PRO: endpoints `/api/analytics/*`, ProGuard, modelos IA por env, control de costo
 - [`markdown/FLOWS.md`](./markdown/FLOWS.md) — mapa de módulos y dónde "vive" cada operación (API vs Firestore directo)
 
 ---

@@ -44,6 +44,9 @@ const DetalleCuenta = lazy(() => import('@components/cuentas/DetalleCuenta'));
 // Programados (gastos + transferencias recurrentes)
 const Programados = lazy(() => import('@components/programados/Programados'));
 
+// Métricas (módulo PRO de gráficos/analytics con IA)
+const Metricas = lazy(() => import('@components/graficos/MetricasPage'));
+
 // Documentación
 const Documentacion = lazy(() => import('@/pages/Documentacion'));
 
@@ -167,6 +170,9 @@ function AppRoutes() {
 
           {/* Programados (gastos + transferencias recurrentes) */}
           <Route path="programados" element={<Programados />} />
+
+          {/* Métricas (módulo PRO) */}
+          <Route path="metricas" element={<Metricas />} />
 
           {/* Shopping List */}
           <Route path="compras" element={<ShoppingListView />} />

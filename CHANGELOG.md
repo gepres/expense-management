@@ -4,6 +4,34 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.5.0 (2026-05-16)
+**Release**: Módulo de Métricas PRO — gráficos, analytics e IA
+
+### Nuevo módulo `/metricas` (PRO)
+- Ruta lazy `/metricas` en el menú **"Más"** (desktop + mobile) con badge **PRO**.
+- **Gating**: no-pro → teaser (preview borroso + beneficios + CTA `ProRequestButton`); PRO mobile → resumen no invasivo + "ver en escritorio"; PRO desktop → dashboard completo.
+- Promo en Dashboard (`MetricasPromoCard`) solo para no-pro.
+
+### Backend (`gastos-backend`)
+- Modelos Anthropic actualizados a Claude 4.x modernos, configurables por env (`ANTHROPIC_MODEL`, nuevo `ANTHROPIC_ANALYTICS_MODEL`).
+- `ProGuard` + `@RequirePro()`: autorización PRO leyendo `users/{uid}.role` de Firestore (no se confía en el cliente).
+- Módulo `analytics`: `GET /api/analytics/summary` (KPIs/series sin IA), `POST /api/analytics/ai-insights` (análisis IA estructurado), `POST /api/analytics/ai-ask` (pregunta libre), `GET /api/analytics/export?format=excel|csv`. Todo PRO-gated.
+- `AnthropicService.analyzeMetrics()` → JSON estructurado (`MetricsAiResult`).
+
+### Frontend
+- Tipos `types/metricas.ts` (espejo del contrato backend), `services/analytics.ts`, hooks `useMetricas` (caché 10 min, stale-while-revalidate) y `useMetricasIA` (caché 24h, solo PRO).
+- **Flujos**: flujo de caja temporal (área acumulado + proyección / diario), categorías + drilldown subcategoría + comparativa mes-a-mes + tendencias, presupuesto vs real (gauge + barras), método de pago / top tags / top gastos.
+- **Panel IA**: resumen narrativo, recomendaciones, observaciones, anomalías (IA + outliers 2σ), selector de foco y mini-chat contextual.
+- **Export**: PNG del dashboard y reporte PDF paginado (`html-to-image` + `jspdf`); Excel/CSV vía backend.
+
+### Cambios técnicos
+- Deps frontend: `html-to-image`, `jspdf`.
+- `vitest.config.ts`: añadido alias `@app-types` (faltaba; alineado con tsconfig/vite).
+- Control de costo IA: caché 24h + refresh manual + no se llama si no hay transacciones; no-pro nunca dispara IA.
+- Doc nuevo: [`docs/analytics-backend.md`](./docs/analytics-backend.md).
+
+---
+
 ## v2.4.0 (2026-05-12)
 **Release**: Notificaciones in-app, historial de ejecuciones, cross-currency en transferencias programadas, cron en producción
 

@@ -205,6 +205,26 @@ Plantillas recurrentes que el cron del backend ejecuta automáticamente. Dos tip
 
 ---
 
+### 📊 Métricas (`/metricas`) — PRO
+
+Dashboard de analytics/gráficos con IA. **Read-only** vía backend; el cálculo
+pesado vive server-side (módulo `analytics`, **PRO-gated** con `ProGuard`).
+
+| Vista | Componente | Datos | Path |
+|---|---|---|---|
+| **Desktop** | `MetricasDesktop` (Filtros, KPIs, FlujoCaja, Categorías, PresupuestoVsReal, IAPanel, Extras) | `AnalyticsSummary` + `MetricsAiResult` | **API** `GET /api/analytics/summary` · `POST /ai-insights` · `POST /ai-ask` · `GET /export` |
+| **Mobile** | `MetricasMobile` | idem (no invasivo, solo resumen) | misma API; reusa caché del desktop |
+| **No-pro** | `MetricasTeaser` | — | No llama backend; CTA `ProRequestButton` |
+
+- Gating en `MetricasPage`: no-pro→Teaser · pro+mobile→Mobile · pro+desktop→Desktop.
+- Promo en Dashboard: `MetricasPromoCard` (solo no-pro) → `/metricas`.
+- Caché: `useMetricas` 10 min (stale-while-revalidate); `useMetricasIA` 24h (control de costo, refresh manual, no llama si sin datos).
+- Presupuesto vs real combina límites de `usePresupuestos` con `gastado` del summary (sin llamadas extra).
+- Export PNG/PDF en cliente (`html-to-image`+`jspdf`); Excel/CSV vía backend.
+- Contrato completo: [`docs/analytics-backend.md`](../docs/analytics-backend.md).
+
+---
+
 ### ⚙️ Configuración (`/configuracion?tab=*`)
 
 Todos los catálogos del usuario viven en `users/{uid}/<subcoll>` y se gestionan vía backend (write) + Firestore directo (read).

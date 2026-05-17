@@ -7,7 +7,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
 import toast from 'react-hot-toast';
-import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, AlertCircle, ShoppingBag, BanknoteArrowDown, Crown, CreditCard, Repeat } from 'lucide-react';
+import { Wallet, BarChart3, TrendingDown, Target, Upload, Bot, Sun, Moon, LogOut, Settings, MoreHorizontal, Home, Users, Bell, AlertCircle, ShoppingBag, BanknoteArrowDown, Crown, CreditCard, Repeat, LineChart, type LucideIcon } from 'lucide-react';
 import MobileMenu from './MobileMenu';
 import BudgetMonitor from '../common/BudgetMonitor';
 import NotificationsPanel from '../compartidos/NotificationsPanel';
@@ -48,7 +48,13 @@ export default function Layout() {
   ];
 
   // Nav secundario (en dropdown "Más" del desktop)
-  const desktopMoreLinks = [
+  const desktopMoreLinks: {
+    to: string;
+    label: string;
+    icon: LucideIcon;
+    badge?: string;
+  }[] = [
+    { to: '/metricas', label: 'Métricas', icon: LineChart, badge: 'PRO' },
     { to: '/programados', label: 'Programados', icon: Repeat },
     { to: '/compras', label: 'Compras', icon: ShoppingBag },
     { to: '/compartidos', label: 'Compartidos', icon: Users },
@@ -139,6 +145,12 @@ export default function Layout() {
                           >
                             <Icon className="h-4 w-4" />
                             {link.label}
+                            {link.badge && (
+                              <span className="ml-auto inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-[10px] font-semibold">
+                                <Crown className="h-2.5 w-2.5" />
+                                {link.badge}
+                              </span>
+                            )}
                           </NavLink>
                         );
                       })}

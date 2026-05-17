@@ -49,7 +49,9 @@
       "Bash(npm run *)",
       "Bash(sed -n '20,60p' src/components/common/Button.tsx)",
       "Bash(sed -n '4,32p' src/components/common/SegmentedControl.tsx)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(sed -n '1,75p' src/components/layout/Layout.tsx)",
+      "Bash(sed -n '1,60p' src/components/layout/MobileMenu.tsx)"
     ],
     "deny": [],
     "ask": []
