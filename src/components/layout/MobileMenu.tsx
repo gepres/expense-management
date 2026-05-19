@@ -39,7 +39,8 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const handleLogout = async () => {
     await logout();
     onClose();
-    navigate('/login');
+    // Cerrar sesión → landing pública (no /login).
+    navigate('/');
   };
 
   return (

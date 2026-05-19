@@ -33,7 +33,9 @@ export default function Layout() {
     try {
       await logout();
       toast.success('Sesión cerrada exitosamente');
-      navigate('/login');
+      // Al cerrar sesión vuelve a la landing pública (HomeGate con
+      // `usuario=null` + ruta `/` → <LandingPage/>), no al /login.
+      navigate('/');
     } catch (error) {
       toast.error('Error al cerrar sesión');
     }
