@@ -28,6 +28,8 @@ export interface ShoppingList {
   subcategory?: string;
   currency: string;
   paymentMethod?: string;
+  /** Cuenta destino del gasto al finalizar la lista (multi-cuenta, Opción B). */
+  accountId?: string;
 
   totalEstimated?: number; // Sum of amounts
   totalChecked?: number; // Sum of checked items' amounts
@@ -56,6 +58,7 @@ export interface UpdateShoppingListDto {
   subcategory?: string;
   currency?: string;
   paymentMethod?: string;
+  accountId?: string;
   // Nuevos campos de información tributaria
   description?: string;
   voucherType?: 'boleta' | 'factura' | 'recibo' | 'ticket';

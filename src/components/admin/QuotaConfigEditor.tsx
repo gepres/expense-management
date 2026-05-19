@@ -21,9 +21,18 @@ type Campo = {
 
 const CAMPOS: Campo[] = [
   { key: 'standardTokens', label: 'Tokens/mes · standard', min: 0 },
+  { key: 'promocionalTokens', label: 'Tokens/mes · PROMOCIONAL', min: 0 },
   { key: 'proTokens', label: 'Tokens/mes · PRO', min: 0 },
   { key: 'standardImages', label: 'Imágenes IA/mes · standard', min: 0 },
+  { key: 'promocionalImages', label: 'Imágenes IA/mes · PROMOCIONAL', min: 0 },
   { key: 'proImages', label: 'Imágenes IA/mes · PRO', min: 0 },
+  {
+    key: 'promocionalDays',
+    label: 'Duración trial PROMOCIONAL (días)',
+    hint: '1–365',
+    min: 1,
+    max: 365,
+  },
   { key: 'warnPct', label: 'Aviso (%)', hint: '1–100', min: 1, max: 100 },
 ];
 
@@ -65,6 +74,10 @@ export default function QuotaConfigEditor() {
     if (!cfg) return;
     if (cfg.warnPct < 1 || cfg.warnPct > 100) {
       toast.error('El aviso (%) debe estar entre 1 y 100');
+      return;
+    }
+    if (cfg.promocionalDays < 1 || cfg.promocionalDays > 365) {
+      toast.error('La duración del trial debe estar entre 1 y 365 días');
       return;
     }
     try {

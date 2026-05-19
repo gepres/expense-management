@@ -236,12 +236,49 @@ export const firestoreToUsuario = (
     whatsappLinkedAt: data.whatsappLinkedAt ? timestampToDate(data.whatsappLinkedAt) : undefined,
     role: data.role || 'standard',
     proRequestStatus: data.proRequestStatus || 'none',
+    promoExpiresAt: data.promoExpiresAt
+      ? timestampToDate(data.promoExpiresAt)
+      : undefined,
     createdAt: timestampToDate(data.createdAt),
     updatedAt: timestampToDate(data.updatedAt),
   };
 };
 
 
+
+// ============================================================================
+// Rol promocional (trial PRO con vencimiento)
+// ============================================================================
+
+/** Días por defecto del trial promocional para usuarios nuevos. */
+export const PROMO_TRIAL_DAYS = 15;
+
+/** Timestamp de vencimiento = ahora + `days` días. */
+function promoExpiryTimestamp(days: number = PROMO_TRIAL_DAYS): Timestamp {
+  return Timestamp.fromDate(
+    new Date(Date.now() + days * 24 * 60 * 60 * 1000),
+  );
+}
+
+/** `true` si el trial promocional del usuario sigue vigente. */
+export function esPromoVigente(
+  u: Pick<Usuario, 'role' | 'promoExpiresAt'>,
+): boolean {
+  return (
+    u.role === 'promocional' &&
+    !!u.promoExpiresAt &&
+    u.promoExpiresAt.getTime() > Date.now()
+  );
+}
+
+/** Días enteros restantes del trial (0 si venció o no aplica). */
+export function promoDiasRestantes(
+  u: Pick<Usuario, 'role' | 'promoExpiresAt'>,
+): number {
+  if (u.role !== 'promocional' || !u.promoExpiresAt) return 0;
+  const ms = u.promoExpiresAt.getTime() - Date.now();
+  return ms <= 0 ? 0 : Math.ceil(ms / (24 * 60 * 60 * 1000));
+}
 
 // ============================================================================
 // Servicios de Autenticación
@@ -258,12 +295,16 @@ export const authService = {
       // Actualizar perfil con nombre
       await updateProfile(userCredential.user, { displayName: nombre });
 
+      // Usuario nuevo → trial promocional (acceso PRO acotado por N días).
+      const promoExpiry = promoExpiryTimestamp();
+
       // Crear documento de usuario en Firestore
       // IMPORTANTE: No incluir campos undefined - Firestore los rechaza
       const usuarioData: Partial<UsuarioFirestore> = {
         email,
         nombre,
-        role: 'standard',
+        role: 'promocional',
+        promoExpiresAt: promoExpiry,
         proRequestStatus: 'none',
         createdAt: serverTimestamp() as Timestamp,
         updatedAt: serverTimestamp() as Timestamp,
@@ -281,7 +322,8 @@ export const authService = {
         email,
         nombre,
         photoURL: userCredential.user.photoURL || undefined,
-        role: 'standard',
+        role: 'promocional',
+        promoExpiresAt: promoExpiry.toDate(),
         proRequestStatus: 'none',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -338,10 +380,14 @@ export const authService = {
         console.log('🆕 Creando nuevo usuario en Firestore...');
         // Crear nuevo usuario
         // IMPORTANTE: No incluir campos undefined - Firestore los rechaza
+        // Usuario nuevo → trial promocional (acceso PRO acotado por N días).
+        const promoExpiry = promoExpiryTimestamp();
+
         const usuarioData: Partial<UsuarioFirestore> = {
           email: userCredential.user.email!,
           nombre: userCredential.user.displayName || 'Usuario',
-          role: 'standard',
+          role: 'promocional',
+          promoExpiresAt: promoExpiry,
           proRequestStatus: 'none',
           createdAt: serverTimestamp() as Timestamp,
           updatedAt: serverTimestamp() as Timestamp,
@@ -361,7 +407,8 @@ export const authService = {
           email: userCredential.user.email!,
           nombre: userCredential.user.displayName || 'Usuario',
           photoURL: userCredential.user.photoURL || undefined,
-          role: 'standard',
+          role: 'promocional',
+          promoExpiresAt: promoExpiry.toDate(),
           proRequestStatus: 'none',
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -529,6 +576,7 @@ export const authService = {
       await updateDoc(doc(db, 'users', userId), {
         role: 'pro',
         proRequestStatus: 'approved',
+        promoExpiresAt: null,
         updatedAt: serverTimestamp(),
       });
     } catch (error) {
@@ -576,7 +624,7 @@ export const authService = {
     try {
       const q = query(
         collection(db, 'users'),
-        where('role', 'in', ['pro', 'admin'])
+        where('role', 'in', ['pro', 'admin', 'promocional'])
       );
       const querySnapshot = await getDocs(q);
       return querySnapshot.docs.map((d) =>
@@ -630,6 +678,7 @@ export const authService = {
       await updateDoc(doc(db, 'users', userId), {
         role: 'pro',
         proRequestStatus: 'approved',
+        promoExpiresAt: null,
         updatedAt: serverTimestamp(),
       });
     } catch (error) {
@@ -645,6 +694,45 @@ export const authService = {
       await updateDoc(doc(db, 'users', userId), {
         role: 'standard',
         proRequestStatus: 'none',
+        promoExpiresAt: null,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
+
+  /**
+   * Otorgar / renovar el trial promocional (Admin). `days` es editable;
+   * por defecto {@link PROMO_TRIAL_DAYS}. Reinicia el vencimiento a
+   * ahora + `days`.
+   */
+  async grantPromoRole(
+    userId: string,
+    days: number = PROMO_TRIAL_DAYS,
+  ): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        role: 'promocional',
+        promoExpiresAt: promoExpiryTimestamp(days),
+        proRequestStatus: 'none',
+        updatedAt: serverTimestamp(),
+      });
+    } catch (error) {
+      throw new Error(obtenerMensajeError(error));
+    }
+  },
+
+  /**
+   * Degrada un trial promocional vencido a 'standard'. Best-effort: el
+   * backend también se auto-cura, esto mantiene la UI/DB consistentes
+   * aunque el usuario nunca golpee un endpoint PRO.
+   */
+  async expirePromoToStandard(userId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        role: 'standard',
+        promoExpiresAt: null,
         updatedAt: serverTimestamp(),
       });
     } catch (error) {

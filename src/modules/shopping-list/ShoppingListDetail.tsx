@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useConfig } from '@context/ConfigContext';
 import { ShoppingListService } from '../../services/shopping-list';
 import type { ShoppingList, ShoppingListItem } from '../../types/shopping-list';
-import { ArrowLeft, MoreVertical, Trash2, CheckSquare, Square, Plus, Calendar, Clock, Tag, CreditCard, ChevronDown, ChevronRight, Receipt, Edit2, FileText, Hash, Building2, AlignLeft } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Trash2, CheckSquare, Square, Plus, Calendar, Clock, Tag, CreditCard, ChevronDown, ChevronRight, Receipt, Edit2, FileText, Hash, Building2, AlignLeft, Wallet } from 'lucide-react';
 import SmartNoteInput from './SmartNoteInput.tsx';
 import ShoppingListItemForm from './ShoppingListItemForm.tsx';
 import ConfirmationModal from '@components/common/ConfirmationModal';
@@ -12,6 +12,8 @@ import EditNameModal from '@components/common/EditNameModal';
 import toast from 'react-hot-toast';
 
 import { useAuth } from '@context/AuthContext';
+import { useAccountsContext } from '@context/AccountsContext';
+import SelectorCuenta from '@components/cuentas/SelectorCuenta';
 import { useGastos } from '@hooks/useGastos';
 import { obtenerFechaLocalISO } from '@utils/formatters';
 
@@ -20,6 +22,7 @@ export default function ShoppingListDetail() {
   const navigate = useNavigate();
   const { categories, getSubcategories, paymentMethods, currencies, getCurrencySymbol } = useConfig();
   const { usuario } = useAuth();
+  const { activeAccounts, defaultAccount } = useAccountsContext();
   const { crear } = useGastos();
   
   const [list, setList] = useState<ShoppingList | null>(null);
@@ -81,6 +84,24 @@ export default function ShoppingListDetail() {
     }
   };
 
+  // Auto-sugiere la cuenta destino (la default, o la primera que coincida con
+  // la moneda de la lista) si aún no hay ninguna. Es imprescindible para que
+  // el gasto se cree: sin accountId el backend lo rechaza (multi-cuenta,
+  // Opción B) y antes el flujo "fallaba en silencio" mostrando éxito.
+  useEffect(() => {
+    if (!list || list.status === 'archived' || list.accountId) return;
+    if (activeAccounts.length === 0) return;
+    const moneda = list.currency || 'PEN';
+    const candidate =
+      (defaultAccount && defaultAccount.currency === moneda
+        ? defaultAccount
+        : undefined) ?? activeAccounts.find((a) => a.currency === moneda);
+    if (candidate) {
+      ShoppingListService.updateList(list.id, { accountId: candidate.id });
+      loadList();
+    }
+  }, [list, activeAccounts, defaultAccount]);
+
   const handleUpdateList = (data: Partial<ShoppingList>) => {
     if (!id || list?.status === 'archived') return;
     ShoppingListService.updateList(id, data);
@@ -127,12 +148,35 @@ export default function ShoppingListDetail() {
       return;
     }
 
+    const cuenta = activeAccounts.find(
+      (a) => a.id === (list.accountId || defaultAccount?.id),
+    );
+    if (!cuenta) {
+      toast.error('Selecciona una cuenta destino antes de finalizar');
+      return;
+    }
+    const monedaLista = list.currency || 'PEN';
+    if (cuenta.currency !== monedaLista) {
+      toast.error(
+        `La cuenta "${cuenta.name}" es en ${cuenta.currency} pero la lista está en ${monedaLista}`,
+      );
+      return;
+    }
+
     setShowFinishModal(true);
   };
 
   const handleConfirmFinish = async () => {
     if (!list || !usuario) {
       if (!usuario) toast.error('Debes iniciar sesión para guardar gastos');
+      return;
+    }
+
+    const accountId = list.accountId || defaultAccount?.id;
+    const cuenta = activeAccounts.find((a) => a.id === accountId);
+    if (!cuenta) {
+      toast.error('Selecciona una cuenta destino antes de finalizar');
+      setShowFinishModal(false);
       return;
     }
 
@@ -152,10 +196,11 @@ export default function ShoppingListDetail() {
 
       const expenseData: any = {
         userId: usuario.id,
+        accountId: cuenta.id,
         fecha: fechaHora,
         categoria: list.category ? categories.find(c => c.nombre === list.category)?.id : 'alimentacion', // Default fallback
         monto: totalChecked,
-        moneda: list.currency || 'PEN',
+        moneda: cuenta.currency,
         descripcion: description,
         metodoPago: list.paymentMethod || 'efectivo', // Default fallback
         recurrente: false,
@@ -167,14 +212,21 @@ export default function ShoppingListDetail() {
         expenseData.subcategoria = list.subcategory;
       }
 
-      await crear(expenseData);
-      
+      const gastoCreado = await crear(expenseData);
+
+      // `crear()` captura sus errores y devuelve null mostrando un toast con
+      // el motivo. Si no se creó, NO archivamos ni mostramos éxito (este era
+      // el bug: la lista se archivaba aunque el gasto nunca se guardara).
+      if (!gastoCreado) {
+        return;
+      }
+
       // Update local list status to archived
       ShoppingListService.updateList(list.id, { status: 'archived' });
-      
+
       toast.success('Gasto creado y lista archivada');
       navigate('/gastos');
-      
+
     } catch (error) {
       console.error('Error creating expense:', error);
       toast.error('Error al crear el gasto');
@@ -340,7 +392,7 @@ export default function ShoppingListDetail() {
                 <div className="w-1/3 p-3">
                   <select
                     value={list.currency || 'PEN'}
-                    onChange={(e) => handleUpdateList({ currency: e.target.value })}
+                    onChange={(e) => handleUpdateList({ currency: e.target.value, accountId: undefined })}
                     className="bg-transparent text-sm w-full focus:outline-none appearance-none font-medium text-right pr-2"
                     disabled={isArchived}
                   >
@@ -348,6 +400,26 @@ export default function ShoppingListDetail() {
                       <option key={curr.id} value={curr.id}>{curr.simbolo} {curr.codigoISO}</option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Cuenta destino del gasto */}
+              <div className="p-3 flex items-start gap-3">
+                <div className="p-1.5 bg-purple-500/10 rounded-lg text-purple-600 dark:text-purple-400 mt-1">
+                  <Wallet className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <label className="text-[10px] text-muted-foreground block mb-1">
+                    Cuenta destino
+                  </label>
+                  <SelectorCuenta
+                    value={list.accountId}
+                    currency={list.currency || 'PEN'}
+                    onChange={(accountId) => handleUpdateList({ accountId })}
+                    disabled={isArchived}
+                    hideBalance
+                    placeholder="Seleccionar cuenta"
+                  />
                 </div>
               </div>
 

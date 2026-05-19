@@ -4,7 +4,11 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { authService } from '@services/firebase';
+import {
+  authService,
+  promoDiasRestantes,
+  PROMO_TRIAL_DAYS,
+} from '@services/firebase';
 import { useAuth } from '@context/AuthContext';
 import {
   AiUsageAdminService,
@@ -124,6 +128,23 @@ export default function CuentasProTab() {
     }
   };
 
+  const activarPromo = async (u: Usuario) => {
+    try {
+      setProcessingId(u.id);
+      await authService.grantPromoRole(u.id, PROMO_TRIAL_DAYS);
+      toast.success(
+        `Trial promocional (${PROMO_TRIAL_DAYS} días) activado para ${u.nombre}`,
+      );
+      setSearchResults(null);
+      setSearchEmail('');
+      await load();
+    } catch {
+      toast.error('No se pudo activar el trial promocional');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const SearchPanel = (
     <form onSubmit={buscar} className="mb-5">
       <label className="block text-sm font-medium mb-1">
@@ -152,7 +173,6 @@ export default function CuentasProTab() {
       {searchResults && searchResults.length > 0 && (
         <div className="mt-3 space-y-2">
           {searchResults.map((u) => {
-            const yaPro = u.role === 'pro' || u.role === 'admin';
             return (
               <div
                 key={u.id}
@@ -166,6 +186,10 @@ export default function CuentasProTab() {
                         <ShieldCheck className="h-3 w-3" />
                         ADMIN
                       </span>
+                    ) : u.role === 'promocional' ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+                        PROMO · {promoDiasRestantes(u)}d
+                      </span>
                     ) : (
                       u.role === 'pro' && <ProBadge size="sm" />
                     )}
@@ -174,21 +198,38 @@ export default function CuentasProTab() {
                     {u.email}
                   </p>
                 </div>
-                {yaPro ? (
+                {u.role === 'admin' ? (
                   <span className="text-xs text-muted-foreground flex-shrink-0">
-                    Ya es {u.role === 'admin' ? 'admin' : 'PRO'}
+                    Ya es admin
                   </span>
                 ) : (
-                  <Button
-                    variant="pro"
-                    size="sm"
-                    loading={processingId === u.id}
-                    disabled={processingId !== null}
-                    onClick={() => setConfirmGrant(u)}
-                    className="flex-shrink-0"
-                  >
-                    Activar PRO
-                  </Button>
+                  <div className="flex flex-col gap-2 flex-shrink-0">
+                    {u.role === 'pro' ? (
+                      <span className="text-xs text-muted-foreground text-right">
+                        Ya es PRO
+                      </span>
+                    ) : (
+                      <Button
+                        variant="pro"
+                        size="sm"
+                        loading={processingId === u.id}
+                        disabled={processingId !== null}
+                        onClick={() => setConfirmGrant(u)}
+                      >
+                        Activar PRO
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      loading={processingId === u.id}
+                      disabled={processingId !== null}
+                      onClick={() => activarPromo(u)}
+                    >
+                      {u.role === 'promocional' ? 'Renovar promo' : 'Activar promo'} (
+                      {PROMO_TRIAL_DAYS}d)
+                    </Button>
+                  </div>
                 )}
               </div>
             );
@@ -229,6 +270,7 @@ export default function CuentasProTab() {
         {users.map((u) => {
           const usage = usageByUid[u.id];
           const esAdmin = u.role === 'admin';
+          const esPromo = u.role === 'promocional';
           const esYo = u.id === usuario?.id;
           return (
             <div
@@ -254,6 +296,10 @@ export default function CuentasProTab() {
                       <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
                         <ShieldCheck className="h-3 w-3" />
                         ADMIN
+                      </span>
+                    ) : esPromo ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+                        PROMO · {promoDiasRestantes(u)}d
                       </span>
                     ) : (
                       <ProBadge size="sm" />
@@ -319,7 +365,7 @@ export default function CuentasProTab() {
                     disabled={processingId !== null}
                     onClick={() => setConfirmUser(u)}
                   >
-                    Revocar PRO
+                    {esPromo ? 'Revocar trial' : 'Revocar PRO'}
                   </Button>
                 )}
               </div>

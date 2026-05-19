@@ -8,7 +8,7 @@ import { Timestamp } from 'firebase/firestore';
 // Usuario
 // ============================================================================
 
-export type UserRole = 'admin' | 'pro' | 'standard';
+export type UserRole = 'admin' | 'pro' | 'standard' | 'promocional';
 export type ProRequestStatus = 'none' | 'pending' | 'approved' | 'rejected';
 
 export interface Usuario {
@@ -18,6 +18,8 @@ export interface Usuario {
   photoURL?: string;
   role: UserRole;
   proRequestStatus: ProRequestStatus;
+  /** Vencimiento del trial promocional (solo si role === 'promocional'). */
+  promoExpiresAt?: Date;
   whatsappPhone?: string;
   whatsappLinkedAt?: Date;
   createdAt: Date;
@@ -30,6 +32,7 @@ export interface UsuarioFirestore {
   photoURL?: string;
   role: UserRole;
   proRequestStatus: ProRequestStatus;
+  promoExpiresAt?: Timestamp | null;
   whatsappPhone?: string;
   whatsappLinkedAt?: Timestamp;
   createdAt: Timestamp;

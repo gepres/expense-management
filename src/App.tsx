@@ -3,7 +3,7 @@
  */
 
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from '@context/AuthContext';
 import { ThemeProvider, useTheme } from '@context/ThemeContext';
@@ -50,6 +50,9 @@ const Metricas = lazy(() => import('@components/graficos/MetricasPage'));
 // Documentación
 const Documentacion = lazy(() => import('@/pages/Documentacion'));
 
+// Landing pública (ruta `/` sin sesión)
+const LandingPage = lazy(() => import('@/pages/LandingPage'));
+
 // ============================================================================
 // Componente de carga
 // ============================================================================
@@ -69,22 +72,30 @@ function LoadingScreen() {
 // Ruta protegida
 // ============================================================================
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-}
-
-function ProtectedRoute({ children }: ProtectedRouteProps) {
+/**
+ * Raíz `/`:
+ *  - cargando                     → loader
+ *  - sin sesión + ruta `/`        → LandingPage pública
+ *  - sin sesión + ruta protegida  → /login (preserva el comportamiento previo)
+ *  - con sesión                   → Layout (con Outlet de las rutas hijas)
+ */
+function HomeGate() {
   const { usuario, cargando } = useAuth();
+  const location = useLocation();
 
   if (cargando) {
     return <LoadingScreen />;
   }
 
   if (!usuario) {
-    return <Navigate to="/login" replace />;
+    return location.pathname === '/' ? (
+      <LandingPage />
+    ) : (
+      <Navigate to="/login" replace />
+    );
   }
 
-  return <>{children}</>;
+  return <Layout />;
 }
 
 // ============================================================================
@@ -140,14 +151,7 @@ function AppRoutes() {
         />
 
         {/* Rutas protegidas */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Layout />
-            </ProtectedRoute>
-          }
-        >
+        <Route path="/" element={<HomeGate />}>
           <Route index element={<Dashboard />} />
           <Route path="gastos" element={<Gastos />} />
           <Route path="gastos/nuevo" element={<NuevoGasto />} />

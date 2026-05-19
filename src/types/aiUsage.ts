@@ -44,7 +44,7 @@ export type AiUsageSortBy = 'totalTokens' | 'estimatedCostUsd';
  */
 export interface QuotaSnapshot {
   mes: string;
-  role: 'admin' | 'pro' | 'standard';
+  role: 'admin' | 'pro' | 'standard' | 'promocional';
   used: number;
   limit: number | null;
   remaining: number | null;
@@ -62,8 +62,12 @@ export interface QuotaSnapshot {
 export interface QuotaConfig {
   standardTokens: number;
   proTokens: number;
+  promocionalTokens: number;
   standardImages: number;
   proImages: number;
+  promocionalImages: number;
+  /** Duración por defecto del trial promocional (días). */
+  promocionalDays: number;
   warnPct: number;
 }
 

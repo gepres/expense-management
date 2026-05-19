@@ -4,7 +4,11 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from 'firebase/auth';
-import { authService } from '@services/firebase';
+import {
+  authService,
+  esPromoVigente,
+  promoDiasRestantes as calcPromoDiasRestantes,
+} from '@services/firebase';
 import type {
   Usuario,
   AuthState,
@@ -24,7 +28,12 @@ interface AuthContextType extends AuthState {
   actualizarUsuario: () => Promise<void>;
   requestProRole: () => Promise<void>;
   isAdmin: boolean;
+  /** PRO efectivo: rol pro/admin o trial promocional vigente. */
   isPro: boolean;
+  /** Trial promocional vigente (subconjunto de isPro). */
+  isPromo: boolean;
+  /** Días enteros restantes del trial (0 si no aplica / venció). */
+  promoDiasRestantes: number;
 }
 
 // ============================================================================
@@ -176,8 +185,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const promoVigente = usuario ? esPromoVigente(usuario) : false;
   const isAdmin = usuario?.role === 'admin';
-  const isPro = usuario?.role === 'pro' || usuario?.role === 'admin';
+  const isPro =
+    usuario?.role === 'pro' || usuario?.role === 'admin' || promoVigente;
+  const isPromo = promoVigente;
+  const promoDias = usuario ? calcPromoDiasRestantes(usuario) : 0;
+
+  // Trial vencido pero el doc sigue marcando 'promocional' → degradar a
+  // 'standard' (best-effort; el backend también se auto-cura).
+  useEffect(() => {
+    if (usuario?.role === 'promocional' && !esPromoVigente(usuario)) {
+      authService
+        .expirePromoToStandard(usuario.id)
+        .then(() => actualizarUsuario())
+        .catch(() => {
+          /* best-effort */
+        });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario]);
 
   const value: AuthContextType = {
     usuario,
@@ -191,6 +218,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     requestProRole,
     isAdmin,
     isPro,
+    isPromo,
+    promoDiasRestantes: promoDias,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

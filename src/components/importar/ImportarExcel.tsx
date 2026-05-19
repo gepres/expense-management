@@ -6,11 +6,13 @@
  * Paso 3: Confirmar e importar
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useConfig } from '@context/ConfigContext';
 import { useAuth } from '@context/AuthContext';
+import { useAccountsContext } from '@context/AccountsContext';
+import SelectorCuenta from '@components/cuentas/SelectorCuenta';
 import {
   validateFile,
   analyzeExpenses,
@@ -30,7 +32,7 @@ import {
   Upload, FileText, Check, Settings,
   Brain, ArrowLeft, Sparkles, FileSpreadsheet,
   AlertCircle, ChevronDown, ChevronUp, Filter, Zap,
-  CheckCircle2, XCircle, RefreshCw, Eye, Database, Crown
+  CheckCircle2, XCircle, RefreshCw, Eye, Database, Crown, Wallet
 } from 'lucide-react';
 import CustomLoader from '@components/common/CustomLoader';
 import Button from '@components/common/Button';
@@ -42,6 +44,17 @@ export default function ImportarExcel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { getCategoryLabel } = useConfig();
   const { isPro } = useAuth();
+  const { activeAccounts, defaultAccount } = useAccountsContext();
+
+  // Cuenta destino de TODOS los gastos importados (multi-cuenta, Opción B).
+  const [accountId, setAccountId] = useState<string>('');
+
+  // Autoselecciona la cuenta default (o la única) si aún no hay elección.
+  useEffect(() => {
+    if (accountId) return;
+    if (defaultAccount) setAccountId(defaultAccount.id);
+    else if (activeAccounts.length === 1) setAccountId(activeAccounts[0].id);
+  }, [defaultAccount, activeAccounts, accountId]);
 
   // Estado del flujo
   const [step, setStep] = useState<Step>('upload');
@@ -152,11 +165,15 @@ export default function ImportarExcel() {
 
   const handleUpload = async () => {
     if (enhancedData.length === 0) return;
+    if (!accountId) {
+      toast.error('Selecciona la cuenta destino antes de importar');
+      return;
+    }
 
     navigateStep('uploading', 1);
 
     try {
-      const result = await uploadExpenses(enhancedData, options.batchSize);
+      const result = await uploadExpenses(enhancedData, accountId, options.batchSize);
       setUploadResult(result);
 
       setTimeout(() => {
@@ -708,6 +725,23 @@ export default function ImportarExcel() {
                 </div>
               </div>
 
+              {/* Cuenta destino */}
+              <div className="bg-card border border-border rounded-xl p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Cuenta destino</h3>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Todos los gastos se importarán a esta cuenta, adoptarán su
+                  moneda y su saldo se descontará automáticamente.
+                </p>
+                <SelectorCuenta
+                  value={accountId}
+                  onChange={(id) => setAccountId(id)}
+                  placeholder="Seleccionar cuenta"
+                />
+              </div>
+
               {/* Actions */}
               <div className="flex gap-3 pt-2">
                 <button
@@ -719,7 +753,8 @@ export default function ImportarExcel() {
                 </button>
                 <button
                   onClick={handleUpload}
-                  className="flex-1 bg-primary text-primary-foreground px-4 py-3 rounded-xl font-semibold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  disabled={!accountId}
+                  className="flex-1 bg-primary text-primary-foreground px-4 py-3 rounded-xl font-semibold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                 >
                   <Database className="h-4 w-4" />
                   Importar {enhancedData.length} gastos

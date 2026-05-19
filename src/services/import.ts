@@ -279,6 +279,7 @@ export async function analyzeExpenses(
  */
 export async function uploadExpenses(
   expenses: EnhancedExpense[],
+  accountId: string,
   batchSize?: number
 ): Promise<UploadResponse> {
   try {
@@ -292,6 +293,7 @@ export async function uploadExpenses(
       },
       body: JSON.stringify({
         expenses,
+        accountId,
         batchSize: batchSize || 100,
       }),
     });
@@ -391,6 +393,7 @@ export async function validateImportFile(file: File): Promise<FileValidationResu
  */
 export async function importGastos(
   file: File,
+  accountId: string,
   options?: ImportOptions
 ): Promise<ImportResult> {
   try {
@@ -419,7 +422,7 @@ export async function importGastos(
     });
 
     // Paso 3: Subir
-    const uploadResult = await uploadExpenses(analyzeResult.data, options?.batchSize);
+    const uploadResult = await uploadExpenses(analyzeResult.data, accountId, options?.batchSize);
 
     return {
       success: uploadResult.success,

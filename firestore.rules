@@ -69,9 +69,12 @@ service cloud.firestore {
       // El propio user lee su doc; admins leen todos
       allow read: if isOwner(userId) || isAdmin();
 
-      // Crear: solo el propio user, y NO puede asignarse role distinto a 'standard'
+      // Crear: solo el propio user. Puede autoasignarse 'standard' o
+      // 'promocional' (trial PRO de usuario nuevo); NUNCA 'pro'/'admin'.
+      // El vencimiento del trial lo valida el backend (Admin SDK), no las rules.
       allow create: if isOwner(userId) &&
-        (!('role' in request.resource.data) || request.resource.data.role == 'standard') &&
+        (!('role' in request.resource.data) ||
+          request.resource.data.role in ['standard', 'promocional']) &&
         (!('proRequestStatus' in request.resource.data) || request.resource.data.proRequestStatus == 'none');
 
       // Actualizar:
@@ -79,7 +82,13 @@ service cloud.firestore {
       //  - Caso B: admin puede todo
       allow update: if isAdmin() || (
         isOwner(userId) &&
-        (!('role' in request.resource.data) || request.resource.data.role == resource.data.role) &&
+        (!('role' in request.resource.data) ||
+          request.resource.data.role == resource.data.role ||
+          // Auto-degradado del trial vencido: promocional → standard.
+          // Solo "baja" — nunca permite escalar a pro/admin.
+          (resource.data.role == 'promocional' &&
+            request.resource.data.role == 'standard')
+        ) &&
         (!('proRequestStatus' in request.resource.data) ||
           request.resource.data.proRequestStatus == resource.data.proRequestStatus ||
           request.resource.data.proRequestStatus == 'pending'

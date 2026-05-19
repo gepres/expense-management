@@ -75,7 +75,12 @@
       "Bash(grep -nA4 \"learning_log\" firestore.rules)",
       "WebSearch",
       "WebFetch(domain:developers.openai.com)",
-      "WebFetch(domain:docs.anthropic.com)"
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(cd D: *)",
+      "Bash(grep -E \"\\\\.\\(ts|js\\)$\")",
+      "Bash(grep *)",
+      "Bash(sed -n '78:86p' src/components/layout/Layout.tsx)",
+      "Bash(sed -n '78,86p' src/components/layout/Layout.tsx)"
     ],
     "deny": [],
     "ask": []
