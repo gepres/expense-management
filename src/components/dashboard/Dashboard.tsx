@@ -22,7 +22,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Target, Plus, Bot, ArrowRight, Banknote, Star } from 'lucide-react';
+import { Wallet, TrendingDown, BarChart3, UtensilsCrossed, Car, Pill, Film, ShoppingCart, BookOpen, Home, Wrench, Package, Target, Plus, Bot, ArrowRight, Banknote, Star, Eye, EyeOff } from 'lucide-react';
 import AIInsights from './AIInsights';
 import ProBadge from '../common/ProBadge';
 import MetricasPromoCard from './MetricasPromoCard';
@@ -88,6 +88,26 @@ export default function Dashboard() {
     const fecha = new Date();
     return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
   });
+
+  // Visibilidad de montos sensibles (Gastos / Presupuesto del Mes).
+  // Por defecto ocultos; se persiste la preferencia en localStorage.
+  const [montosVisibles, setMontosVisibles] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('dashboard-montos-visibles') === 'true';
+  });
+
+  const toggleMontosVisibles = () => {
+    setMontosVisibles((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dashboard-montos-visibles', String(next));
+      }
+      return next;
+    });
+  };
+
+  const maskMoney = (value: number, currency: string): string =>
+    montosVisibles ? formatMoney(value, currency) : `${currencyPrefix(currency)} ••••••`;
 
   // Gastos del mes actual
   const gastosDelMes = useMemo(
@@ -216,6 +236,15 @@ export default function Dashboard() {
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <TrendingDown className="h-24 w-24 text-red-500 transform rotate-12 translate-x-4 -translate-y-4" />
           </div>
+          <button
+            type="button"
+            onClick={toggleMontosVisibles}
+            aria-label={montosVisibles ? 'Ocultar montos' : 'Mostrar montos'}
+            title={montosVisibles ? 'Ocultar montos' : 'Mostrar montos'}
+            className="absolute top-3 right-3 z-20 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+          >
+            {montosVisibles ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
@@ -231,7 +260,7 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-3xl font-bold text-foreground tracking-tight">
-              {formatMoney(gastadoFoco, monedaFoco)}
+              {maskMoney(gastadoFoco, monedaFoco)}
             </p>
           </div>
         </div>
@@ -241,6 +270,15 @@ export default function Dashboard() {
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Wallet className="h-24 w-24 text-blue-500 transform -rotate-12 translate-x-4 -translate-y-4" />
           </div>
+          <button
+            type="button"
+            onClick={toggleMontosVisibles}
+            aria-label={montosVisibles ? 'Ocultar montos' : 'Mostrar montos'}
+            title={montosVisibles ? 'Ocultar montos' : 'Mostrar montos'}
+            className="absolute top-3 right-3 z-20 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+          >
+            {montosVisibles ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
@@ -261,7 +299,7 @@ export default function Dashboard() {
               </div>
             </div>
             <p className="text-3xl font-bold text-foreground tracking-tight">
-              {formatMoney(presupuestoFoco, monedaFoco)}
+              {maskMoney(presupuestoFoco, monedaFoco)}
             </p>
             {presupuestoFoco > 0 && (
               <>
@@ -274,7 +312,9 @@ export default function Dashboard() {
                   />
                 </div>
                 <p className="mt-1.5 text-xs text-muted-foreground text-right">
-                  {porcentajeGastado.toFixed(1)}% gastado · disponible {formatMoney(disponibleFoco, monedaFoco)}
+                  {montosVisibles
+                    ? `${porcentajeGastado.toFixed(1)}% gastado · disponible ${formatMoney(disponibleFoco, monedaFoco)}`
+                    : `${porcentajeGastado.toFixed(1)}% gastado · disponible ${currencyPrefix(monedaFoco)} ••••`}
                 </p>
               </>
             )}

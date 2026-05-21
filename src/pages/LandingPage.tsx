@@ -169,23 +169,28 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background text-foreground">
       {/* ===================== NAV ===================== */}
       <header className="sticky top-0 z-30 backdrop-blur-lg bg-background/80 border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <span className="flex items-center gap-2 font-bold text-lg text-primary">
-            <Wallet className="h-6 w-6" />
-            Gestión de Gastos
+        <div className="max-w-6xl mx-auto px-3 sm:px-4 h-16 flex items-center justify-between gap-3">
+          <span className="flex items-center gap-2 font-bold text-base sm:text-lg text-primary min-w-0">
+            <Wallet className="h-6 w-6 shrink-0" />
+            <span className="hidden sm:inline truncate">
+              Gestión de Gastos
+            </span>
+            <span className="sm:hidden truncate">Gastos</span>
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Link
               to="/login"
-              className="px-4 py-2 text-sm font-medium rounded-lg hover:bg-muted transition-colors"
+              className="px-2.5 sm:px-4 py-2 text-sm font-medium rounded-lg hover:bg-muted transition-colors whitespace-nowrap"
             >
-              Iniciar sesión
+              <span className="hidden sm:inline">Iniciar sesión</span>
+              <span className="sm:hidden">Entrar</span>
             </Link>
             <Link
               to="/registro"
-              className="px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+              className="px-3 sm:px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity whitespace-nowrap"
             >
-              Crear cuenta
+              <span className="hidden sm:inline">Crear cuenta</span>
+              <span className="sm:hidden">Registrarme</span>
             </Link>
           </div>
         </div>

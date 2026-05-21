@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useTheme } from '@context/ThemeContext';
@@ -29,6 +30,12 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const { usuario, isPro, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
+  // Gesto swipe-down para cerrar (homologado con Modal.tsx)
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState(0);
+  const [dragOffset, setDragOffset] = useState(0);
+
   if (!isOpen) return null;
 
   const handleNavigation = (path: string) => {
@@ -43,17 +50,70 @@ export default function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
     navigate('/');
   };
 
+  // Solo en móvil y si el scroll del sheet está arriba
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (window.innerWidth > 640) return;
+    if (sheetRef.current && sheetRef.current.scrollTop > 0) return;
+
+    setIsDragging(true);
+    setDragStart(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+
+    const currentY = e.touches[0].clientY;
+    const offset = currentY - dragStart;
+
+    // Solo permitir deslizar hacia abajo
+    if (offset > 0) {
+      setDragOffset(offset);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging) return;
+
+    setIsDragging(false);
+
+    // Si el deslizamiento es mayor a 100px, cerrar
+    if (dragOffset > 100) {
+      onClose();
+    }
+
+    setDragOffset(0);
+  };
+
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 transition-opacity animate-fade-in"
         onClick={onClose}
+        style={{
+          opacity: isDragging ? 1 - dragOffset / 300 : 1,
+        }}
       />
 
       {/* Bottom Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card rounded-t-3xl z-50 p-6 shadow-2xl animate-slide-up border-t border-border/50 max-h-[85vh] overflow-y-auto">
-        <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-6" />
+      <div
+        ref={sheetRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="fixed bottom-0 left-0 right-0 bg-card rounded-t-3xl z-50 p-6 shadow-2xl animate-slide-up border-t border-border/50 max-h-[85vh] overflow-y-auto"
+        style={{
+          transform: isDragging ? `translateY(${dragOffset}px)` : undefined,
+          transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+        }}
+      >
+        <div
+          className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-6 transition-all duration-200"
+          style={{
+            width: isDragging ? '20px' : undefined,
+            backgroundColor: isDragging ? 'hsl(var(--primary))' : undefined,
+          }}
+        />
 
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-foreground">Menú</h2>
