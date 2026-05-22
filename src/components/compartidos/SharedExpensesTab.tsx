@@ -2,17 +2,25 @@
  * Tab de Gastos del grupo
  */
 
-import { useState, useEffect } from 'react';
-import { SharedService } from '@services/shared';
+import { useState, useEffect, useRef } from 'react';
+import {
+  SharedService,
+  ProRequiredError,
+  AiQuotaExceededError,
+} from '@services/shared';
 import { useSharedExpenses, createExpenseNotification } from '@context/SharedExpensesContext';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
 import type { SharedExpense, CreateSharedExpenseDto } from '@app-types/shared';
-import { Plus, Edit2, Trash2, Calendar, Clock, Tag, CreditCard, AlignLeft, FileText, Hash, Building2, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Calendar, Clock, Tag, CreditCard, AlignLeft, FileText, Hash, Building2, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
 import { obtenerFechaLocalISO } from '@utils/formatters';
 import { ContainerLoadingButton } from '../common/Button';
+import ReceiptUploader from './ReceiptUploader';
+import ReceiptViewer from './ReceiptViewer';
+import { deleteReceipt } from '@services/shared-receipts';
+import { useExtractedHighlight } from './useExtractedHighlight';
 
 interface Props {
   groupId: string;
@@ -41,6 +49,14 @@ export default function SharedExpensesTab({
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+  const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
+  // Path original al iniciar edición; sirve para detectar foto huérfana al cancelar.
+  const originalReceiptPathRef = useRef<string | undefined>(undefined);
+  // Paths que se deben borrar al guardar exitosamente (foto previa reemplazada).
+  const pendingCleanupRef = useRef<string[]>([]);
+  const [extracting, setExtracting] = useState(false);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const { ringClass, markExtracted } = useExtractedHighlight();
 
   // Abrir formulario desde botón flotante
   useEffect(() => {
@@ -60,10 +76,18 @@ export default function SharedExpensesTab({
     voucherType: 'boleta',
     voucherNumber: '',
     ruc: '',
+    receiptUrl: undefined,
+    receiptPath: undefined,
   });
   const [loading, setLoading] = useState(false);
 
   const resetForm = () => {
+    // Si quedó una foto subida que no corresponde al original guardado, eliminarla.
+    const currentPath = formData.receiptPath;
+    const originalPath = originalReceiptPathRef.current;
+    if (currentPath && currentPath !== originalPath) {
+      deleteReceipt(currentPath).catch(() => undefined);
+    }
     setFormData({
       amount: 0,
       description: '',
@@ -75,7 +99,11 @@ export default function SharedExpensesTab({
       voucherType: 'boleta',
       voucherNumber: '',
       ruc: '',
+      receiptUrl: undefined,
+      receiptPath: undefined,
     });
+    originalReceiptPathRef.current = undefined;
+    pendingCleanupRef.current = [];
     setShowForm(false);
     setEditingId(null);
   };
@@ -102,6 +130,93 @@ export default function SharedExpensesTab({
       ...prev,
       description: prev.description ? `${prev.description}, ${suggestion}` : suggestion
     }));
+  };
+
+  const handleExtractReceipt = async () => {
+    if (!formData.receiptUrl) return;
+    setExtracting(true);
+    try {
+      const categoryNames = categories.map((c) => c.nombre);
+      const subcategoriesByCategory: Record<string, string[]> = {};
+      for (const cat of categories) {
+        const subs = cat.subcategorias?.map((s) => s.nombre) ?? [];
+        if (subs.length) subcategoriesByCategory[cat.nombre] = subs;
+      }
+
+      const extracted = await SharedService.extractReceipt(groupId, {
+        kind: 'expense',
+        receiptUrl: formData.receiptUrl,
+        categories: categoryNames,
+        subcategoriesByCategory,
+      });
+
+      const filled: string[] = [];
+      const next: CreateSharedExpenseDto = { ...formData };
+
+      if (extracted.amount !== null) {
+        next.amount = extracted.amount;
+        filled.push('amount');
+      }
+      if (extracted.description) {
+        next.description = extracted.description;
+        filled.push('description');
+      }
+      if (extracted.date) {
+        next.date = extracted.date;
+        filled.push('date');
+      }
+      if (extracted.time) {
+        next.time = extracted.time;
+        filled.push('time');
+      }
+      if (extracted.voucherType) {
+        next.voucherType = extracted.voucherType;
+        filled.push('voucherType');
+      }
+      if (extracted.voucherNumber) {
+        next.voucherNumber = extracted.voucherNumber;
+        filled.push('voucherNumber');
+      }
+      if (extracted.ruc) {
+        next.ruc = extracted.ruc;
+        filled.push('ruc');
+      }
+      if (extracted.paymentMethod) {
+        next.paymentMethod = extracted.paymentMethod;
+        filled.push('paymentMethod');
+      }
+      if (extracted.category) {
+        next.category = extracted.category;
+        next.subcategory = extracted.subcategory ?? '';
+        filled.push('category');
+        if (extracted.subcategory) filled.push('subcategory');
+      }
+
+      setFormData(next);
+      markExtracted(filled);
+
+      if (filled.length === 0) {
+        toast('La IA no pudo extraer datos legibles', { icon: '⚠️' });
+      } else if (extracted.confidence < 0.5) {
+        toast('Datos detectados con baja confianza — revisa antes de guardar', {
+          icon: '⚠️',
+        });
+      } else {
+        toast.success(`Datos detectados (${filled.length} campos)`);
+      }
+    } catch (error) {
+      if (error instanceof AiQuotaExceededError) {
+        toast.error(error.message);
+      } else if (error instanceof ProRequiredError) {
+        toast.error('Esta función requiere una cuenta PRO');
+      } else {
+        const msg =
+          error instanceof Error ? error.message : 'Error al extraer datos';
+        toast.error(msg);
+      }
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -134,6 +249,13 @@ export default function SharedExpensesTab({
           ));
         }
       }
+      // Limpieza de fotos previas reemplazadas (la actual ya quedó persistida).
+      pendingCleanupRef.current.forEach((p) => {
+        deleteReceipt(p).catch(() => undefined);
+      });
+      pendingCleanupRef.current = [];
+      // Marca que la foto actual ya está "guardada" para que resetForm no la borre.
+      originalReceiptPathRef.current = formData.receiptPath;
       resetForm();
     } catch (error) {
       toast.error('Error al guardar');
@@ -154,7 +276,11 @@ export default function SharedExpensesTab({
       voucherType: expense.voucherType || 'boleta',
       voucherNumber: expense.voucherNumber || '',
       ruc: expense.ruc || '',
+      receiptUrl: expense.receiptUrl,
+      receiptPath: expense.receiptPath,
     });
+    originalReceiptPathRef.current = expense.receiptPath;
+    pendingCleanupRef.current = [];
     setEditingId(expense.id);
     setShowForm(true);
   };
@@ -210,13 +336,17 @@ export default function SharedExpensesTab({
               type="submit"
               variant="primary"
               onClick={handleSubmit}
-              disabled={loading}
+              disabled={loading || uploadingReceipt || extracting}
             >
-               {/* TODO: solo para el autor */}
-                            {
-                              editingId ? <ContainerLoadingButton isLoading={loading} loadingText="Actualizando..." text="Actualizar" /> : <ContainerLoadingButton isLoading={loading} loadingText="Guardando..." text="Agregar"/>
-                            }
-              {/* {loading ? 'Guardando...' : editingId ? 'Actualizar' : 'Agregar'} */}
+              {uploadingReceipt ? (
+                <ContainerLoadingButton isLoading text="Subiendo foto..." loadingText="Subiendo foto..." />
+              ) : extracting ? (
+                <ContainerLoadingButton isLoading text="Analizando IA..." loadingText="Analizando IA..." />
+              ) : editingId ? (
+                <ContainerLoadingButton isLoading={loading} loadingText="Actualizando..." text="Actualizar" />
+              ) : (
+                <ContainerLoadingButton isLoading={loading} loadingText="Guardando..." text="Agregar" />
+              )}
             </ModalButton>
           </div>
         }
@@ -225,7 +355,7 @@ export default function SharedExpensesTab({
           {/* Fecha y Hora */}
           <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
             <div className="flex divide-x divide-border">
-              <div className="flex-1 p-3 flex items-center gap-3">
+              <div className={`flex-1 p-3 flex items-center gap-3 ${ringClass('date')}`}>
                 <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-600 dark:text-blue-400">
                   <Calendar className="h-4 w-4" />
                 </div>
@@ -240,7 +370,7 @@ export default function SharedExpensesTab({
                   />
                 </div>
               </div>
-              <div className="flex-1 p-3 flex items-center gap-3">
+              <div className={`flex-1 p-3 flex items-center gap-3 ${ringClass('time')}`}>
                 <div className="p-1.5 bg-purple-500/10 rounded-lg text-purple-600 dark:text-purple-400">
                   <Clock className="h-4 w-4" />
                 </div>
@@ -259,7 +389,7 @@ export default function SharedExpensesTab({
 
           {/* Monto, Categoría, Subcategoría y Método de Pago */}
           <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
-            <div className="p-3 flex items-center gap-3">
+            <div className={`p-3 flex items-center gap-3 ${ringClass('amount')}`}>
               <div className="p-1.5 bg-green-500/10 rounded-lg text-green-600 dark:text-green-400">
                 <span className="text-base font-bold">$</span>
               </div>
@@ -278,7 +408,7 @@ export default function SharedExpensesTab({
               </div>
             </div>
 
-            <div className="p-3 flex items-center gap-3">
+            <div className={`p-3 flex items-center gap-3 ${ringClass('category')}`}>
               <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
                 <Tag className="h-4 w-4" />
               </div>
@@ -297,7 +427,7 @@ export default function SharedExpensesTab({
               </div>
             </div>
 
-            <div className="p-3 flex items-center gap-3">
+            <div className={`p-3 flex items-center gap-3 ${ringClass('subcategory')}`}>
               <div className="p-1.5 bg-pink-500/10 rounded-lg text-pink-600 dark:text-pink-400">
                 <Tag className="h-4 w-4" />
               </div>
@@ -317,7 +447,7 @@ export default function SharedExpensesTab({
               </div>
             </div>
 
-            <div className="p-3 flex items-center gap-3">
+            <div className={`p-3 flex items-center gap-3 ${ringClass('paymentMethod')}`}>
               <div className="p-1.5 bg-orange-500/10 rounded-lg text-orange-600 dark:text-orange-400">
                 <CreditCard className="h-4 w-4" />
               </div>
@@ -335,7 +465,7 @@ export default function SharedExpensesTab({
               </div>
             </div>
 
-            <div className="p-3 flex items-start gap-3">
+            <div className={`p-3 flex items-start gap-3 ${ringClass('description')}`}>
               <div className="p-1.5 bg-gray-500/10 rounded-lg text-gray-600 dark:text-gray-400 mt-1">
                 <AlignLeft className="h-4 w-4" />
               </div>
@@ -377,7 +507,7 @@ export default function SharedExpensesTab({
           {/* Información Tributaria */}
           <div className="bg-card border border-border rounded-xl overflow-hidden divide-y divide-border">
             <div className="flex divide-x divide-border">
-              <div className="flex-1 p-3 flex items-center gap-3">
+              <div className={`flex-1 p-3 flex items-center gap-3 ${ringClass('voucherType')}`}>
                 <div className="p-1.5 bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
                   <FileText className="h-4 w-4" />
                 </div>
@@ -396,7 +526,7 @@ export default function SharedExpensesTab({
                 </div>
               </div>
 
-              <div className="flex-1 p-3 flex items-center gap-3">
+              <div className={`flex-1 p-3 flex items-center gap-3 ${ringClass('voucherNumber')}`}>
                 <div className="p-1.5 bg-cyan-500/10 rounded-lg text-cyan-600 dark:text-cyan-400">
                   <Hash className="h-4 w-4" />
                 </div>
@@ -418,7 +548,7 @@ export default function SharedExpensesTab({
           {/* Campo RUC condicional (solo si es factura) */}
           {formData.voucherType === 'factura' && (
             <div className="bg-card border border-amber-200 dark:border-amber-900 rounded-xl overflow-hidden animate-in slide-in-from-top-2 duration-200">
-              <div className="p-3 flex items-center gap-3 bg-amber-500/5">
+              <div className={`p-3 flex items-center gap-3 bg-amber-500/5 ${ringClass('ruc')}`}>
                 <div className="p-1.5 bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
                   <Building2 className="h-4 w-4" />
                 </div>
@@ -437,8 +567,41 @@ export default function SharedExpensesTab({
             </div>
           )}
 
+          {/* Foto del comprobante (opcional · PRO) */}
+          <ReceiptUploader
+            groupId={groupId}
+            kind="expense"
+            value={{ url: formData.receiptUrl, path: formData.receiptPath }}
+            keepPreviousOnReplace={!!editingId}
+            onExtractRequest={handleExtractReceipt}
+            extracting={extracting}
+            onUploadingChange={setUploadingReceipt}
+            onChange={(next) => {
+              // En edición, encolar la foto previa para borrarla al guardar.
+              if (editingId) {
+                const prevPath = formData.receiptPath;
+                const original = originalReceiptPathRef.current;
+                if (prevPath && prevPath !== original && prevPath !== next.path) {
+                  pendingCleanupRef.current.push(prevPath);
+                }
+                if (!next.url && original) {
+                  // Usuario quitó la foto original; programar borrado al guardar.
+                  pendingCleanupRef.current.push(original);
+                }
+              }
+              setFormData((prev) => ({
+                ...prev,
+                receiptUrl: next.url,
+                receiptPath: next.path,
+              }));
+            }}
+          />
+
         </form>
       </Modal>
+
+      {/* Lightbox de comprobante */}
+      <ReceiptViewer url={viewingReceipt} onClose={() => setViewingReceipt(null)} />
 
       {/* List */}
       {expenses.length === 0 ? (
@@ -473,7 +636,12 @@ export default function SharedExpensesTab({
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{expense.description}</p>
+                  <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                    {expense.description}
+                    {expense.receiptUrl && (
+                      <ImageIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                    )}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {displayName}
                     {/* {expense.category && ` • ${expense.category}`} */}
@@ -484,6 +652,22 @@ export default function SharedExpensesTab({
                     {expense.paymentMethod && ` • ${getPaymentMethodLabel(expense.paymentMethod)}`}
                   </p>
                 </div>
+
+                {/* Receipt thumbnail */}
+                {expense.receiptUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setViewingReceipt(expense.receiptUrl!)}
+                    className="w-9 h-9 rounded-lg overflow-hidden border border-border hover:ring-2 hover:ring-primary/40 transition-all flex-shrink-0"
+                    aria-label="Ver comprobante"
+                  >
+                    <img
+                      src={expense.receiptUrl}
+                      alt="Comprobante"
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                )}
 
                 {/* Amount */}
                 <div className="text-sm font-semibold text-red-600">

@@ -80,7 +80,9 @@
       "Bash(grep -E \"\\\\.\\(ts|js\\)$\")",
       "Bash(grep *)",
       "Bash(sed -n '78:86p' src/components/layout/Layout.tsx)",
-      "Bash(sed -n '78,86p' src/components/layout/Layout.tsx)"
+      "Bash(sed -n '78,86p' src/components/layout/Layout.tsx)",
+      "Bash(awk '/anthropic\\\\.service\\\\.ts/{flag=1;next}/^D:/{flag=0}flag')",
+      "Bash(where firebase *)"
     ],
     "deny": [],
     "ask": []

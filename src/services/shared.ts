@@ -20,7 +20,25 @@ import type {
   GroupStats,
   SettlementResponse,
   GroupInsight,
+  ExtractReceiptRequest,
+  ExtractedReceipt,
 } from '@app-types/shared';
+
+export class ProRequiredError extends Error {
+  constructor(message = 'Esta función requiere una cuenta PRO') {
+    super(message);
+    this.name = 'ProRequiredError';
+  }
+}
+
+export class AiQuotaExceededError extends Error {
+  readonly resetAt?: string;
+  constructor(message = 'Alcanzaste tu límite mensual de IA', resetAt?: string) {
+    super(message);
+    this.name = 'AiQuotaExceededError';
+    this.resetAt = resetAt;
+  }
+}
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
@@ -187,6 +205,41 @@ export const SharedService = {
       headers,
     });
     if (!response.ok) throw new Error('Error deleting expense');
+  },
+
+  // ============================================================================
+  // RECEIPT EXTRACTION (PRO)
+  // ============================================================================
+
+  async extractReceipt(
+    groupId: string,
+    body: ExtractReceiptRequest,
+  ): Promise<ExtractedReceipt> {
+    const headers = await getHeaders();
+    const response = await fetch(
+      `${API_URL}/shared-groups/${groupId}/extract-receipt`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+      },
+    );
+
+    if (response.status === 403) {
+      throw new ProRequiredError();
+    }
+    if (response.status === 429) {
+      const data = await response.json().catch(() => ({}));
+      throw new AiQuotaExceededError(
+        data?.message || 'Cuota IA mensual excedida',
+        data?.resetAt,
+      );
+    }
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data?.message || 'Error al extraer datos del comprobante');
+    }
+    return response.json();
   },
 
   // ============================================================================

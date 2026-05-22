@@ -1,0 +1,63 @@
+rules_version = '2';
+
+// =============================================================================
+// REGLAS FIREBASE STORAGE
+// =============================================================================
+//
+// Cubre las fotos opcionales adjuntas a gastos y aportes de grupos compartidos
+// (PRO-only en el frontend; el bucket no distingue tier, así que el gate vive
+// en el cliente).
+//
+// Path canónico: shared-groups/{groupId}/{kind}/{filename}
+//   - kind ∈ {"expenses", "budgets"}
+//   - filename: "{userId}_{timestamp}.{ext}"  ← prefijo userId obliga ownership
+//
+// Reglas:
+//   - read: cualquier miembro del grupo
+//   - create/update: miembro del grupo, archivo ≤ 5 MB, content-type image/*,
+//     filename debe empezar con el uid del usuario
+//   - delete: el dueño del archivo (filename empieza con su uid)
+// =============================================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isGroupMember(groupId) {
+      return isSignedIn() &&
+        request.auth.uid in firestore.get(
+          /databases/(default)/documents/shared_groups/$(groupId)
+        ).data.members;
+    }
+
+    function isOwnerFile(filename) {
+      return isSignedIn() &&
+        filename.matches('^' + request.auth.uid + '_.*');
+    }
+
+    function isValidImage() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|jpg|png|webp)');
+    }
+
+    // -------- Comprobantes adjuntos a grupos compartidos --------
+    match /shared-groups/{groupId}/{kind}/{filename} {
+      allow read: if isGroupMember(groupId);
+
+      allow create, update: if isGroupMember(groupId)
+        && (kind == 'expenses' || kind == 'budgets')
+        && isOwnerFile(filename)
+        && isValidImage();
+
+      allow delete: if isOwnerFile(filename);
+    }
+
+    // Catch-all: denegar por defecto.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

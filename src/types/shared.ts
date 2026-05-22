@@ -65,6 +65,8 @@ export interface SharedBudget {
   description: string;
   paymentMethod?: string;
   type: 'contribution' | 'budget';
+  receiptUrl?: string;
+  receiptPath?: string;
   // Tax information fields
   date?: string; // YYYY-MM-DD
   time?: string; // HH:mm
@@ -80,6 +82,8 @@ export interface CreateSharedBudgetDto {
   description: string;
   paymentMethod?: string;
   type: 'contribution' | 'budget';
+  receiptUrl?: string;
+  receiptPath?: string;
   // Tax information fields
   date?: string;
   time?: string;
@@ -92,6 +96,8 @@ export interface UpdateSharedBudgetDto {
   amount?: number;
   description?: string;
   paymentMethod?: string;
+  receiptUrl?: string | null;
+  receiptPath?: string | null;
   // Tax information fields
   date?: string;
   time?: string;
@@ -116,6 +122,7 @@ export interface SharedExpense {
   subcategory?: string;
   paymentMethod?: string;
   receiptUrl?: string;
+  receiptPath?: string;
   // Tax information fields
   date?: string; // YYYY-MM-DD
   time?: string; // HH:mm
@@ -134,6 +141,7 @@ export interface CreateSharedExpenseDto {
   paymentMethod?: string;
   date?: string;
   receiptUrl?: string;
+  receiptPath?: string;
   // Tax information fields
   time?: string;
   voucherType?: 'boleta' | 'factura' | 'recibo' | 'ticket';
@@ -147,7 +155,8 @@ export interface UpdateSharedExpenseDto {
   category?: string;
   subcategory?: string;
   paymentMethod?: string;
-  receiptUrl?: string;
+  receiptUrl?: string | null;
+  receiptPath?: string | null;
   // Tax information fields
   date?: string;
   time?: string;
@@ -261,6 +270,33 @@ export interface Settlement {
 export interface SettlementResponse {
   settlements: Settlement[];
   isBalanced: boolean;
+}
+
+// ============================================================================
+// RECEIPT EXTRACTION (PRO)
+// ============================================================================
+
+export type ExtractReceiptKind = 'expense' | 'budget';
+
+export interface ExtractedReceipt {
+  amount: number | null;
+  description: string | null;
+  date: string | null; // YYYY-MM-DD
+  time: string | null; // HH:mm
+  voucherType: 'boleta' | 'factura' | 'recibo' | 'ticket' | null;
+  voucherNumber: string | null;
+  ruc: string | null;
+  paymentMethod: string | null;
+  category: string | null;
+  subcategory: string | null;
+  confidence: number; // 0-1
+}
+
+export interface ExtractReceiptRequest {
+  kind: ExtractReceiptKind;
+  receiptUrl: string;
+  categories?: string[];
+  subcategoriesByCategory?: Record<string, string[]>;
 }
 
 // ============================================================================

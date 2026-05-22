@@ -3,13 +3,13 @@
 > Documentación esencial para trabajar en el proyecto de Gestión de Gastos Personales.
 > **Para detalle extenso ver:** `docs/components.md`, `docs/testing.md`, `CHANGELOG.md`
 
-**Versión**: 2.9.0 · **Última actualización**: 2026-05-17
+**Versión**: 2.10.0 · **Última actualización**: 2026-05-22
 
 ---
 
 ## 🎯 Visión General
 
-Aplicación web React para gestionar gastos personales con análisis IA (Claude de Anthropic). Multi-cuenta, multi-moneda (PEN/USD), PWA instalable, presupuestos por categoría y general, gastos y transferencias programadas (recurrentes con soporte cross-currency), notificaciones in-app de fallos del cron, historial de ejecuciones, asistente IA conversacional.
+Aplicación web React para gestionar gastos personales con análisis IA (Claude de Anthropic). Multi-cuenta, multi-moneda (PEN/USD), PWA instalable, presupuestos por categoría y general, gastos y transferencias programadas (recurrentes con soporte cross-currency), notificaciones in-app de fallos del cron, asistente IA conversacional. **Grupos compartidos** con aportes/gastos colaborativos, foto opcional del comprobante (Firebase Storage) y autocompletado IA del form al subir la imagen (PRO).
 
 ---
 
@@ -66,6 +66,7 @@ src/
 - **Transferencias cross-currency**: el doc programado guarda `monedaDestino` + `exchangeRate` (o `usarTasaActual: true` → API Frankfurter al ejecutar). `amountConverted` se calcula en cada ejecución, no se persiste en el doc programado.
 - **Notificaciones (`notificaciones`)**: el cron crea docs cuando hay fallos. Cliente puede READ y UPDATE solo `leida` (regla `affectedKeys().hasOnly(['leida'])`). DELETE permitido al dueño.
 - **Métricas (`/metricas`, módulo PRO)**: read-only analytics vía backend (`/api/analytics/*`), **PRO-gated** server-side (`ProGuard` lee `users/{uid}.role`). No-pro ve teaser y nunca llama al backend. IA cacheada 24h (control de costo). Ver [`docs/analytics-backend.md`](./docs/analytics-backend.md).
+- **Compartidos · Foto del comprobante (PRO)**: F1 — foto opcional adjunta a aporte/gasto, subida directa desde el cliente a Firebase Storage (`storage.rules` valida membresía vía `shared_groups/{id}.members`). F2 — botón "Autocompletar con IA" llama a `POST /shared-groups/:id/extract-receipt` (Claude Sonnet Vision, prompt en español); el backend descarga la imagen y valida que el path pertenece al `groupId` antes de pasarla a la IA. Cuota se contabiliza como `shared-receipt-scan`. Bloqueado a no-PRO en frontend (teaser amber) + backend (`ProGuard`). Ver [`gastos-backend/docs/SHARED_RECEIPTS.md`](../gastos-backend/docs/SHARED_RECEIPTS.md).
 
 ---
 
@@ -175,6 +176,8 @@ try {
 | `services/analytics.ts` | Métricas PRO (`/api/analytics/*`): `getSummary`, `getAiInsights`, `askAi`, `getRoast`, `exportMetricas`. `ProRequiredError` mapea el 403 → teaser |
 | `services/aiUsageAdmin.ts` | Lectura admin de consumo IA: `getAppMonthly`, `getUserMonthly`, `getTopUsers` (rollups `aiUsage*`). Solo lectura; escribe el Admin SDK del backend/functions |
 | `services/aiUsage.ts` | `getMyUsage()` → `GET /api/ai-usage/me` (snapshot de cuota del usuario, Fase 2). `analytics.ts` lanza `QuotaExceededError` en 429 de cuota |
+| `services/shared-receipts.ts` | Foto del comprobante en grupos compartidos (PRO). `uploadReceipt`/`deleteReceipt` directo a Firebase Storage (`shared-groups/{groupId}/{kind}s/{uid}_{ts}.{ext}`); compresión cliente >500KB |
+| `services/shared.ts::extractReceipt` | OCR IA del comprobante (PRO). `POST /api/shared-groups/:id/extract-receipt` con `kind`+`receiptUrl`+categorías. Lanza `ProRequiredError` (403) o `AiQuotaExceededError` (429) |
 
 ---
 
@@ -337,6 +340,7 @@ npm run generate:icons / clean / reinstall
 - [`docs/testing.md`](./docs/testing.md) — Vitest setup, Playwright config, ejemplos
 - [`docs/programados-backend.md`](./docs/programados-backend.md) — contrato backend completo de programados: endpoints, modelo Firestore, cron en local + prod (GH Actions), idempotencia, notificaciones, auditoría, cross-currency
 - [`docs/analytics-backend.md`](./docs/analytics-backend.md) — contrato backend del módulo de Métricas PRO: endpoints `/api/analytics/*`, ProGuard, modelos IA por env, control de costo
+- [`gastos-backend/docs/SHARED_RECEIPTS.md`](../gastos-backend/docs/SHARED_RECEIPTS.md) — foto del comprobante en grupos compartidos (F1 Storage + F2 extracción IA): contratos, Storage rules, prompt, cuota, seguridad anti cross-group
 - [`docs/ai-usage.md`](./docs/ai-usage.md) — consumo de tokens IA: modelo de datos multi-repo, clasificación app/user, panel admin, y flujo recomendado de cuotas (Fase 2)
 - [`markdown/FLOWS.md`](./markdown/FLOWS.md) — mapa de módulos y dónde "vive" cada operación (API vs Firestore directo)
 

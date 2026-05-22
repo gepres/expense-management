@@ -4,6 +4,54 @@ Historial de versiones del proyecto Gastos.
 
 ---
 
+## v2.10.0 (2026-05-22)
+**Release**: Compartidos — Foto del comprobante + Autocompletar con IA (PRO)
+
+> Nueva capacidad en grupos compartidos: adjuntar opcionalmente una foto al aporte o gasto, y opcionalmente pedir a la IA que autocomplete el formulario leyendo la boleta/factura. Doble fase: F1 storage, F2 extracción IA. Ambas **exclusivas PRO**.
+
+### F1 — Foto del comprobante (Firebase Storage)
+- **Subida opcional** desde el form de aporte/gasto del grupo. Compresión cliente (canvas, max 1600px, JPEG 0.82) si >500KB.
+- **Path canónico**: `shared-groups/{groupId}/{expenses|budgets}/{uid}_{ts}.{ext}`.
+- **Miniatura clickeable** en cada item del listado abre lightbox a pantalla completa.
+- **Reemplazar/quitar** desde el form de edición; la foto anterior se borra del Storage solo al guardar.
+- **Cancelar el form sin guardar** elimina la foto recién subida (no quedan blobs huérfanos).
+- **Storage rules** (`storage.rules`, nuevo en el repo + `firebase.json`): read para miembros del grupo (lee `shared_groups/{groupId}.members`), create/update con prefijo uid + content-type `image/*` + <5MB, delete solo dueño.
+- **PRO-gated** en frontend: a no-PRO se muestra teaser amber con `ProBadge` y CTA "Activar PRO → /perfil".
+
+### F2 — Autocompletar con IA (Claude Sonnet Vision)
+- **Botón "Autocompletar con IA"** dentro del uploader (solo cuando hay foto + isPro). Dispara `POST /api/shared-groups/:id/extract-receipt` (PRO-gated server-side con `ProGuard` y cuota IA `shared-receipt-scan`).
+- **Campos extraídos**: monto, descripción, fecha, hora, tipo y número de comprobante, RUC, método de pago (detecta yape/plin/transferencia/tarjeta), categoría y subcategoría (solo gastos; la IA elige de la lista del usuario).
+- **Highlight visual** anillo verde + bg-emerald 2s sobre los campos rellenados (hook `useExtractedHighlight`). Toast con cantidad de campos y aviso si confianza < 50%.
+- **Idioma**: prompt y salida en español.
+- **Modelo**: tier `primary` del paquete `@gastos/expense-ai` (default `claude-sonnet-4-6`).
+- **Costo**: ~$0.006 por extracción; cuenta contra la cuota PRO existente (v2.9.0).
+- **Botón "Guardar" deshabilitado** mientras hay subida o extracción IA en curso (previene race condition).
+
+### Frontend (`gastos`)
+- Nuevos: `services/shared-receipts.ts`, `services/shared.ts::SharedService.extractReceipt`, clases de error `ProRequiredError`/`AiQuotaExceededError`.
+- Componentes nuevos: `ReceiptUploader`, `ReceiptViewer`, `useExtractedHighlight`.
+- `SharedExpensesTab` / `SharedBudgetsTab` integrados con el flujo completo (subir, ver, reemplazar, quitar, autocompletar IA, cleanup).
+- Tipos `SharedExpense` y `SharedBudget` añaden `receiptUrl?` y `receiptPath?`; sus DTOs Create/Update también. Update acepta `null` para limpiar.
+- `SharedGroupDetail` listeners `onSnapshot` mapean los nuevos campos. **Nota mantenimiento**: estos listeners mapean campo por campo (no spread); cualquier campo nuevo en los tipos debe añadirse al map.
+
+### Backend (`gastos-backend`)
+- **DTOs**: `CreateSharedBudgetDto` y `CreateSharedExpenseDto` añaden `receiptUrl?: string | null` y `receiptPath?: string | null` con `@ValidateIf(v !== null) @IsString()` (acepta string, null y ausente). El `update` PATCH usa `Partial<>` del create, así que el mismo cambio sirve para limpiar el campo enviando `null`.
+- **Nuevo DTO**: `ExtractReceiptDto` (kind, receiptUrl, categories?, subcategoriesByCategory?).
+- **Nuevo endpoint**: `POST /api/shared-groups/:id/extract-receipt` con `@RequirePro()`.
+- **Nuevo método** `AnthropicService.extractReceiptForSharedGroup()` — prompt español orientado a boletas peruanas, valida categoría/subcategoría contra la lista del usuario, normaliza confidence 0-1.
+- **Nuevo método** `SharedService.extractReceipt()` — valida membresía + `assertWithinQuota`, descarga la imagen vía `fetch` validando que el path empieza con `shared-groups/{groupId}/` (anti cross-group), llama Anthropic, tracking `shared-receipt-scan`.
+- `SharedModule` ahora importa `AnthropicModule` y `AiUsageModule`. `SharedController` usa `@UseGuards(FirebaseAuthGuard, ProGuard)` (el resto de endpoints sin `@RequirePro()` no se ven afectados — el guard pasa libre).
+
+### Documentación
+- `docs/SHARED_RECEIPTS.md` (repo backend) con el contrato completo del endpoint y flujo end-to-end.
+
+### Deploy
+- `firebase deploy --only storage` para activar las nuevas reglas de Storage.
+- Backend redeploy (Vercel) para activar el nuevo endpoint y los DTOs aceptando los campos.
+- Frontend redeploy (Vercel) con el nuevo build.
+
+---
+
 ## v2.9.0 (2026-05-17)
 **Release**: Panel de Administración — gestión de usuarios y cuota IA
 
