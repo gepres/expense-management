@@ -178,6 +178,7 @@ try {
 | `services/aiUsage.ts` | `getMyUsage()` → `GET /api/ai-usage/me` (snapshot de cuota del usuario, Fase 2). `analytics.ts` lanza `QuotaExceededError` en 429 de cuota |
 | `services/shared-receipts.ts` | Foto del comprobante en grupos compartidos (PRO). `uploadReceipt`/`deleteReceipt` directo a Firebase Storage (`shared-groups/{groupId}/{kind}s/{uid}_{ts}.{ext}`); compresión cliente >500KB |
 | `services/shared.ts::extractReceipt` | OCR IA del comprobante (PRO). `POST /api/shared-groups/:id/extract-receipt` con `kind`+`receiptUrl`+categorías. Lanza `ProRequiredError` (403) o `AiQuotaExceededError` (429) |
+| `services/widget.ts` | Emparejamiento del widget Windows (Tauri). `issueWidgetToken()` → `POST /api/widget/issue-token` devuelve custom token Firebase. `buildWidgetDeepLink(token)` arma `gastos://auth?customToken=...` que el widget intercepta. Página: `/widget-link` |
 
 ---
 
@@ -341,6 +342,7 @@ npm run generate:icons / clean / reinstall
 - [`docs/programados-backend.md`](./docs/programados-backend.md) — contrato backend completo de programados: endpoints, modelo Firestore, cron en local + prod (GH Actions), idempotencia, notificaciones, auditoría, cross-currency
 - [`docs/analytics-backend.md`](./docs/analytics-backend.md) — contrato backend del módulo de Métricas PRO: endpoints `/api/analytics/*`, ProGuard, modelos IA por env, control de costo
 - [`gastos-backend/docs/SHARED_RECEIPTS.md`](../gastos-backend/docs/SHARED_RECEIPTS.md) — foto del comprobante en grupos compartidos (F1 Storage + F2 extracción IA): contratos, Storage rules, prompt, cuota, seguridad anti cross-group
+- [`gastos-backend/docs/WIDGET_AUTH.md`](../gastos-backend/docs/WIDGET_AUTH.md) — emparejamiento del widget Windows (Tauri) con la sesión web: custom token Firebase + deep link `gastos://`, diagrama de secuencia, seguridad
 - [`docs/ai-usage.md`](./docs/ai-usage.md) — consumo de tokens IA: modelo de datos multi-repo, clasificación app/user, panel admin, y flujo recomendado de cuotas (Fase 2)
 - [`markdown/FLOWS.md`](./markdown/FLOWS.md) — mapa de módulos y dónde "vive" cada operación (API vs Firestore directo)
 

@@ -82,7 +82,21 @@
       "Bash(sed -n '78:86p' src/components/layout/Layout.tsx)",
       "Bash(sed -n '78,86p' src/components/layout/Layout.tsx)",
       "Bash(awk '/anthropic\\\\.service\\\\.ts/{flag=1;next}/^D:/{flag=0}flag')",
-      "Bash(where firebase *)"
+      "Bash(where firebase *)",
+      "Bash(where cargo *)",
+      "Bash(cargo --version)",
+      "Bash(where rustc *)",
+      "Bash(rustc --version)",
+      "Bash(mkdir -p D:/PROYECTOS/gepres/gastos-widget)",
+      "Read(//d/PROYECTOS/gepres/**)",
+      "Bash(cargo check *)",
+      "Bash(where link.exe)",
+      "Bash(where cl.exe)",
+      "Bash(rustup show *)",
+      "Read(//c/Program Files \\(x86\\)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/**)",
+      "Read(//c/Program Files/Microsoft Visual Studio/2022/BuildTools/VC/Tools/**)",
+      "Read(//c/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/**)",
+      "Read(//c/Program Files \\(x86\\)/Windows Kits/10/**)"
     ],
     "deny": [],
     "ask": []

@@ -53,6 +53,9 @@ const Documentacion = lazy(() => import('@/pages/Documentacion'));
 // Landing pública (ruta `/` sin sesión)
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
 
+// Widget Windows — emparejamiento con sesión web
+const WidgetLinkPage = lazy(() => import('@/pages/WidgetLinkPage'));
+
 // ============================================================================
 // Componente de carga
 // ============================================================================
@@ -188,6 +191,9 @@ function AppRoutes() {
 
         {/* Ruta para unirse a grupo (semi-pública) */}
         <Route path="/compartidos/unirse/:token" element={<JoinGroupPage />} />
+
+        {/* Emparejamiento con el widget Windows (Tauri) */}
+        <Route path="/widget-link" element={<WidgetLinkPage />} />
 
         {/* Ruta 404 */}
         <Route path="*" element={<Navigate to="/" replace />} />
