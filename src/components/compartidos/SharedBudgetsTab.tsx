@@ -15,7 +15,7 @@ import type { SharedBudget, CreateSharedBudgetDto } from '@app-types/shared';
 import { Plus, Edit2, Trash2, Calendar, Clock, FileText, Hash, Building2, CreditCard, AlignLeft, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal, { ModalFooterActions, ModalButton } from '@components/common/Modal';
-import { obtenerFechaLocalISO } from '@utils/formatters';
+import { obtenerFechaLocalISO, formatearFechaCorta } from '@utils/formatters';
 import { ContainerLoadingButton } from '../common/Button';
 import ReceiptUploader from './ReceiptUploader';
 import ReceiptViewer from './ReceiptViewer';
@@ -561,7 +561,7 @@ export default function SharedBudgetsTab({
                     )}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {displayName} •  {budget.date ? new Date(budget.date).toLocaleDateString('es-ES') : new Date(budget.createdAt).toLocaleDateString('es-ES')} • {budget.time}
+                    {displayName} •  {budget.date ? formatearFechaCorta(budget.date) : formatearFechaCorta(budget.createdAt)} • {budget.time}
                     {budget.paymentMethod && ` • ${getPaymentMethodLabel(budget.paymentMethod)}`}
                   </p>
                 </div>
