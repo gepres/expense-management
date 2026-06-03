@@ -1019,3 +1019,9 @@ export type {
   VendorCost,
 } from './aiUsage';
 
+// ============================================================================
+// Analítica de flujos (diagnóstico de producto — panel admin)
+// ============================================================================
+
+export type { UsageSnapshot } from './analyticsEvents';
+

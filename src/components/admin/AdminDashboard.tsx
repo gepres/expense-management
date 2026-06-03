@@ -11,8 +11,9 @@ import { SegmentedControl } from '@components/common/SegmentedControl';
 import SolicitudesProTab from './SolicitudesProTab';
 import CuentasProTab from './CuentasProTab';
 import ConsumoIATab from './ConsumoIATab';
+import DiagnosticoTab from './DiagnosticoTab';
 
-type Tab = 'solicitudes' | 'cuentas' | 'consumo';
+type Tab = 'solicitudes' | 'cuentas' | 'consumo' | 'diagnostico';
 
 export default function AdminDashboard() {
   const { isAdmin } = useAuth();
@@ -48,6 +49,7 @@ export default function AdminDashboard() {
             { value: 'solicitudes', label: 'Solicitudes PRO' },
             { value: 'cuentas', label: 'Cuentas PRO' },
             { value: 'consumo', label: 'Consumo IA' },
+            { value: 'diagnostico', label: 'Diagnóstico' },
           ]}
         />
       </div>
@@ -56,6 +58,7 @@ export default function AdminDashboard() {
         {tab === 'solicitudes' && <SolicitudesProTab />}
         {tab === 'cuentas' && <CuentasProTab />}
         {tab === 'consumo' && <ConsumoIATab />}
+        {tab === 'diagnostico' && <DiagnosticoTab />}
       </div>
     </div>
   );
