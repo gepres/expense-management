@@ -20,13 +20,36 @@ import {
   Loader2,
   AlertCircle,
   Activity,
+  Compass,
+  PieChart,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { AnalyticsEventsService } from '@services/analyticsEvents';
-import type { UsageSnapshot } from '@app-types';
+import type { UsageSnapshot, UsageOverview } from '@app-types';
+
+const ORIGEN_LABELS: Record<string, string> = {
+  web: 'Web (manual)',
+  scan: 'Escaneo recibo',
+  voz: 'Voz',
+  lista: 'Lista de compras',
+  whatsapp: 'WhatsApp',
+  import: 'Import Excel',
+  shared: 'Grupo compartido',
+};
 
 function fmt(n: number): string {
   return (n || 0).toLocaleString('es-PE');
+}
+
+function toPct(part: number, total: number): number {
+  return total > 0 ? Math.round((part / total) * 100) : 0;
+}
+
+function fmtDur(ms: number): string {
+  const min = Math.round(ms / 60000);
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  return `${h}h ${min % 60}m`;
 }
 
 function StatCard({
@@ -86,8 +109,44 @@ function Bar({
   );
 }
 
+function FunnelCard({
+  label,
+  opened,
+  saved,
+}: {
+  label: string;
+  opened: number;
+  saved: number;
+}) {
+  const abandono = opened > 0 ? Math.round((1 - saved / opened) * 100) : 0;
+  return (
+    <div className="bg-card border border-border rounded-xl p-4">
+      <p className="text-xs font-semibold text-muted-foreground mb-3">{label}</p>
+      <div className="flex items-end gap-4">
+        <div>
+          <p className="text-2xl font-bold text-foreground">{fmt(opened)}</p>
+          <p className="text-[11px] text-muted-foreground">abiertos</p>
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-emerald-500">{fmt(saved)}</p>
+          <p className="text-[11px] text-muted-foreground">guardados</p>
+        </div>
+        <div className="ml-auto text-right">
+          <p
+            className={`text-2xl font-bold ${abandono >= 50 ? 'text-red-500' : 'text-amber-500'}`}
+          >
+            {abandono}%
+          </p>
+          <p className="text-[11px] text-muted-foreground">abandono</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DiagnosticoTab() {
   const [snap, setSnap] = useState<UsageSnapshot | null>(null);
+  const [overview, setOverview] = useState<UsageOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,7 +154,12 @@ export default function DiagnosticoTab() {
     setLoading(true);
     setError(null);
     try {
-      setSnap(await AnalyticsEventsService.getSnapshot(force));
+      const [s, o] = await Promise.all([
+        AnalyticsEventsService.getSnapshot(force),
+        AnalyticsEventsService.getOverview().catch(() => null),
+      ]);
+      setSnap(s);
+      setOverview(o);
     } catch (err) {
       setError(
         err instanceof Error
@@ -120,6 +184,23 @@ export default function DiagnosticoTab() {
   }
 
   const ejec = snap?.recurrentes.ejecuciones;
+
+  // Overview (Fase 1-2): contadores de eventos + gastos por origen.
+  const c: Record<string, number> = overview?.counters ?? {};
+  const origen: Record<string, number> = overview?.gastosPorOrigen ?? {};
+  const origenEntries = Object.entries(origen)
+    .filter(([, n]) => n > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const origenTotal = origenEntries.reduce((a, [, n]) => a + n, 0);
+  const navSessions = c['nav.session.count'] ?? 0;
+  const navBounce = c['nav.session.bounce'] ?? 0;
+  const navViews = c['nav.session.viewsSum'] ?? 0;
+  const navDur = c['nav.session.durationMsSum'] ?? 0;
+  const rutaEntries = Object.entries(c)
+    .filter(([k, n]) => k.startsWith('view.') && n > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6);
+  const rutaTotal = rutaEntries.reduce((a, [, n]) => a + n, 0);
 
   return (
     <div className="space-y-5">
@@ -273,10 +354,154 @@ export default function DiagnosticoTab() {
             </div>
           </div>
 
-          <p className="text-[11px] text-muted-foreground mt-3">
-            Fase 0 · métricas derivables. El origen de gastos, los funnels de
-            abandono y la navegación llegan en las Fases 1-2.
-          </p>
+          {/* ===== Fase 1-2: gastos por origen + funnels + navegación ===== */}
+          {overview && (
+            <>
+              {/* Gastos por origen */}
+              <div className="bg-card border border-border rounded-xl p-5 mt-5">
+                <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                  <PieChart className="h-4 w-4 text-emerald-500" />
+                  Gastos por origen (canal)
+                </h4>
+                {origenEntries.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Aún sin gastos con origen marcado (se registra al crear
+                    nuevos gastos).
+                  </p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {origenEntries.map(([o, n]) => (
+                      <Bar
+                        key={o}
+                        label={ORIGEN_LABELS[o] ?? o}
+                        value={n}
+                        total={origenTotal}
+                        color="bg-emerald-500"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Funnels de creación */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
+                <FunnelCard
+                  label="Funnel · nuevo gasto"
+                  opened={c['expense.form.opened'] ?? 0}
+                  saved={c['expense.form.saved'] ?? 0}
+                />
+                <FunnelCard
+                  label="Funnel · nuevo recurrente"
+                  opened={c['rec.form.opened'] ?? 0}
+                  saved={c['rec.form.saved'] ?? 0}
+                />
+              </div>
+
+              {/* Actividad de recurrentes (mes) */}
+              <div className="bg-card border border-border rounded-xl p-5 mt-5">
+                <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                  <Repeat className="h-4 w-4 text-amber-500" />
+                  Actividad de recurrentes ({overview.mes})
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  {[
+                    {
+                      l: 'creados',
+                      v:
+                        (c['rec.gasto.created'] ?? 0) +
+                        (c['rec.transf.created'] ?? 0),
+                    },
+                    {
+                      l: 'pausados',
+                      v:
+                        (c['rec.gasto.paused'] ?? 0) +
+                        (c['rec.transf.paused'] ?? 0),
+                    },
+                    {
+                      l: 'reanudados',
+                      v:
+                        (c['rec.gasto.resumed'] ?? 0) +
+                        (c['rec.transf.resumed'] ?? 0),
+                    },
+                    {
+                      l: 'eliminados',
+                      v:
+                        (c['rec.gasto.deleted'] ?? 0) +
+                        (c['rec.transf.deleted'] ?? 0),
+                    },
+                  ].map((x) => (
+                    <div key={x.l}>
+                      <p className="text-xl font-bold text-foreground">
+                        {fmt(x.v)}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">{x.l}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Navegación */}
+              <div className="bg-card border border-border rounded-xl p-5 mt-5">
+                <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                  <Compass className="h-4 w-4 text-blue-500" />
+                  Navegación ({overview.mes})
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center mb-4">
+                  <div>
+                    <p className="text-xl font-bold text-foreground">
+                      {fmt(navSessions)}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">sesiones</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-foreground">
+                      {toPct(navBounce, navSessions)}%
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">bounce</p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-foreground">
+                      {navSessions > 0
+                        ? (navViews / navSessions).toFixed(1)
+                        : '0'}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      vistas/sesión
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold text-foreground">
+                      {navSessions > 0 ? fmtDur(navDur / navSessions) : '—'}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      duración media
+                    </p>
+                  </div>
+                </div>
+                {rutaEntries.length > 0 && (
+                  <div className="space-y-2.5">
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      Rutas más visitadas
+                    </p>
+                    {rutaEntries.map(([k, n]) => (
+                      <Bar
+                        key={k}
+                        label={k.replace('view.', '')}
+                        value={n}
+                        total={rutaTotal}
+                        color="bg-blue-500"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <p className="text-[11px] text-muted-foreground mt-3">
+                Fases 1-2 · eventos en vivo. La clasificación fina del bot
+                WhatsApp se instrumenta en el repo de Functions (cross-repo).
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>

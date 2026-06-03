@@ -1023,5 +1023,10 @@ export type {
 // Analítica de flujos (diagnóstico de producto — panel admin)
 // ============================================================================
 
-export type { UsageSnapshot } from './analyticsEvents';
+export type {
+  UsageSnapshot,
+  UsageOverview,
+  ClientEventName,
+  SessionSummary,
+} from './analyticsEvents';
 

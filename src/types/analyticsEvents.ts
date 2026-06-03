@@ -52,3 +52,35 @@ export interface UsageSnapshot {
   recibos: { total: number };
   listas: { total: number };
 }
+
+/** Overview mensual: contadores de eventos (rollup) + gastos por origen. */
+export interface UsageOverview {
+  mes: string;
+  generatedAt: string;
+  /** event → conteo del rollup `usageEventsAppMonthly/{mes}`. */
+  counters: Record<string, number>;
+  /** Gastos creados por canal de origen. */
+  gastosPorOrigen: Record<string, number>;
+}
+
+/** Eventos de funnel que el cliente puede emitir (allowlist client). */
+export type ClientEventName =
+  | 'expense.form.opened'
+  | 'expense.form.saved'
+  | 'expense.form.abandoned'
+  | 'expense.form.validation_error'
+  | 'rec.form.opened'
+  | 'rec.form.saved'
+  | 'rec.form.abandoned'
+  | 'receipt.preview.shown'
+  | 'receipt.preview.discarded';
+
+/** Resumen de una sesión de navegación (flush en visibilitychange). */
+export interface SessionSummary {
+  /** Vistas por ruta normalizada. */
+  views: Record<string, number>;
+  totalViews: number;
+  durationMs: number;
+  entryRoute?: string;
+  exitRoute?: string;
+}

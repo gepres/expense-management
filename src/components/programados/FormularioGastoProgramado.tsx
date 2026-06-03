@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { trackEvent } from '@services/analyticsEvents';
 import {
   Calendar,
   CircleDollarSign,
@@ -143,6 +144,11 @@ export default function FormularioGastoProgramado({
     }
   }, [isOpen, gasto]);
 
+  // Funnel de creación (diagnóstico): apertura del form de nuevo recurrente.
+  useEffect(() => {
+    if (isOpen && !esEdicion) void trackEvent('rec.form.opened');
+  }, [isOpen, esEdicion]);
+
   // Subcategorías derivadas
   const subcategoriasDisponibles = useMemo(
     () => getSubcategories(state.categoria),
@@ -222,6 +228,7 @@ export default function FormularioGastoProgramado({
         ? await actualizar(gasto!.id, dto)
         : await crear(dto);
       if (created) {
+        if (!esEdicion) void trackEvent('rec.form.saved');
         onSuccess?.(created);
         onClose();
       }

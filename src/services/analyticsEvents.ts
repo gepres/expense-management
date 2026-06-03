@@ -9,7 +9,12 @@
  */
 
 import { auth } from './firebase';
-import type { UsageSnapshot } from '@app-types';
+import type {
+  UsageSnapshot,
+  UsageOverview,
+  ClientEventName,
+  SessionSummary,
+} from '@app-types';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
@@ -44,4 +49,61 @@ export const AnalyticsEventsService = {
       `/usage-events/admin/snapshot${force ? '?force=true' : ''}`,
     );
   },
+
+  /** Overview mensual: contadores de eventos + gastos por origen. */
+  async getOverview(mes?: string): Promise<UsageOverview> {
+    return adminFetch<UsageOverview>(
+      `/usage-events/admin/overview${mes ? `?mes=${encodeURIComponent(mes)}` : ''}`,
+    );
+  },
 };
+
+// ============================================================================
+// Beacons del cliente (Fase 2) — fire-and-forget, nunca rompen la UI.
+// ============================================================================
+
+async function userToken(): Promise<string | null> {
+  try {
+    return (await auth.currentUser?.getIdToken()) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Registra un evento de funnel (UI). Fire-and-forget. */
+export async function trackEvent(event: ClientEventName): Promise<void> {
+  try {
+    const token = await userToken();
+    if (!token) return;
+    await fetch(`${API_BASE_URL}/usage-events/track`, {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ event }),
+    });
+  } catch {
+    /* fire-and-forget: el tracking jamás rompe la UI */
+  }
+}
+
+/** Envía el resumen de una sesión de navegación. Fire-and-forget. */
+export async function endSession(summary: SessionSummary): Promise<void> {
+  try {
+    const token = await userToken();
+    if (!token) return;
+    await fetch(`${API_BASE_URL}/usage-events/session-end`, {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(summary),
+    });
+  } catch {
+    /* fire-and-forget */
+  }
+}

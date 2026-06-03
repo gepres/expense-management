@@ -3,6 +3,7 @@
  */
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { trackEvent } from '@services/analyticsEvents';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { useConfig } from '@context/ConfigContext';
@@ -159,6 +160,12 @@ export default function FormularioGasto() {
   const currentSubcategory = currentCategory?.subcategorias?.find(sub => sub.nombre === formData.subcategoria || sub.id === formData.subcategoria);
   const subcategorySuggestions = currentSubcategory?.suggestions_ideas || [];
   const subcategoryName = currentSubcategory?.nombre || formData.subcategoria;
+
+  // Funnel de creación (diagnóstico): vista del form de nuevo gasto.
+  // El abandono se deriva en el panel como opened - saved.
+  useEffect(() => {
+    if (!esEdicion) void trackEvent('expense.form.opened');
+  }, [esEdicion]);
 
   // Cargar gasto si es edición o si viene data por location.state
   useEffect(() => {
@@ -608,6 +615,7 @@ export default function FormularioGasto() {
 
     if (!validarFormulario()) {
       toast.error('Por favor corrige los errores en el formulario');
+      void trackEvent('expense.form.validation_error');
       return;
     }
 
@@ -733,6 +741,7 @@ export default function FormularioGasto() {
         }
 
         toast.success('Gasto creado exitosamente');
+        void trackEvent('expense.form.saved');
       }
 
 

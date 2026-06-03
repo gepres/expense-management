@@ -335,6 +335,29 @@ service cloud.firestore {
     }
 
     // ========================================================================
+    // USAGE EVENTS — analítica de flujos / diagnóstico de producto.
+    // Rollups de contadores escritos SOLO por el backend (Admin SDK). El
+    // cliente nunca escribe: los eventos client van por POST /usage-events/track,
+    // que el backend valida (allowlist) y agrega. El dueño lee su rollup
+    // mensual; admin lee todo.
+    // ========================================================================
+
+    match /usageEventsAppMonthly/{mes} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /usageEventsAppDaily/{dia} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /usageEventsMonthly/{docId} {
+      allow read: if ownsResource() || isAdmin();
+      allow write: if false;
+    }
+
+    // ========================================================================
     // WHATSAPP QUEUE — solo Cloud Functions (Twilio webhook)
     // Ningún cliente debe leer ni escribir
     // ========================================================================

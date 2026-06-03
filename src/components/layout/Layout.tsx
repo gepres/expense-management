@@ -15,6 +15,7 @@ import NotificationsPanel from '../compartidos/NotificationsPanel';
 import NotificacionesSistemaPanel from '../compartidos/NotificacionesSistemaPanel';
 import { useSharedExpenses } from '@context/SharedExpensesContext';
 import { useNotificaciones } from '@hooks/useNotificaciones';
+import { usePageTracking } from '@hooks/usePageTracking';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function Layout() {
   const { theme, toggleTheme } = useTheme();
   const { unreadCount } = useSharedExpenses();
   const { noLeidasCount: sistemaNoLeidas } = useNotificaciones();
+  usePageTracking(); // navegación (page-views + sesión) — Fase 2 diagnóstico
   const [menuUsuarioAbierto, setMenuUsuarioAbierto] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
