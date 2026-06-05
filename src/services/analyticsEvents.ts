@@ -14,6 +14,8 @@ import type {
   UsageOverview,
   ClientEventName,
   SessionSummary,
+  UsageUserRow,
+  UsageDailyPoint,
 } from '@app-types';
 
 const API_BASE_URL =
@@ -54,6 +56,22 @@ export const AnalyticsEventsService = {
   async getOverview(mes?: string): Promise<UsageOverview> {
     return adminFetch<UsageOverview>(
       `/usage-events/admin/overview${mes ? `?mes=${encodeURIComponent(mes)}` : ''}`,
+    );
+  },
+
+  /** Top usuarios por actividad del mes. */
+  async getTopUsers(mes?: string, max = 15): Promise<UsageUserRow[]> {
+    const qs = new URLSearchParams({ max: String(max) });
+    if (mes) qs.set('mes', mes);
+    return adminFetch<UsageUserRow[]>(
+      `/usage-events/admin/top-users?${qs.toString()}`,
+    );
+  },
+
+  /** Serie diaria de actividad (últimos `dias` días). */
+  async getDaily(dias = 14): Promise<UsageDailyPoint[]> {
+    return adminFetch<UsageDailyPoint[]>(
+      `/usage-events/admin/daily?dias=${dias}`,
     );
   },
 };

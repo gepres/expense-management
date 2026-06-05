@@ -22,10 +22,22 @@ import {
   Activity,
   Compass,
   PieChart,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Cpu,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { AnalyticsEventsService } from '@services/analyticsEvents';
-import type { UsageSnapshot, UsageOverview } from '@app-types';
+import { authService } from '@services/firebase';
+import { currentMonthKey, shiftMonthKey } from '@services/aiUsageAdmin';
+import type {
+  UsageSnapshot,
+  UsageOverview,
+  UsageUserRow,
+  UsageDailyPoint,
+  Usuario,
+} from '@app-types';
 
 const ORIGEN_LABELS: Record<string, string> = {
   web: 'Web (manual)',
@@ -145,31 +157,48 @@ function FunnelCard({
 }
 
 export default function DiagnosticoTab() {
+  const [mes, setMes] = useState(() => currentMonthKey());
   const [snap, setSnap] = useState<UsageSnapshot | null>(null);
   const [overview, setOverview] = useState<UsageOverview | null>(null);
+  const [topUsers, setTopUsers] = useState<UsageUserRow[]>([]);
+  const [daily, setDaily] = useState<UsageDailyPoint[]>([]);
+  const [names, setNames] = useState<Record<string, Usuario>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (force = false) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [s, o] = await Promise.all([
-        AnalyticsEventsService.getSnapshot(force),
-        AnalyticsEventsService.getOverview().catch(() => null),
-      ]);
-      setSnap(s);
-      setOverview(o);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'No se pudo cargar el diagnóstico',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (force = false) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [s, o, top, d] = await Promise.all([
+          AnalyticsEventsService.getSnapshot(force),
+          AnalyticsEventsService.getOverview(mes).catch(() => null),
+          AnalyticsEventsService.getTopUsers(mes).catch(
+            () => [] as UsageUserRow[],
+          ),
+          AnalyticsEventsService.getDaily(14).catch(
+            () => [] as UsageDailyPoint[],
+          ),
+        ]);
+        setSnap(s);
+        setOverview(o);
+        setTopUsers(top);
+        setDaily(d);
+        const ids = top.slice(0, 15).map((r) => r.userId);
+        setNames(ids.length ? await authService.getUsersByIds(ids) : {});
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'No se pudo cargar el diagnóstico',
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [mes],
+  );
 
   useEffect(() => {
     void load();
@@ -201,6 +230,38 @@ export default function DiagnosticoTab() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 6);
   const rutaTotal = rutaEntries.reduce((a, [, n]) => a + n, 0);
+  const dailyMax = Math.max(...daily.map((x) => x.total), 1);
+  const hoyMes = currentMonthKey();
+
+  const exportarCsv = (): void => {
+    const rows: string[] = ['seccion,clave,valor'];
+    const push = (sec: string, k: string, v: number | string): void => {
+      rows.push(`${sec},${k},${v}`);
+    };
+    if (snap) {
+      push('usuarios', 'total', snap.usuarios.total);
+      push('usuarios', 'conWhatsapp', snap.usuarios.conWhatsapp);
+      push('gastos', 'total', snap.gastos.total);
+      push('gastos', 'esteMes', snap.gastos.esteMes);
+      push('whatsapp', 'llamadosTotal', snap.whatsapp.llamadosTotal);
+      push('chat', 'conversaciones', snap.chat.conversaciones);
+      push('grupos', 'total', snap.grupos.total);
+    }
+    Object.entries(origen).forEach(([o, n]) => push('gasto_origen', o, n));
+    Object.entries(c).forEach(([k, n]) => push('evento', k, n));
+    topUsers.forEach((u) =>
+      push('usuario', names[u.userId]?.email ?? u.userId, u.total),
+    );
+    const blob = new Blob([rows.join('\n')], {
+      type: 'text/csv;charset=utf-8;',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `diagnostico-${mes}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-5">
@@ -209,7 +270,7 @@ export default function DiagnosticoTab() {
         <div>
           <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
-            Diagnóstico de uso · {snap?.mes}
+            Diagnóstico de uso
           </h3>
           {snap && (
             <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -218,13 +279,41 @@ export default function DiagnosticoTab() {
             </p>
           )}
         </div>
-        <button
-          onClick={() => void load(true)}
-          className="p-2 rounded-lg hover:bg-accent text-muted-foreground"
-          aria-label="Refrescar"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setMes((m) => shiftMonthKey(m, -1))}
+            className="p-2 rounded-lg hover:bg-accent text-muted-foreground"
+            aria-label="Mes anterior"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="text-sm font-bold text-foreground min-w-[80px] text-center">
+            {mes}
+          </span>
+          <button
+            onClick={() => setMes((m) => shiftMonthKey(m, 1))}
+            disabled={mes >= hoyMes}
+            className="p-2 rounded-lg hover:bg-accent text-muted-foreground disabled:opacity-40"
+            aria-label="Mes siguiente"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <button
+            onClick={exportarCsv}
+            className="p-2 rounded-lg hover:bg-accent text-muted-foreground ml-1"
+            aria-label="Exportar CSV"
+            title="Exportar CSV"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => void load(true)}
+            className="p-2 rounded-lg hover:bg-accent text-muted-foreground"
+            aria-label="Refrescar"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -497,10 +586,79 @@ export default function DiagnosticoTab() {
               </div>
 
               <p className="text-[11px] text-muted-foreground mt-3">
-                Fases 1-2 · eventos en vivo. La clasificación fina del bot
+                Fases 1-3 · eventos en vivo. La clasificación fina del bot
                 WhatsApp se instrumenta en el repo de Functions (cross-repo).
               </p>
             </>
+          )}
+
+          {/* Tendencia diaria (últimos días) */}
+          {daily.length > 0 && (
+            <div className="bg-card border border-border rounded-xl p-5 mt-5">
+              <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                Actividad diaria (últimos {daily.length} días)
+              </h4>
+              <div className="flex items-end gap-1 h-28">
+                {daily.map((p) => (
+                  <div
+                    key={p.dia}
+                    className="flex-1 flex flex-col items-center justify-end h-full"
+                    title={`${p.dia}: ${fmt(p.total)} eventos`}
+                  >
+                    <div
+                      className="w-full bg-primary/70 rounded-t"
+                      style={{ height: `${Math.round((p.total / dailyMax) * 100)}%` }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                <span>{daily[0]?.dia.slice(5)}</span>
+                <span>{daily[daily.length - 1]?.dia.slice(5)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Top usuarios por actividad (mes) */}
+          {topUsers.length > 0 && (
+            <div className="bg-card border border-border rounded-xl mt-5 overflow-hidden">
+              <div className="p-4 border-b border-border">
+                <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Cpu className="h-4 w-4 text-indigo-500" />
+                  Top usuarios por actividad ({mes})
+                </h4>
+              </div>
+              <div className="divide-y divide-border">
+                {topUsers.map((u, i) => {
+                  const persona = names[u.userId];
+                  const gastos = u.counters['expense.form.saved'] ?? 0;
+                  const recurrentes =
+                    (u.counters['rec.gasto.created'] ?? 0) +
+                    (u.counters['rec.transf.created'] ?? 0);
+                  const sesiones = u.counters['nav.session.count'] ?? 0;
+                  return (
+                    <div key={u.userId} className="flex items-center gap-3 p-3">
+                      <span className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground flex-shrink-0">
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground truncate">
+                          {persona?.nombre ?? persona?.email ?? u.userId}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {fmt(gastos)} gastos · {fmt(recurrentes)} recurrentes ·{' '}
+                          {fmt(sesiones)} sesiones
+                        </p>
+                      </div>
+                      <span className="text-sm font-semibold text-foreground flex-shrink-0">
+                        {fmt(u.total)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       )}

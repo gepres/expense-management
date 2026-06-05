@@ -84,3 +84,17 @@ export interface SessionSummary {
   entryRoute?: string;
   exitRoute?: string;
 }
+
+/** Fila de actividad por usuario (rollup mensual). */
+export interface UsageUserRow {
+  userId: string;
+  /** Suma de todos los contadores del mes. */
+  total: number;
+  counters: Record<string, number>;
+}
+
+/** Punto de la serie diaria de actividad. */
+export interface UsageDailyPoint {
+  dia: string;
+  total: number;
+}

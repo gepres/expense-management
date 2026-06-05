@@ -1028,5 +1028,7 @@ export type {
   UsageOverview,
   ClientEventName,
   SessionSummary,
+  UsageUserRow,
+  UsageDailyPoint,
 } from './analyticsEvents';
 
