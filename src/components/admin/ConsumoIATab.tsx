@@ -30,10 +30,27 @@ import {
   Bot,
   RefreshCw,
   AlertCircle,
+  Download,
+  FileText,
+  FileJson,
+  Settings,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { SegmentedControl } from '@components/common/SegmentedControl';
 import { formatearMoneda } from '@utils/formatters';
+import {
+  buildConsumoIAMarkdown,
+  buildConsumoIAJson,
+  downloadConsumoIA,
+  type ExportConsumoIAInput,
+} from '@utils/exportConsumoIA';
+import {
+  MODELOS_ACTUALES,
+  MODEL_CHANGELOG,
+  cambiosEnVentana,
+} from '@utils/modelConfig';
+import ConsumoIATrendChart, { type TrendPoint } from './ConsumoIATrendChart';
 import QuotaConfigEditor from './QuotaConfigEditor';
 import QuotaAdjustModal from './QuotaAdjustModal';
 import VendorCostPanel from './VendorCostPanel';
@@ -158,6 +175,9 @@ export default function ConsumoIATab() {
     used: number;
   } | null>(null);
   const [quotaCfg, setQuotaCfg] = useState<QuotaConfig | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [trendLoading, setTrendLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -231,6 +251,55 @@ export default function ConsumoIATab() {
     };
   }, [topUsers, mes]);
 
+  // Ventana de 6 meses terminando en el mes seleccionado (antiguo → reciente).
+  const ventana = useMemo(
+    () => Array.from({ length: 6 }, (_, i) => shiftMonthKey(mes, -(5 - i))),
+    [mes],
+  );
+
+  // Tendencia: total (app + usuarios) por mes de la ventana. App = 1 doc/mes;
+  // usuarios = suma del top 100/mes. Best-effort: si falta el índice, degrada
+  // a solo-app sin tumbar la gráfica.
+  useEffect(() => {
+    let cancel = false;
+    setTrendLoading(true);
+    void (async () => {
+      try {
+        const pts = await Promise.all(
+          ventana.map(async (m) => {
+            const [appM, usersM] = await Promise.all([
+              AiUsageAdminService.getAppMonthly(m).catch(() => null),
+              AiUsageAdminService.getTopUsers(m, 100, 'totalTokens').catch(
+                () => [] as AiUsageUserRow[],
+              ),
+            ]);
+            const uTok = usersM.reduce((s, r) => s + (r.totalTokens || 0), 0);
+            const uCost = usersM.reduce(
+              (s, r) => s + (r.estimatedCostUsd || 0),
+              0,
+            );
+            return {
+              mes: m,
+              tokens: (appM?.totalTokens || 0) + uTok,
+              costUsd: (appM?.estimatedCostUsd || 0) + uCost,
+            };
+          }),
+        );
+        if (!cancel) setTrend(pts);
+      } finally {
+        if (!cancel) setTrendLoading(false);
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, [ventana]);
+
+  // Métrica de la gráfica: reusa el toggle "Por tokens / Por costo".
+  const metric: 'tokens' | 'cost' =
+    sortBy === 'estimatedCostUsd' ? 'cost' : 'tokens';
+  const cambiosVentana = useMemo(() => cambiosEnVentana(ventana), [ventana]);
+
   const hoyMes = currentMonthKey();
   const esMesActual = mes === hoyMes;
   const warnPct = quotaCfg?.warnPct ?? 80;
@@ -259,6 +328,42 @@ export default function ConsumoIATab() {
       blocked: used >= limit,
       warn: pct >= warnPct && pct < 100,
     };
+  };
+
+  // Exporta el consumo del mes a un archivo descargable: Markdown (informe +
+  // "brief" listo para que una IA proponga optimizaciones) o JSON (volcado).
+  const handleExport = (formato: 'md' | 'json'): void => {
+    setExportOpen(false);
+    if (!app && topUsers.length === 0) {
+      toast('No hay datos de consumo para exportar este mes', { icon: 'ℹ️' });
+      return;
+    }
+    try {
+      const input: ExportConsumoIAInput = {
+        mes,
+        app,
+        usuarios: usuariosAgg,
+        topUsers,
+        names,
+        generadoEn: new Date().toISOString(),
+      };
+      const archivo =
+        formato === 'md'
+          ? {
+              name: `consumo-ia-${mes}.md`,
+              content: buildConsumoIAMarkdown(input),
+              mime: 'text/markdown;charset=utf-8;',
+            }
+          : {
+              name: `consumo-ia-${mes}.json`,
+              content: buildConsumoIAJson(input),
+              mime: 'application/json;charset=utf-8;',
+            };
+      downloadConsumoIA(archivo.name, archivo.content, archivo.mime);
+      toast.success(`Consumo exportado (${formato.toUpperCase()})`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo exportar');
+    }
   };
 
   return (
@@ -294,18 +399,126 @@ export default function ConsumoIATab() {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
-        <SegmentedControl
-          size="sm"
-          value={sortBy}
-          onChange={(v) => setSortBy(v as AiUsageSortBy)}
-          options={[
-            { value: 'totalTokens', label: 'Por tokens' },
-            { value: 'estimatedCostUsd', label: 'Por costo' },
-          ]}
-        />
+        <div className="flex items-center gap-2">
+          <SegmentedControl
+            size="sm"
+            value={sortBy}
+            onChange={(v) => setSortBy(v as AiUsageSortBy)}
+            options={[
+              { value: 'totalTokens', label: 'Por tokens' },
+              { value: 'estimatedCostUsd', label: 'Por costo' },
+            ]}
+          />
+          <div className="relative">
+            <button
+              onClick={() => setExportOpen((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-sm text-foreground hover:bg-accent"
+              aria-haspopup="menu"
+              aria-expanded={exportOpen}
+              title="Exportar consumo IA para análisis"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">Exportar</span>
+            </button>
+            {exportOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setExportOpen(false)}
+                  aria-hidden="true"
+                />
+                <div className="absolute right-0 mt-2 w-60 bg-card border border-border rounded-lg shadow-lg z-20 overflow-hidden py-1">
+                  <button
+                    onClick={() => handleExport('md')}
+                    className="w-full flex items-start gap-2 px-3 py-2 text-sm text-foreground hover:bg-accent text-left"
+                  >
+                    <FileText className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>
+                      Informe Markdown
+                      <span className="block text-[11px] text-muted-foreground">
+                        Listo para analizar con IA
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => handleExport('json')}
+                    className="w-full flex items-start gap-2 px-3 py-2 text-sm text-foreground hover:bg-accent text-left"
+                  >
+                    <FileJson className="h-4 w-4 text-indigo-500 mt-0.5 flex-shrink-0" />
+                    <span>
+                      Datos JSON
+                      <span className="block text-[11px] text-muted-foreground">
+                        Volcado estructurado completo
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       <VendorCostPanel mes={mes} />
+
+      <ConsumoIATrendChart
+        data={trend}
+        metric={metric}
+        cambios={cambiosVentana}
+        loading={trendLoading}
+      />
+
+      {/* Modelos por feature + bitácora de cambios (cuándo se cambió y a qué afecta) */}
+      <div className="bg-card border border-border rounded-xl p-5">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-4">
+          <Settings className="h-4 w-4 text-indigo-500" />
+          Modelos por feature y cambios recientes
+        </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">
+              Configuración actual
+            </p>
+            <div className="space-y-1.5">
+              {MODELOS_ACTUALES.map((g) => (
+                <div
+                  key={g.grupo}
+                  className="flex justify-between gap-3 text-xs"
+                  title={`${g.env} · ${g.features.join(', ')}`}
+                >
+                  <span className="text-foreground">{g.grupo}</span>
+                  <span className="text-muted-foreground text-right">
+                    {g.modelo}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2">
+              Cambios de modelo
+            </p>
+            <div className="space-y-2.5">
+              {MODEL_CHANGELOG.map((c) => (
+                <div key={`${c.fecha}-${c.titulo}`} className="text-xs">
+                  <p className="text-foreground font-medium">
+                    {c.fecha} · {c.titulo}
+                  </p>
+                  {c.detalle && (
+                    <p className="text-muted-foreground mt-0.5">{c.detalle}</p>
+                  )}
+                  <p className="text-muted-foreground mt-0.5">
+                    Afecta: {c.afecta.join(', ')}{' '}
+                    <span className="opacity-70">
+                      (todos los usuarios de esas funciones)
+                    </span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {error && (
         <div className="rounded-lg p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-sm flex items-start gap-2">
