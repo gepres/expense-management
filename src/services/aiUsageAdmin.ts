@@ -15,12 +15,15 @@ import {
   where,
   orderBy,
   limit as fbLimit,
+  Timestamp,
 } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import type {
   AiUsageRollup,
   AiUsageUserRow,
   AiUsageSortBy,
+  AiUsageEventLite,
+  ModelConfigResponse,
   QuotaConfig,
   QuotaConfigResponse,
   QuotaSnapshot,
@@ -137,5 +140,47 @@ export const AiUsageAdminService = {
     return adminFetch<VendorCost>(
       `/ai-usage/vendor-cost?mes=${encodeURIComponent(mes)}`,
     );
+  },
+
+  /** Modelos de IA en uso por grupo (data real resuelta desde env del backend). */
+  async getModelConfig(): Promise<ModelConfigResponse> {
+    return adminFetch<ModelConfigResponse>('/ai-usage/models');
+  },
+
+  /**
+   * Eventos crudos de consumo IA en un rango de fechas, para agregación
+   * semanal/diaria en el cliente (los rollups solo existen por mes).
+   * Filtra por `createdAt` (índice single-field automático → sin índice
+   * compuesto). `max` acota la lectura; si se alcanza, el caller debería
+   * avisar que los datos están truncados. Solo admin (Firestore rules).
+   */
+  async getEventsSince(
+    desde: Date,
+    hasta?: Date,
+    max = 5000,
+  ): Promise<AiUsageEventLite[]> {
+    const filtros = [
+      where('createdAt', '>=', Timestamp.fromDate(desde)),
+      ...(hasta ? [where('createdAt', '<=', Timestamp.fromDate(hasta))] : []),
+    ];
+    const q = query(
+      collection(db, 'aiUsageEvents'),
+      ...filtros,
+      orderBy('createdAt', 'asc'),
+      fbLimit(max),
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => {
+      const x = d.data() as {
+        createdAt?: Timestamp;
+        totalTokens?: number;
+        estimatedCostUsd?: number;
+      };
+      return {
+        createdAt: x.createdAt?.toDate() ?? new Date(0),
+        totalTokens: x.totalTokens ?? 0,
+        estimatedCostUsd: x.estimatedCostUsd ?? 0,
+      };
+    });
   },
 };

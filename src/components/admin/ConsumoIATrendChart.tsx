@@ -1,7 +1,8 @@
 /**
- * Gráfica de tendencia del consumo de IA (últimos meses) con marcadores de
- * cambios de modelo. La métrica (tokens / costo) la decide el caller, normalmente
- * reusando el toggle "Por tokens / Por costo" del panel.
+ * Gráfica de tendencia del consumo de IA con marcadores de cambios de modelo.
+ * Granularidad mes/semana (controlada por el padre, que provee los datos de la
+ * fuente óptima: rollups mensuales para "mes", eventos agregados para "semana").
+ * La métrica (tokens / costo) la decide el caller (reusa el toggle del panel).
  */
 
 import {
@@ -15,6 +16,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { BarChart3, Loader2 } from 'lucide-react';
+import { SegmentedControl } from '@components/common/SegmentedControl';
 import {
   AXIS_PROPS,
   GRID_STROKE,
@@ -23,10 +25,12 @@ import {
 } from '@components/graficos/charts/chartTheme';
 import { MetricTooltip } from '@components/graficos/charts/MetricTooltip';
 import { formatearNumeroCompacto } from '@utils/formatters';
-import type { CambioModelo } from '@utils/modelConfig';
+
+export type TrendGranularity = 'mes' | 'semana';
 
 export interface TrendPoint {
-  mes: string;
+  /** Etiqueta del eje X (YYYY-MM en mes; DD/MM del lunes en semana). */
+  label: string;
   tokens: number;
   costUsd: number;
 }
@@ -34,23 +38,29 @@ export interface TrendPoint {
 interface ConsumoIATrendChartProps {
   data: TrendPoint[];
   metric: 'tokens' | 'cost';
-  cambios: CambioModelo[];
+  /** Etiquetas del eje donde hubo un cambio de modelo (marcador ⚙). */
+  markerLabels: string[];
+  granularity: TrendGranularity;
+  onGranularityChange: (g: TrendGranularity) => void;
   loading?: boolean;
+  /** Aviso opcional (p. ej. datos truncados por límite de lectura). */
+  aviso?: string | null;
 }
 
 export default function ConsumoIATrendChart({
   data,
   metric,
-  cambios,
+  markerLabels,
+  granularity,
+  onGranularityChange,
   loading = false,
+  aviso = null,
 }: ConsumoIATrendChartProps) {
   const isCost = metric === 'cost';
   const dataKey = isCost ? 'costUsd' : 'tokens';
   const serieName = isCost ? 'Costo (USD)' : 'Tokens';
   const markerColor = colorAt(2); // ámbar de la paleta
-
-  // Un marcador por mes con cambios (puede haber varios cambios el mismo mes).
-  const mesesCambio = Array.from(new Set(cambios.map((c) => c.mes)));
+  const marks = Array.from(new Set(markerLabels));
   const hayDatos = data.some((d) => d.tokens > 0 || d.costUsd > 0);
 
   return (
@@ -60,15 +70,26 @@ export default function ConsumoIATrendChart({
           <BarChart3 className="h-4 w-4 text-indigo-500" />
           Tendencia de consumo · {isCost ? 'costo (USD)' : 'tokens'}
         </h3>
-        {mesesCambio.length > 0 && (
-          <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-            <span
-              className="inline-block h-3 w-0.5"
-              style={{ backgroundColor: markerColor }}
-            />
-            ⚙ cambio de modelo
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {marks.length > 0 && (
+            <span className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+              <span
+                className="inline-block h-3 w-0.5"
+                style={{ backgroundColor: markerColor }}
+              />
+              ⚙ cambio de modelo
+            </span>
+          )}
+          <SegmentedControl
+            size="sm"
+            value={granularity}
+            onChange={(v) => onGranularityChange(v as TrendGranularity)}
+            options={[
+              { value: 'mes', label: 'Mes' },
+              { value: 'semana', label: 'Semana' },
+            ]}
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -78,7 +99,10 @@ export default function ConsumoIATrendChart({
       ) : !hayDatos ? (
         <div className="h-[240px] flex flex-col items-center justify-center text-muted-foreground bg-muted/10 rounded-lg border border-dashed border-border">
           <BarChart3 className="h-8 w-8 mb-2 opacity-20" />
-          <p className="text-sm">Sin consumo en el periodo</p>
+          <p className="text-sm">
+            Sin consumo en {granularity === 'mes' ? 'los meses' : 'las semanas'}{' '}
+            del periodo
+          </p>
         </div>
       ) : (
         <div className="h-[240px] w-full">
@@ -92,7 +116,7 @@ export default function ConsumoIATrendChart({
                 stroke={GRID_STROKE}
                 vertical={false}
               />
-              <XAxis dataKey="mes" {...AXIS_PROPS} dy={8} />
+              <XAxis dataKey="label" {...AXIS_PROPS} dy={8} />
               <YAxis
                 {...AXIS_PROPS}
                 width={52}
@@ -106,10 +130,10 @@ export default function ConsumoIATrendChart({
                 cursor={{ fill: 'hsl(var(--muted) / 0.4)' }}
                 content={<MetricTooltip moneda="USD" asCurrency={isCost} />}
               />
-              {mesesCambio.map((m) => (
+              {marks.map((label) => (
                 <ReferenceLine
-                  key={m}
-                  x={m}
+                  key={label}
+                  x={label}
                   stroke={markerColor}
                   strokeDasharray="5 4"
                   label={{
@@ -130,6 +154,12 @@ export default function ConsumoIATrendChart({
             </BarChart>
           </ResponsiveContainer>
         </div>
+      )}
+
+      {aviso && (
+        <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-2">
+          {aviso}
+        </p>
       )}
     </div>
   );

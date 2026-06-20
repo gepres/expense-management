@@ -18,6 +18,8 @@ import type {
   AiUsageUserRow,
   AiUsageBucketStat,
   AiUsageSortBy,
+  AiUsageEventLite,
+  ModelGroup,
   QuotaConfig,
   Usuario,
 } from '@app-types';
@@ -45,21 +47,52 @@ import {
   downloadConsumoIA,
   type ExportConsumoIAInput,
 } from '@utils/exportConsumoIA';
-import {
-  MODELOS_ACTUALES,
-  MODEL_CHANGELOG,
-  cambiosEnVentana,
-} from '@utils/modelConfig';
-import ConsumoIATrendChart, { type TrendPoint } from './ConsumoIATrendChart';
+import { MODEL_CHANGELOG } from '@utils/modelConfig';
+import ConsumoIATrendChart, {
+  type TrendPoint,
+  type TrendGranularity,
+} from './ConsumoIATrendChart';
 import QuotaConfigEditor from './QuotaConfigEditor';
 import QuotaAdjustModal from './QuotaAdjustModal';
 import VendorCostPanel from './VendorCostPanel';
 
 const TOP_FETCH = 100;
 const TOP_SHOW = 15;
+const TREND_MESES = 6;
+const TREND_SEMANAS = 8;
+const EVENTS_MAX = 5000;
 
 function fmtTok(n: number): string {
   return (n || 0).toLocaleString('es-PE');
+}
+
+/** Lunes (00:00 UTC) de la semana de `d`. */
+function startOfWeekMondayUTC(d: Date): Date {
+  const x = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+  );
+  const day = x.getUTCDay(); // 0=domingo
+  x.setUTCDate(x.getUTCDate() + (day === 0 ? -6 : 1 - day));
+  return x;
+}
+
+/** Clave estable de semana (ISO del lunes, `YYYY-MM-DD`). */
+function weekKeyUTC(d: Date): string {
+  return startOfWeekMondayUTC(d).toISOString().slice(0, 10);
+}
+
+/** Etiqueta visible de semana (DD/MM del lunes). */
+function weekLabelUTC(d: Date): string {
+  const m = startOfWeekMondayUTC(d);
+  const dd = String(m.getUTCDate()).padStart(2, '0');
+  const mm = String(m.getUTCMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}`;
+}
+
+/** Último instante (UTC) del mes `YYYY-MM`. */
+function lastInstantOfMonthUTC(mes: string): Date {
+  const [y, m] = mes.split('-').map(Number);
+  return new Date(Date.UTC(y, m, 0, 23, 59, 59, 999));
 }
 
 function mergeBuckets(
@@ -176,8 +209,13 @@ export default function ConsumoIATab() {
   } | null>(null);
   const [quotaCfg, setQuotaCfg] = useState<QuotaConfig | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const [granularity, setGranularity] = useState<TrendGranularity>('mes');
   const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [trendLoading, setTrendLoading] = useState(true);
+  const [markerLabels, setMarkerLabels] = useState<string[]>([]);
+  const [trendAviso, setTrendAviso] = useState<string | null>(null);
+  const [modelGroups, setModelGroups] = useState<ModelGroup[] | null>(null);
+  const [modelNota, setModelNota] = useState<string>('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -251,41 +289,111 @@ export default function ConsumoIATab() {
     };
   }, [topUsers, mes]);
 
-  // Ventana de 6 meses terminando en el mes seleccionado (antiguo → reciente).
-  const ventana = useMemo(
-    () => Array.from({ length: 6 }, (_, i) => shiftMonthKey(mes, -(5 - i))),
-    [mes],
-  );
+  const hoyMes = currentMonthKey();
+  const esMesActual = mes === hoyMes;
 
-  // Tendencia: total (app + usuarios) por mes de la ventana. App = 1 doc/mes;
-  // usuarios = suma del top 100/mes. Best-effort: si falta el índice, degrada
-  // a solo-app sin tumbar la gráfica.
+  // Métrica de la gráfica: reusa el toggle "Por tokens / Por costo".
+  const metric: 'tokens' | 'cost' =
+    sortBy === 'estimatedCostUsd' ? 'cost' : 'tokens';
+
+  // Tendencia. Mes: rollups mensuales (1 doc/mes + top usuarios). Semana:
+  // los rollups solo existen por mes, así que se leen los eventos crudos
+  // (aiUsageEvents) de la ventana y se agregan por semana en el cliente.
+  // Best-effort: si algo falla, degrada sin tumbar la gráfica.
   useEffect(() => {
     let cancel = false;
     setTrendLoading(true);
+    setTrendAviso(null);
     void (async () => {
       try {
-        const pts = await Promise.all(
-          ventana.map(async (m) => {
-            const [appM, usersM] = await Promise.all([
-              AiUsageAdminService.getAppMonthly(m).catch(() => null),
-              AiUsageAdminService.getTopUsers(m, 100, 'totalTokens').catch(
-                () => [] as AiUsageUserRow[],
+        if (granularity === 'mes') {
+          const meses = Array.from({ length: TREND_MESES }, (_, i) =>
+            shiftMonthKey(mes, -(TREND_MESES - 1 - i)),
+          );
+          const pts = await Promise.all(
+            meses.map(async (m) => {
+              const [appM, usersM] = await Promise.all([
+                AiUsageAdminService.getAppMonthly(m).catch(() => null),
+                AiUsageAdminService.getTopUsers(m, 100, 'totalTokens').catch(
+                  () => [] as AiUsageUserRow[],
+                ),
+              ]);
+              const uTok = usersM.reduce((s, r) => s + (r.totalTokens || 0), 0);
+              const uCost = usersM.reduce(
+                (s, r) => s + (r.estimatedCostUsd || 0),
+                0,
+              );
+              return {
+                label: m,
+                tokens: (appM?.totalTokens || 0) + uTok,
+                costUsd: (appM?.estimatedCostUsd || 0) + uCost,
+              };
+            }),
+          );
+          if (cancel) return;
+          setTrend(pts);
+          const setMeses = new Set(meses);
+          setMarkerLabels(
+            Array.from(
+              new Set(
+                MODEL_CHANGELOG.filter((c) => setMeses.has(c.mes)).map(
+                  (c) => c.mes,
+                ),
               ),
-            ]);
-            const uTok = usersM.reduce((s, r) => s + (r.totalTokens || 0), 0);
-            const uCost = usersM.reduce(
-              (s, r) => s + (r.estimatedCostUsd || 0),
-              0,
+            ),
+          );
+        } else {
+          // Semana: ventana de N semanas terminando en el mes seleccionado
+          // (o en hoy si es el mes en curso).
+          const fin = esMesActual ? new Date() : lastInstantOfMonthUTC(mes);
+          const finLunes = startOfWeekMondayUTC(fin);
+          const desde = new Date(finLunes);
+          desde.setUTCDate(desde.getUTCDate() - 7 * (TREND_SEMANAS - 1));
+          const lunes = Array.from({ length: TREND_SEMANAS }, (_, i) => {
+            const d = new Date(desde);
+            d.setUTCDate(d.getUTCDate() + 7 * i);
+            return d;
+          });
+          const eventos = await AiUsageAdminService.getEventsSince(
+            desde,
+            fin,
+            EVENTS_MAX,
+          ).catch(() => [] as AiUsageEventLite[]);
+          if (cancel) return;
+          const acc = new Map<string, { tokens: number; costUsd: number }>();
+          for (const ev of eventos) {
+            const k = weekKeyUTC(ev.createdAt);
+            const cur = acc.get(k) ?? { tokens: 0, costUsd: 0 };
+            cur.tokens += ev.totalTokens || 0;
+            cur.costUsd += ev.estimatedCostUsd || 0;
+            acc.set(k, cur);
+          }
+          setTrend(
+            lunes.map((d) => {
+              const b = acc.get(d.toISOString().slice(0, 10)) ?? {
+                tokens: 0,
+                costUsd: 0,
+              };
+              return { label: weekLabelUTC(d), tokens: b.tokens, costUsd: b.costUsd };
+            }),
+          );
+          const lunesKeys = new Set(lunes.map((d) => d.toISOString().slice(0, 10)));
+          setMarkerLabels(
+            Array.from(
+              new Set(
+                MODEL_CHANGELOG.map((c) => {
+                  const f = new Date(`${c.fecha}T12:00:00Z`);
+                  return lunesKeys.has(weekKeyUTC(f)) ? weekLabelUTC(f) : null;
+                }).filter((x): x is string => x !== null),
+              ),
+            ),
+          );
+          if (eventos.length >= EVENTS_MAX) {
+            setTrendAviso(
+              'Vista semanal limitada a los eventos más recientes; el total del periodo puede estar incompleto.',
             );
-            return {
-              mes: m,
-              tokens: (appM?.totalTokens || 0) + uTok,
-              costUsd: (appM?.estimatedCostUsd || 0) + uCost,
-            };
-          }),
-        );
-        if (!cancel) setTrend(pts);
+          }
+        }
       } finally {
         if (!cancel) setTrendLoading(false);
       }
@@ -293,15 +401,25 @@ export default function ConsumoIATab() {
     return () => {
       cancel = true;
     };
-  }, [ventana]);
+  }, [granularity, mes, esMesActual]);
 
-  // Métrica de la gráfica: reusa el toggle "Por tokens / Por costo".
-  const metric: 'tokens' | 'cost' =
-    sortBy === 'estimatedCostUsd' ? 'cost' : 'tokens';
-  const cambiosVentana = useMemo(() => cambiosEnVentana(ventana), [ventana]);
-
-  const hoyMes = currentMonthKey();
-  const esMesActual = mes === hoyMes;
+  // Config de modelos REAL (resuelta por el backend desde env). Una vez.
+  useEffect(() => {
+    let cancel = false;
+    void (async () => {
+      try {
+        const res = await AiUsageAdminService.getModelConfig();
+        if (cancel) return;
+        setModelGroups(res.groups);
+        setModelNota(res.nota);
+      } catch {
+        if (!cancel) setModelGroups([]); // sin permiso/endpoint → oculta tarjeta
+      }
+    })();
+    return () => {
+      cancel = true;
+    };
+  }, []);
   const warnPct = quotaCfg?.warnPct ?? 80;
 
   // % de cuota usada por usuario, según su rol y los límites de config.
@@ -464,11 +582,14 @@ export default function ConsumoIATab() {
       <ConsumoIATrendChart
         data={trend}
         metric={metric}
-        cambios={cambiosVentana}
+        markerLabels={markerLabels}
+        granularity={granularity}
+        onGranularityChange={setGranularity}
         loading={trendLoading}
+        aviso={trendAviso}
       />
 
-      {/* Modelos por feature + bitácora de cambios (cuándo se cambió y a qué afecta) */}
+      {/* Modelos por feature (data real del backend) + bitácora de cambios */}
       <div className="bg-card border border-border rounded-xl p-5">
         <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-4">
           <Settings className="h-4 w-4 text-indigo-500" />
@@ -477,22 +598,38 @@ export default function ConsumoIATab() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2">
-              Configuración actual
+              Configuración actual{' '}
+              <span className="font-normal opacity-70">(en uso, en vivo)</span>
             </p>
-            <div className="space-y-1.5">
-              {MODELOS_ACTUALES.map((g) => (
-                <div
-                  key={g.grupo}
-                  className="flex justify-between gap-3 text-xs"
-                  title={`${g.env} · ${g.features.join(', ')}`}
-                >
-                  <span className="text-foreground">{g.grupo}</span>
-                  <span className="text-muted-foreground text-right">
-                    {g.modelo}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {modelGroups === null ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Cargando…
+              </div>
+            ) : modelGroups.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                No disponible (requiere backend actualizado).
+              </p>
+            ) : (
+              <div className="space-y-1.5">
+                {modelGroups.map((g) => (
+                  <div
+                    key={g.key}
+                    className="flex justify-between gap-3 text-xs"
+                    title={`${g.env} · ${g.features.join(', ')}`}
+                  >
+                    <span className="text-foreground">{g.grupo}</span>
+                    <span className="text-muted-foreground text-right font-mono">
+                      {g.modelo}
+                    </span>
+                  </div>
+                ))}
+                {modelNota && (
+                  <p className="text-[11px] text-muted-foreground/80 pt-1.5">
+                    {modelNota}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-2">

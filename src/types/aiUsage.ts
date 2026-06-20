@@ -38,6 +38,19 @@ export interface AiUsageUserRow extends AiUsageRollup {
 export type AiUsageSortBy = 'totalTokens' | 'estimatedCostUsd';
 
 /**
+ * Forma mínima de un doc `aiUsageEvents/{id}` para la tendencia semanal.
+ * Los rollups solo existen por mes; para agrupar por semana se leen los
+ * eventos crudos (1 por llamada) y se agregan en el cliente. Solo admin lee
+ * `aiUsageEvents` (Firestore rules).
+ */
+export interface AiUsageEventLite {
+  /** Momento de la llamada (de `createdAt`, ya convertido a Date). */
+  createdAt: Date;
+  totalTokens: number;
+  estimatedCostUsd: number;
+}
+
+/**
  * Snapshot de cuota del propio usuario (`GET /api/ai-usage/me`).
  * Espejo de `QuotaService.snapshot()` del backend. `limit: null` = admin
  * (ilimitado). `resetAt` es ISO (1° del próximo mes UTC).
@@ -76,6 +89,24 @@ export interface QuotaConfigResponse {
   /** 'doc' = override del admin activo; 'env' = defaults de entorno. */
   source: 'doc' | 'env';
   envDefaults: QuotaConfig;
+}
+
+/**
+ * Grupo de features con el modelo REAL en uso (resuelto por el backend desde
+ * env/config). Espejo de `GET /api/ai-usage/models`.
+ */
+export interface ModelGroup {
+  key: string;
+  grupo: string;
+  modelo: string;
+  provider: 'anthropic' | 'openai';
+  env: string;
+  features: string[];
+}
+
+export interface ModelConfigResponse {
+  groups: ModelGroup[];
+  nota: string;
 }
 
 /** Costo real facturado de un proveedor (no es saldo restante). */
