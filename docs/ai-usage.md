@@ -5,7 +5,7 @@
 > **Fase 2 (enforcement de cuotas + medidor del usuario)** — ambas
 > implementadas y validadas en local.
 
-**Versión**: 2.7.0 · **Última actualización**: 2026-05-17
+**Versión**: 2.8.0 · **Última actualización**: 2026-06-20
 
 ---
 
@@ -23,6 +23,10 @@ Solo el **Admin SDK** (backend / functions) escribe. El cliente nunca escribe
 > El rollup por usuario es **top-level** (no `users/{uid}/…`): la regla
 > recursiva `users/{uid}/{document=**}` da `write` al dueño y permitiría
 > alterar la cuota. Clave de mes en **UTC** en los 3 repos.
+
+> **Vista semanal (panel admin):** como los rollups solo existen por mes, la
+> gráfica semanal agrega `aiUsageEvents` (campo `createdAt`) por semana en el
+> cliente (solo admin; índice single-field automático, sin índices nuevos).
 
 ## Clasificación `scope`
 
@@ -49,6 +53,15 @@ Explícita por call site (no inferida). Default seguro: `app`.
 (rol, WhatsApp vinculado + número, consumo del mes, revocar PRO) ·
 Consumo IA (app vs usuarios, top usuarios, desglose feature/proveedor,
 navegación por mes). Lee los rollups vía `services/aiUsageAdmin.ts`.
+
+El tab **Consumo IA** incluye además:
+- **Gráfica de tendencia** con toggle **Mes/Semana** (mes = rollups; semana =
+  agregación de `aiUsageEvents`) y marcadores ⚙ de cambios de modelo.
+- **Export** del consumo del mes a **Markdown** (informe + brief para analizar
+  con una IA) o **JSON** (`utils/exportConsumoIA.ts`).
+- **Modelos por feature en vivo**: `GET /api/ai-usage/models` (admin) resuelve
+  los modelos REALES desde las envs del backend (no estático). El changelog de
+  cambios es editorial (`utils/modelConfig.ts`).
 
 > Requiere `firebase deploy --only firestore` (rules + indexes) para que
 > el admin pueda leer estas colecciones.
@@ -79,6 +92,13 @@ natural por `YYYY-MM` (sin jobs), best-effort en functions (no rompe el bot).
 
 | Variable | Repo(s) | Default | Para |
 |---|---|---|---|
+| `ANTHROPIC_MODEL` | backend | `claude-sonnet-4-6` | Chat asistente |
+| `ANTHROPIC_ANALYTICS_MODEL` | backend | hereda `ANTHROPIC_MODEL` | Métricas PRO (insights/ask/roast) |
+| `ANTHROPIC_MODEL_PRIMARY` | backend, functions | `claude-sonnet-4-6` | Parse de texto/voz |
+| `ANTHROPIC_MODEL_VISION` | backend, functions | `claude-sonnet-4-6` | OCR de comprobantes (tier aislado; en prod `claude-haiku-4-5`) |
+| `ANTHROPIC_MODEL_HELPER` | backend, functions | `claude-haiku-4-5` | Helpers/clasificación acotada |
+| `OPENAI_MODEL_TRANSCRIBE` | backend, functions | `gpt-4o-mini-transcribe` | Transcripción de audio |
+| `OPENAI_IMAGE_MODEL` | backend | `gpt-image-1` | Imagen del roast |
 | `AI_PRICE_ANTHROPIC_INPUT_PER_1M` | backend, functions | `3` | Costo estimado tokens input |
 | `AI_PRICE_ANTHROPIC_OUTPUT_PER_1M` | backend, functions | `15` | Costo estimado tokens output |
 | `AI_PRICE_OPENAI_IMAGE_USD` | backend | `0.04` | Costo por imagen |
